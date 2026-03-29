@@ -1,0 +1,5 @@
+{
+  "name": "fisio-app",
+  "private": true,
+  "packageManager": "pnpm@9.15.0"
+}

@@ -1,0 +1,13 @@
+export { user, session, account, verification } from './auth-schema.js';
+export { professionals } from './professionals.js';
+export { patients } from './patients.js';
+export { patientBillingData } from './patient-billing-data.js';
+export { rgpdConsents } from './rgpd-consents.js';
+export { appointmentTypes } from './appointment-types.js';
+export { workingSchedules } from './working-schedules.js';
+export { blockedTimes } from './blocked-times.js';
+export { appointments } from './appointments.js';
+export { bonos } from './bonos.js';
+export { bonoTransactions } from './bono-transactions.js';
+export { payments } from './payments.js';
+export { invoices } from './invoices.js';
