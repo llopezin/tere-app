@@ -1,29 +1,28 @@
-import { Hono } from 'hono';
 import { serve } from '@hono/node-server';
 import { cors } from 'hono/cors';
 import { logger } from 'hono/logger';
-import { apiReference } from '@scalar/hono-api-reference';
+import createApp, { createRouter } from './lib/create-app.js';
+import configureOpenAPI from './lib/configure-open-api.js';
 import { env } from './config/env.js';
 import { errorHandler } from './middleware/error-handler.js';
 import { auth } from './lib/auth.js';
-import { openApiSpec } from './lib/openapi-spec.js';
 
 // Routes
-import professionalRoutes from './routes/professionals.js';
-import patientRoutes from './routes/patients.js';
-import patientProfile from './routes/patient-profile.js';
-import appointmentTypeRoutes from './routes/appointment-types.js';
-import scheduleRoutes from './routes/working-schedules.js';
-import blockedTimeRoutes from './routes/blocked-times.js';
-import availabilityRoutes from './routes/availability.js';
-import appointmentRoutes from './routes/appointments.js';
-import bonoRoutes from './routes/bonos.js';
-import paymentRoutes from './routes/payments.js';
-import reportRoutes from './routes/reports.js';
-import invoiceRoutes from './routes/invoices.js';
-import gcalRoutes from './routes/google-calendar.js';
+import professionalRoutes from './routes/professionals/professionals.index.js';
+import patientRoutes from './routes/patients/patients.index.js';
+import patientProfile from './routes/patient-profile/patient-profile.index.js';
+import appointmentTypeRoutes from './routes/appointment-types/appointment-types.index.js';
+import scheduleRoutes from './routes/working-schedules/working-schedules.index.js';
+import blockedTimeRoutes from './routes/blocked-times/blocked-times.index.js';
+import availabilityRoutes from './routes/availability/availability.index.js';
+import appointmentRoutes from './routes/appointments/appointments.index.js';
+import bonoRoutes from './routes/bonos/bonos.index.js';
+import paymentRoutes from './routes/payments/payments.index.js';
+import reportRoutes from './routes/reports/reports.index.js';
+import invoiceRoutes from './routes/invoices/invoices.index.js';
+import gcalRoutes from './routes/google-calendar/google-calendar.index.js';
 
-const app = new Hono();
+const app = createApp();
 
 // Global middleware
 app.use('*', cors({
@@ -38,16 +37,8 @@ app.use('*', errorHandler);
 // Health check
 app.get('/api/v1/health', (c) => c.json({ status: 'ok', timestamp: new Date().toISOString() }));
 
-// OpenAPI spec + Scalar docs
-app.get('/api/v1/openapi.json', (c) => c.json(openApiSpec));
-app.get(
-  '/api/v1/docs',
-  apiReference({
-    theme: 'kepler',
-    url: '/api/v1/openapi.json',
-    pageTitle: 'Fisio App API Docs',
-  }),
-);
+// Auto-generated OpenAPI spec + Scalar docs
+configureOpenAPI(app);
 
 // Better Auth handler — handles /api/auth/*
 app.on(['POST', 'GET'], '/api/auth/*', (c) => {
@@ -55,7 +46,7 @@ app.on(['POST', 'GET'], '/api/auth/*', (c) => {
 });
 
 // API v1 routes
-const api = new Hono();
+const api = createRouter();
 
 api.route('/professionals', professionalRoutes);
 api.route('/patients', patientRoutes);
