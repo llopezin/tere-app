@@ -1,9 +1,8 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Clock } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import { Select } from "@/components/ui/Select";
 import type { SelectOption } from "@/components/ui/Select";
-import { client } from "@/lib/client";
 
 interface AppointmentTypeOption extends SelectOption {
   durationMinutes: number;
@@ -49,11 +48,6 @@ function ProfessionalOptionRow({ option }: { option: ProfessionalOption }) {
 export function BookingForm() {
   const [consultationType, setConsultationType] = useState<string>();
   const [professional, setProfessional] = useState<string>();
-
-  // Change to tanstack query when ready
-  useEffect(() => {
-    client
-  });
 
   return (
     <Card className="p-6">
