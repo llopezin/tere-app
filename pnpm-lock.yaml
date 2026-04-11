@@ -10,6 +10,9 @@ importers:
 
   apps/backend:
     dependencies:
+      '@fisio-app/validators':
+        specifier: workspace:^
+        version: link:../../packages/validators
       '@hono/node-server':
         specifier: ^1.13.0
         version: 1.19.11(hono@4.12.9)
@@ -68,6 +71,9 @@ importers:
       '@fisio-app/backend':
         specifier: workspace:^
         version: link:../backend
+      '@fisio-app/validators':
+        specifier: workspace:^
+        version: link:../../packages/validators
       '@hono/zod-openapi':
         specifier: ^0.18.4
         version: 0.18.4(hono@4.12.9)(zod@3.25.76)
@@ -156,6 +162,12 @@ importers:
       vite:
         specifier: ^8.0.1
         version: 8.0.3(@emnapi/core@1.9.2)(@emnapi/runtime@1.9.2)(@types/node@24.12.2)(esbuild@0.27.4)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.8.3)
+
+  packages/validators:
+    dependencies:
+      zod:
+        specifier: ^3.24.0
+        version: 3.25.76
 
 packages:
 

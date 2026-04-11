@@ -2,6 +2,7 @@ import { pgTable, uuid, text, date, timestamp } from 'drizzle-orm/pg-core';
 import { createSelectSchema, createInsertSchema } from 'drizzle-zod';
 import { professionals } from './professionals.js';
 import { user } from './auth-schema.js';
+import { phoneSchema, nieSchema } from '@fisio-app/validators';
 
 export const patients = pgTable('patients', {
   id: uuid('id').defaultRandom().primaryKey(),
@@ -29,7 +30,8 @@ export const selectPatientSchema = createSelectSchema(patients);
 export const insertPatientSchema = createInsertSchema(patients, {
   firstName: schema => schema.min(1),
   lastName: schema => schema.min(1),
-  phone: schema => schema.min(1),
+  phone: () => phoneSchema,
+  nie: () => nieSchema.optional(),
   email: schema => schema.email().optional(),
 }).omit({
   id: true,

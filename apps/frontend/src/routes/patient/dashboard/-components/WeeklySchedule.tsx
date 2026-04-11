@@ -190,7 +190,7 @@ export function WeeklySchedule({
                             endAt: slot.end_at,
                           })
                         }
-                        className="rounded-lg border border-green-200 bg-green-50 px-3 py-2 text-sm font-medium text-green-700 transition-colors hover:border-green-300 hover:bg-green-100"
+                        className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm font-medium text-text transition-colors hover:border-primary-600/40 hover:bg-background"
                       >
                         {new Date(slot.start_at).toLocaleTimeString("es-ES", {
                           hour: "2-digit",
@@ -199,7 +199,7 @@ export function WeeklySchedule({
                       </button>
                     ))
                   ) : (
-                    <span className="py-2 text-xs text-text-muted slign">Sin citas</span>
+                    <span className="py-2 text-xs text-text-muted text-center">Sin citas</span>
                   )}
                 </div>
               </div>

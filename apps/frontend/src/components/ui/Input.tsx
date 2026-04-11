@@ -5,10 +5,11 @@ import { cn } from "@/lib/cn";
 interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
   label: string;
   icon?: ReactNode;
+  error?: string;
 }
 
 export const Input = forwardRef<HTMLInputElement, InputProps>(
-  ({ label, icon, type, className, id, ...props }, ref) => {
+  ({ label, icon, type, className, id, error, ...props }, ref) => {
     const [showPassword, setShowPassword] = useState(false);
     const innerId = useId();
     const inputId = id || innerId;
@@ -17,7 +18,8 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
     const inputType = isPassword && showPassword ? "text" : type;
 
     return (
-      <div className={cn("relative h-13 w-full", className)}>
+      <div className={cn("relative w-full", className)}>
+        <div className="relative h-13">
         {icon && (
           <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 z-10 text-text-muted">
             {icon}
@@ -29,8 +31,13 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
           ref={ref}
           type={inputType}
           placeholder=" "
+          aria-invalid={!!error}
+          aria-describedby={error ? `${inputId}-error` : undefined}
           className={cn(
-            "peer h-full w-full rounded-lg border border-border bg-input-bg pb-1 pt-5 text-sm text-text transition-all focus:border-primary-600 focus:outline-none focus:ring-2 focus:ring-primary-600/20 not-focus:placeholder-transparent",
+            "peer h-full w-full rounded-lg border bg-input-bg pb-1 pt-5 text-sm text-text transition-all focus:outline-none focus:ring-2 not-focus:placeholder-transparent",
+            error
+              ? "border-red-400 focus:border-red-500 focus:ring-red-400/20"
+              : "border-border focus:border-primary-600 focus:ring-primary-600/20",
             icon ? "pl-10 pr-3" : "px-3",
             isPassword && "pr-10",
           )}
@@ -59,6 +66,12 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
           >
             {showPassword ? <Eye className="size-5" /> : <EyeOff className="size-5" />}
           </button>
+        )}
+        </div>
+        {error && (
+          <p id={`${inputId}-error`} className="mt-1 text-xs text-red-500">
+            {error}
+          </p>
         )}
       </div>
     );

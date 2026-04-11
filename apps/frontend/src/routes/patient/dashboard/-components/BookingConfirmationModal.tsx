@@ -7,6 +7,7 @@ import { Textarea } from "@/components/ui/Textarea";
 import { RadioGroup } from "@/components/ui/RadioGroup";
 import { Button } from "@/components/ui/Button";
 import { patientProfileQueryOptions } from "@/api/patient-profile";
+import { phoneSchema, nieSchema } from "@fisio-app/validators";
 
 const DAYS = [
   "Domingo",
@@ -69,6 +70,24 @@ export function BookingConfirmationModal({
   const [email, setEmail] = useState("");
   const [contactMethod, setContactMethod] = useState("email");
   const [comments, setComments] = useState("");
+  const [errors, setErrors] = useState<{ nie?: string; phone?: string }>({});
+
+  const validateField = (field: "nie" | "phone", value: string) => {
+    if (field === "nie") {
+      if (!value) return setErrors((e) => ({ ...e, nie: undefined }));
+      const result = nieSchema.safeParse(value);
+      setErrors((e) => ({
+        ...e,
+        nie: result.success ? undefined : result.error.issues[0]?.message,
+      }));
+    } else {
+      const result = phoneSchema.safeParse(value);
+      setErrors((e) => ({
+        ...e,
+        phone: result.success ? undefined : result.error.issues[0]?.message,
+      }));
+    }
+  };
 
   useEffect(() => {
     if (profile && !profileLoaded.current) {
@@ -98,6 +117,14 @@ export function BookingConfirmationModal({
         <form
           onSubmit={(e) => {
             e.preventDefault();
+            const nieResult = nie ? nieSchema.safeParse(nie) : { success: true };
+            const phoneResult = phoneSchema.safeParse(phone);
+            const newErrors = {
+              nie: !nieResult.success ? (nieResult as { success: false; error: { issues: { message: string }[] } }).error.issues[0]?.message : undefined,
+              phone: !phoneResult.success ? phoneResult.error.issues[0]?.message : undefined,
+            };
+            setErrors(newErrors);
+            if (newErrors.nie || newErrors.phone) return;
           }}
           className="space-y-6"
         >
@@ -161,6 +188,8 @@ export function BookingConfirmationModal({
               required
               value={nie}
               onChange={(e) => setNie(e.target.value)}
+              onBlur={() => validateField("nie", nie)}
+              error={errors.nie}
             />
             <Input
               label="Teléfono"
@@ -168,6 +197,8 @@ export function BookingConfirmationModal({
               type="tel"
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
+              onBlur={() => validateField("phone", phone)}
+              error={errors.phone}
             />
           </div>
 
