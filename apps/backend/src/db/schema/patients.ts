@@ -18,7 +18,7 @@ export const patients = pgTable('patients', {
   addressCity: text('address_city'),
   addressProvince: text('address_province'),
   addressCountry: text('address_country').default('España'),
-  contactMethod: text('contact_method', { enum: ['email', 'sms', 'whatsapp'] }).notNull().default('whatsapp'),
+  contactMethod: text('contact_method', { enum: ['email', 'sms', 'whatsapp'] }),
   clinicalNotes: text('clinical_notes'),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),

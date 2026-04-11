@@ -236,8 +236,10 @@ export const getContactLink: AppRouteHandler<GetContactLinkRoute> = async (c) =>
     .where(and(eq(patients.id, id), eq(patients.professionalId, profileId)));
   if (!patient) throw new AppError(404, 'Patient not found');
 
+  const method = patient.contactMethod ?? 'whatsapp';
+
   let link: string;
-  switch (patient.contactMethod) {
+  switch (method) {
     case 'whatsapp':
       link = `https://wa.me/${patient.phone.replace(/[^0-9]/g, '')}`;
       break;
@@ -251,7 +253,7 @@ export const getContactLink: AppRouteHandler<GetContactLinkRoute> = async (c) =>
       link = `https://wa.me/${patient.phone.replace(/[^0-9]/g, '')}`;
   }
 
-  return c.json({ method: patient.contactMethod, link }, HttpStatusCodes.OK);
+  return c.json({ method, link }, HttpStatusCodes.OK);
 };
 
 export const assignConsent: AppRouteHandler<AssignConsentRoute> = async (c) => {

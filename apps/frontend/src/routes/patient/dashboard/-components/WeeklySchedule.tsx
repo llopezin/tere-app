@@ -86,9 +86,7 @@ export function WeeklySchedule({
     const mon = getMonday(weekOffset);
     const days: Date[] = [];
     for (let i = 0; i < 5; i++) {
-      days.push(
-        new Date(mon.getFullYear(), mon.getMonth(), mon.getDate() + i),
-      );
+      days.push(new Date(mon.getFullYear(), mon.getMonth(), mon.getDate() + i));
     }
     return { monday: days[0], friday: days[4], weekDays: days };
   }, [weekOffset]);
@@ -136,17 +134,13 @@ export function WeeklySchedule({
           onClick={() => setWeekOffset((o) => o - 1)}
           className={cn(
             "size-8 rounded-md text-text-muted transition-colors",
-            weekOffset === 0
-              ? "cursor-not-allowed opacity-40"
-              : "hover:bg-background",
+            weekOffset === 0 ? "cursor-not-allowed opacity-40" : "hover:bg-background",
           )}
         >
           <ChevronLeft className="mx-auto size-5" />
         </button>
 
-        <span className="text-sm font-medium text-text">
-          {formatWeekRange(monday, friday)}
-        </span>
+        <span className="text-sm font-medium text-text">{formatWeekRange(monday, friday)}</span>
 
         <button
           type="button"
@@ -176,19 +170,15 @@ export function WeeklySchedule({
               <div key={dateKey} className="flex flex-col items-center gap-2">
                 {/* Day header */}
                 <div className="flex flex-col items-center gap-0.5">
-                  <span className="text-xs text-text-muted">
-                    {DAY_LABELS[i]}
-                  </span>
-                  <span className="text-lg font-bold text-text">
-                    {day.getDate()}
-                  </span>
+                  <span className="text-xs text-text-muted">{DAY_LABELS[i]}</span>
+                  <span className="text-lg font-bold text-text">{day.getDate()}</span>
                   <span className="text-xs text-text-secondary">
                     {SHORT_MONTHS[day.getMonth()]}
                   </span>
                 </div>
 
                 {/* Slots */}
-                <div className="flex w-full flex-col items-center gap-1.5">
+                <div className="flex w-full flex-col gap-1.5">
                   {slots.length > 0 ? (
                     slots.map((slot) => (
                       <button
@@ -209,9 +199,7 @@ export function WeeklySchedule({
                       </button>
                     ))
                   ) : (
-                    <span className="py-2 text-xs text-text-muted">
-                      Sin citas
-                    </span>
+                    <span className="py-2 text-xs text-text-muted slign">Sin citas</span>
                   )}
                 </div>
               </div>
