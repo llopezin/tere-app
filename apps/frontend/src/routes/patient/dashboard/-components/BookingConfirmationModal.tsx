@@ -1,13 +1,16 @@
 import { useState, useEffect, useRef } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { Mail, MessageCircle, Phone } from "lucide-react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { Mail, MessageCircle, Phone, CheckCircle2 } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
 import { Input } from "@/components/ui/Input";
 import { Textarea } from "@/components/ui/Textarea";
 import { RadioGroup } from "@/components/ui/RadioGroup";
 import { Button } from "@/components/ui/Button";
 import { patientProfileQueryOptions } from "@/api/patient-profile";
+import { patientAppointmentsQueryOptions } from "@/api/patient-appointments";
+import { createAppointment } from "@/api/appointments";
 import { phoneSchema, nieSchema } from "@fisio-app/validators";
+import { cn } from "@/lib/cn";
 
 const DAYS = [
   "Domingo",
@@ -49,6 +52,7 @@ interface BookingConfirmationModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   slot: { startAt: string; endAt: string } | null;
+  appointmentTypeId: string;
   professionalName: string;
   consultationName: string;
 }
@@ -57,10 +61,12 @@ export function BookingConfirmationModal({
   open,
   onOpenChange,
   slot,
+  appointmentTypeId,
   professionalName,
   consultationName,
 }: BookingConfirmationModalProps) {
   const { data: profile } = useQuery(patientProfileQueryOptions());
+  const queryClient = useQueryClient();
   const profileLoaded = useRef(false);
 
   const [firstName, setFirstName] = useState("");
@@ -71,6 +77,12 @@ export function BookingConfirmationModal({
   const [contactMethod, setContactMethod] = useState("email");
   const [comments, setComments] = useState("");
   const [errors, setErrors] = useState<{ nie?: string; phone?: string }>({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+
+  // Animation phases
+  const [blurring, setBlurring] = useState(false);
+  const [confirmed, setConfirmed] = useState(false);
 
   const validateField = (field: "nie" | "phone", value: string) => {
     if (field === "nie") {
@@ -103,45 +115,102 @@ export function BookingConfirmationModal({
     }
   }, [profile]);
 
+  // Reset animation state when modal closes
+  useEffect(() => {
+    if (!open) {
+      const t = setTimeout(() => {
+        setConfirmed(false);
+        setBlurring(false);
+        setSubmitError(null);
+        setIsSubmitting(false);
+      }, 300);
+      return () => clearTimeout(t);
+    }
+  }, [open]);
+
   const showContactMethod = !profile?.contactMethod;
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    const nieResult = nie ? nieSchema.safeParse(nie) : { success: true };
+    const phoneResult = phoneSchema.safeParse(phone);
+    const newErrors = {
+      nie: !nieResult.success
+        ? (
+            nieResult as {
+              success: false;
+              error: { issues: { message: string }[] };
+            }
+          ).error.issues[0]?.message
+        : undefined,
+      phone: !phoneResult.success
+        ? phoneResult.error.issues[0]?.message
+        : undefined,
+    };
+    setErrors(newErrors);
+    if (newErrors.nie || newErrors.phone) return;
+
+    if (!profile?.id || !slot) return;
+
+    setIsSubmitting(true);
+    setSubmitError(null);
+
+    try {
+      await createAppointment({
+        patientId: profile.id,
+        appointmentTypeId,
+        startAt: slot.startAt,
+        notes: comments || undefined,
+      });
+
+      // Invalidate appointments cache so Mis Citas updates
+      await queryClient.invalidateQueries({
+        queryKey: patientAppointmentsQueryOptions().queryKey,
+      });
+
+      // Blur out form, then reveal confirmation
+      setBlurring(true);
+      setTimeout(() => {
+        setConfirmed(true);
+        setBlurring(false);
+      }, 300);
+    } catch (err) {
+      setSubmitError(
+        err instanceof Error ? err.message : "Error al crear la cita",
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   return (
     <Modal
       open={open}
       onOpenChange={onOpenChange}
-      title="Confirmar cita"
-      subtitle={`Revisa los datos de tu cita de ${consultationName} con ${professionalName}`}
+      title={confirmed ? "¡Cita confirmada!" : "Confirmar cita"}
+      subtitle={
+        confirmed
+          ? undefined
+          : `Revisa los datos de tu cita de ${consultationName} con ${professionalName}`
+      }
       className="max-w-lg"
     >
-      {!slot ? null : (
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            const nieResult = nie
-              ? nieSchema.safeParse(nie)
-              : { success: true };
-            const phoneResult = phoneSchema.safeParse(phone);
-            const newErrors = {
-              nie: !nieResult.success
-                ? (
-                    nieResult as {
-                      success: false;
-                      error: { issues: { message: string }[] };
-                    }
-                  ).error.issues[0]?.message
-                : undefined,
-              phone: !phoneResult.success
-                ? phoneResult.error.issues[0]?.message
-                : undefined,
-            };
-            setErrors(newErrors);
-            if (newErrors.nie || newErrors.phone) return;
-          }}
-          className="space-y-6"
-        >
-          {/* Summary Box */}
-          <div className="rounded-lg border border-green-200 bg-green-50 p-4">
-            <div className="flex gap-4">
+      {!slot ? null : confirmed ? (
+        // ── Confirmation view ───────────────────────────────────────────────
+        <div className="animate-scale-in space-y-6">
+          <div className="flex flex-col items-center gap-3 py-2 text-center">
+            <div className="flex size-16 items-center justify-center rounded-full bg-green-100">
+              <CheckCircle2 className="size-9 text-green-600" strokeWidth={1.5} />
+            </div>
+            <p className="text-sm text-text-secondary">
+              Tu cita ha sido reservada. Te contactaremos para confirmarte los
+              detalles.
+            </p>
+          </div>
+
+          <div className="rounded-lg border border-green-200 bg-green-50 p-4 space-y-3">
+            <div className="grid grid-cols-2 gap-3">
               <div>
                 <p className="text-xs font-medium uppercase text-green-600">
                   Fecha
@@ -155,102 +224,164 @@ export function BookingConfirmationModal({
                   Hora
                 </p>
                 <p className="text-sm font-semibold text-green-800">
-                  {formatTime(slot.startAt)} - {formatTime(slot.endAt)}
+                  {formatTime(slot.startAt)} – {formatTime(slot.endAt)}
+                </p>
+              </div>
+              <div>
+                <p className="text-xs font-medium uppercase text-green-600">
+                  Tipo de cita
+                </p>
+                <p className="text-sm font-semibold text-green-800">
+                  {consultationName}
+                </p>
+              </div>
+              <div>
+                <p className="text-xs font-medium uppercase text-green-600">
+                  Profesional
+                </p>
+                <p className="text-sm font-semibold text-green-800">
+                  {professionalName}
                 </p>
               </div>
             </div>
           </div>
 
-          {/* Form Fields */}
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-            <Input
-              label="Nombre"
-              required
-              value={firstName}
-              onChange={(e) => setFirstName(e.target.value)}
-            />
-            <Input
-              label="Apellidos"
-              required
-              value={lastName}
-              onChange={(e) => setLastName(e.target.value)}
-            />
+          <div className="flex justify-end">
+            <Button variant="primary" onClick={() => onOpenChange(false)}>
+              Cerrar
+            </Button>
           </div>
-
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-            <Input
-              label="DNI/NIE"
-              required
-              value={nie}
-              onChange={(e) => setNie(e.target.value)}
-              onBlur={() => validateField("nie", nie)}
-              error={errors.nie}
-            />
-            <Input
-              label="Teléfono"
-              required
-              type="tel"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              onBlur={() => validateField("phone", phone)}
-              error={errors.phone}
-            />
-          </div>
-
-          <Input
-            label="Email"
-            required
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-          />
-
-          {showContactMethod && (
-            <RadioGroup
-              label="Método de Contacto Preferido"
-              name="contactMethod"
-              value={contactMethod}
-              onValueChange={setContactMethod}
-              options={[
-                {
-                  value: "email",
-                  label: "Email",
-                  icon: <Mail className="size-4" />,
-                },
-                {
-                  value: "whatsapp",
-                  label: "WhatsApp",
-                  icon: <MessageCircle className="size-4" />,
-                },
-                {
-                  value: "sms",
-                  label: "Teléfono",
-                  icon: <Phone className="size-4" />,
-                },
-              ]}
-            />
+        </div>
+      ) : (
+        // ── Booking form ─────────────────────────────────────────────────────
+        <div
+          className={cn(
+            "transition-all duration-300 ease-in-out",
+            blurring && "scale-95 opacity-0 blur-sm",
           )}
+        >
+          <form onSubmit={handleSubmit} className="space-y-6">
+            {/* Summary Box */}
+            <div className="rounded-lg border border-green-200 bg-green-50 p-4">
+              <div className="flex gap-4">
+                <div>
+                  <p className="text-xs font-medium uppercase text-green-600">
+                    Fecha
+                  </p>
+                  <p className="text-sm font-semibold text-green-800">
+                    {formatDate(slot.startAt)}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs font-medium uppercase text-green-600">
+                    Hora
+                  </p>
+                  <p className="text-sm font-semibold text-green-800">
+                    {formatTime(slot.startAt)} - {formatTime(slot.endAt)}
+                  </p>
+                </div>
+              </div>
+            </div>
 
-          <Textarea
-            label="Comentarios sobre la visita (opcional)"
-            value={comments}
-            onChange={(e) => setComments(e.target.value)}
-          />
+            {/* Form Fields */}
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <Input
+                label="Nombre"
+                required
+                value={firstName}
+                onChange={(e) => setFirstName(e.target.value)}
+              />
+              <Input
+                label="Apellidos"
+                required
+                value={lastName}
+                onChange={(e) => setLastName(e.target.value)}
+              />
+            </div>
 
-          {/* Action Buttons */}
-          <div className="flex justify-end gap-3">
-            <Button
-              variant="outline"
-              type="button"
-              onClick={() => onOpenChange(false)}
-            >
-              Cancelar
-            </Button>
-            <Button variant="primary" type="submit">
-              Siguiente
-            </Button>
-          </div>
-        </form>
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <Input
+                label="DNI/NIE"
+                required
+                value={nie}
+                onChange={(e) => setNie(e.target.value)}
+                onBlur={() => validateField("nie", nie)}
+                error={errors.nie}
+              />
+              <Input
+                label="Teléfono"
+                required
+                type="tel"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                onBlur={() => validateField("phone", phone)}
+                error={errors.phone}
+              />
+            </div>
+
+            <Input
+              label="Email"
+              required
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
+
+            {showContactMethod && (
+              <RadioGroup
+                label="Método de Contacto Preferido"
+                name="contactMethod"
+                value={contactMethod}
+                onValueChange={setContactMethod}
+                options={[
+                  {
+                    value: "email",
+                    label: "Email",
+                    icon: <Mail className="size-4" />,
+                  },
+                  {
+                    value: "whatsapp",
+                    label: "WhatsApp",
+                    icon: <MessageCircle className="size-4" />,
+                  },
+                  {
+                    value: "sms",
+                    label: "Teléfono",
+                    icon: <Phone className="size-4" />,
+                  },
+                ]}
+              />
+            )}
+
+            <Textarea
+              label="Comentarios sobre la visita (opcional)"
+              value={comments}
+              onChange={(e) => setComments(e.target.value)}
+            />
+
+            {/* API error */}
+            {submitError && (
+              <p className="rounded-md bg-danger/10 px-3 py-2 text-sm text-danger">
+                {submitError}
+              </p>
+            )}
+
+            {/* Action Buttons */}
+            <div className="flex justify-end gap-3">
+              <Button
+                variant="outline"
+                type="button"
+                onClick={() => onOpenChange(false)}
+                disabled={isSubmitting}
+              >
+                Cancelar
+              </Button>
+              <Button variant="primary" type="submit" disabled={isSubmitting}>
+                {isSubmitting ? "Confirmando..." : "Confirmar cita"}
+              </Button>
+            </div>
+          </form>
+        </div>
       )}
     </Modal>
   );

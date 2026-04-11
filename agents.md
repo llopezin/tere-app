@@ -4,6 +4,7 @@ Always output plans to an md file and let me know where to find them. Once imple
 Use lucide for icons
 Use tanstack router Link component for links
 No barrel exports — always import directly from the component file (e.g. `@/components/ui/Button`)
+Make a commit after every request with code changes
 
 ## Key Files & Context
 

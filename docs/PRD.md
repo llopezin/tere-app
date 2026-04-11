@@ -112,3 +112,7 @@ Tanto los pagos de bonos como de sesiones se realizan fuera de la app. La aplica
 
 Profesional
 Un profesional unicamente puede acceder a los datos de sus propios pacientes, nunca los demas.
+
+Reserva de citas
+Si al reservar una cita un paciente cambia su nombre, numero de telefono o email se considera que ha cambiado 
+sus datos personales y estos se actualizan en db

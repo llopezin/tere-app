@@ -142,6 +142,7 @@ export function BookingForm() {
         open={modalOpen}
         onOpenChange={setModalOpen}
         slot={selectedSlot}
+        appointmentTypeId={consultationType ?? ""}
         professionalName={selectedProfessional?.label ?? ""}
         consultationName={selectedConsultation?.label ?? ""}
       />
