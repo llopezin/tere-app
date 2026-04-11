@@ -110,18 +110,29 @@ export function BookingConfirmationModal({
       open={open}
       onOpenChange={onOpenChange}
       title="Confirmar cita"
-      subtitle="Revisa los datos de tu cita y completa el formulario"
+      subtitle={`Revisa los datos de tu cita de ${consultationName} con ${professionalName}`}
       className="max-w-lg"
     >
       {!slot ? null : (
         <form
           onSubmit={(e) => {
             e.preventDefault();
-            const nieResult = nie ? nieSchema.safeParse(nie) : { success: true };
+            const nieResult = nie
+              ? nieSchema.safeParse(nie)
+              : { success: true };
             const phoneResult = phoneSchema.safeParse(phone);
             const newErrors = {
-              nie: !nieResult.success ? (nieResult as { success: false; error: { issues: { message: string }[] } }).error.issues[0]?.message : undefined,
-              phone: !phoneResult.success ? phoneResult.error.issues[0]?.message : undefined,
+              nie: !nieResult.success
+                ? (
+                    nieResult as {
+                      success: false;
+                      error: { issues: { message: string }[] };
+                    }
+                  ).error.issues[0]?.message
+                : undefined,
+              phone: !phoneResult.success
+                ? phoneResult.error.issues[0]?.message
+                : undefined,
             };
             setErrors(newErrors);
             if (newErrors.nie || newErrors.phone) return;
@@ -130,7 +141,7 @@ export function BookingConfirmationModal({
         >
           {/* Summary Box */}
           <div className="rounded-lg border border-green-200 bg-green-50 p-4">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="flex gap-4">
               <div>
                 <p className="text-xs font-medium uppercase text-green-600">
                   Fecha
@@ -145,22 +156,6 @@ export function BookingConfirmationModal({
                 </p>
                 <p className="text-sm font-semibold text-green-800">
                   {formatTime(slot.startAt)} - {formatTime(slot.endAt)}
-                </p>
-              </div>
-              <div>
-                <p className="text-xs font-medium uppercase text-green-600">
-                  Consulta
-                </p>
-                <p className="text-sm font-semibold text-green-800">
-                  {consultationName}
-                </p>
-              </div>
-              <div>
-                <p className="text-xs font-medium uppercase text-green-600">
-                  Profesional
-                </p>
-                <p className="text-sm font-semibold text-green-800">
-                  {professionalName}
                 </p>
               </div>
             </div>

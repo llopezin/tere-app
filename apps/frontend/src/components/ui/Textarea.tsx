@@ -6,7 +6,7 @@ interface TextareaProps extends TextareaHTMLAttributes<HTMLTextAreaElement> {
 }
 
 export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
-  ({ label, className, id, rows = 3, ...props }, ref) => {
+  ({ label, className, id, rows = 2, ...props }, ref) => {
     const innerId = useId();
     const textareaId = id || innerId;
     return (
@@ -17,7 +17,7 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
           rows={rows}
           placeholder=" "
           className={cn(
-            "peer min-h-[5rem] w-full resize-none rounded-lg border border-border bg-input-bg px-3 pb-2 pt-5 text-sm text-text transition-all focus:border-primary-600 focus:outline-none focus:ring-2 focus:ring-primary-600/20 not-focus:placeholder-transparent",
+            "peer min-h-[3rem] w-full resize-none rounded-lg border border-border bg-input-bg px-3 pb-2 pt-5 text-sm text-text transition-all focus:border-primary-600 focus:outline-none focus:ring-2 focus:ring-primary-600/20 not-focus:placeholder-transparent",
           )}
           {...props}
         />
