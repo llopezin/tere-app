@@ -10,6 +10,7 @@ const router = createRouter()
   .openapi(routes.upsertMyBillingData, handlers.upsertMyBillingData)
   .openapi(routes.getMyConsents, handlers.getMyConsents)
   .openapi(routes.getMyConsent, handlers.getMyConsent)
-  .openapi(routes.signMyConsent, handlers.signMyConsent);
+  .openapi(routes.signMyConsent, handlers.signMyConsent)
+  .openapi(routes.acceptMyRgpdConsent, handlers.acceptMyRgpdConsent);
 
 export default router;

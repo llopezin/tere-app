@@ -1,6 +1,7 @@
 import { type FormEvent, useState } from "react";
 import { User, Mail, Phone, Lock } from "lucide-react";
 import { signUp } from "@/lib/auth-client";
+import { client } from "@/lib/client";
 import { Modal } from "@/components/ui/Modal";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
@@ -42,11 +43,18 @@ export function SignupModal({ open, onOpenChange, onSwitchToLogin }: SignupModal
       firstName,
       lastName,
     });
-    setLoading(false);
 
     if (authError) {
+      setLoading(false);
       setError(authError.message ?? "Error al crear la cuenta");
       return;
+    }
+
+    // Record RGPD consent acceptance — best-effort, don't block signup on failure
+    try {
+      await client.patient.me["rgpd-consent"].$post({});
+    } catch {
+      // Non-fatal: user can still log in; consent can be collected later
     }
 
     // Session cookie is set — redirect to patient dashboard

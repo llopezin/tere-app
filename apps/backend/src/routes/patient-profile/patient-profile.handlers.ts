@@ -8,6 +8,7 @@ import type {
   GetMyConsentsRoute,
   GetMyConsentRoute,
   SignMyConsentRoute,
+  AcceptMyRgpdConsentRoute,
 } from './patient-profile.routes.js';
 import { db } from '../../db/index.js';
 import { patients } from '../../db/schema/patients.js';
@@ -15,6 +16,7 @@ import { appointments } from '../../db/schema/appointments.js';
 import { patientBillingData } from '../../db/schema/patient-billing-data.js';
 import { patientConsents } from '../../db/schema/patient-consents.js';
 import { consentDocuments } from '../../db/schema/consent-documents.js';
+import { rgpdConsents } from '../../db/schema/rgpd-consents.js';
 import { eq, and } from 'drizzle-orm';
 import { getProfileId } from '../../middleware/auth.js';
 import { AppError } from '../../middleware/error-handler.js';
@@ -160,4 +162,27 @@ export const signMyConsent: AppRouteHandler<SignMyConsentRoute> = async (c) => {
     .returning();
 
   return c.json(updated, HttpStatusCodes.OK);
+};
+
+export const acceptMyRgpdConsent: AppRouteHandler<AcceptMyRgpdConsentRoute> = async (c) => {
+  const profileId = getProfileId(c);
+  const ip = c.req.header('x-forwarded-for') ?? c.req.header('x-real-ip') ?? 'unknown';
+
+  const [existing] = await db.select().from(rgpdConsents)
+    .where(eq(rgpdConsents.patientId, profileId));
+
+  const now = new Date();
+
+  if (existing) {
+    const [updated] = await db.update(rgpdConsents)
+      .set({ signed: true, signatureData: 'web_checkbox', signedAt: now, ipAddress: ip })
+      .where(eq(rgpdConsents.patientId, profileId))
+      .returning();
+    return c.json(updated, HttpStatusCodes.OK);
+  }
+
+  const [created] = await db.insert(rgpdConsents)
+    .values({ patientId: profileId, signed: true, signatureData: 'web_checkbox', signedAt: now, ipAddress: ip })
+    .returning();
+  return c.json(created, HttpStatusCodes.OK);
 };

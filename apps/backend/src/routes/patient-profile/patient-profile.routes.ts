@@ -8,6 +8,7 @@ import { selectAppointmentSchema } from '../../db/schema/appointments.js';
 import { selectPatientBillingDataSchema, upsertBillingDataSchema } from '../../db/schema/patient-billing-data.js';
 import { selectPatientConsentSchema, signConsentSchema } from '../../db/schema/patient-consents.js';
 import { selectConsentDocumentSchema } from '../../db/schema/consent-documents.js';
+import { selectRgpdConsentSchema } from '../../db/schema/rgpd-consents.js';
 import { paginationSchema } from '../../lib/schemas.js';
 
 const tags = ['Patient Profile'];
@@ -161,3 +162,16 @@ export const signMyConsent = createRoute({
   },
 });
 export type SignMyConsentRoute = typeof signMyConsent;
+
+export const acceptMyRgpdConsent = createRoute({
+  method: 'post',
+  path: '/patient/me/rgpd-consent',
+  middleware: patientMiddleware,
+  tags,
+  summary: 'Accept RGPD consent (patient self-service)',
+  responses: {
+    [HttpStatusCodes.OK]: jsonContent(selectRgpdConsentSchema, 'RGPD consent record'),
+    [HttpStatusCodes.NOT_FOUND]: jsonContent(z.object({ message: z.string() }), 'Patient profile not found'),
+  },
+});
+export type AcceptMyRgpdConsentRoute = typeof acceptMyRgpdConsent;
