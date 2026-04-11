@@ -94,7 +94,6 @@ describe('Availability Slot Generation', () => {
       professionalId: professional.id,
       startAt: blockStart,
       endAt: blockEnd,
-      reason: 'Lunch break',
     });
 
     const from = new Date('2026-04-06');
@@ -129,7 +128,6 @@ describe('Availability Slot Generation', () => {
       professionalId: professional.id,
       startAt: blockStart,
       endAt: blockEnd,
-      reason: 'Meeting',
     });
 
     const from = new Date('2026-04-06');
@@ -269,14 +267,13 @@ async function generateSlots(
   from: Date,
   to: Date
 ): Promise<Array<{ start_at: string; end_at: string }>> {
-  const { db } = await import('../db/index.js');
   const { workingSchedules } = await import('../db/schema/working-schedules.js');
   const { appointments } = await import('../db/schema/appointments.js');
   const { blockedTimes } = await import('../db/schema/blocked-times.js');
   const { appointmentTypes } = await import('../db/schema/appointment-types.js');
   const { eq, and, sql, ne } = await import('drizzle-orm');
 
-  const [apptType] = await db.select().from(appointmentTypes)
+  const [apptType] = await testDb.select().from(appointmentTypes)
     .where(eq(appointmentTypes.id, appointmentTypeId));
   if (!apptType) throw new Error('Appointment type not found');
 
@@ -285,10 +282,10 @@ async function generateSlots(
   const toDate = new Date(to);
   toDate.setHours(23, 59, 59, 999);
 
-  const schedules = await db.select().from(workingSchedules)
+  const schedules = await testDb.select().from(workingSchedules)
     .where(eq(workingSchedules.professionalId, professionalId));
 
-  const existingAppts = await db.select().from(appointments)
+  const existingAppts = await testDb.select().from(appointments)
     .where(and(
       eq(appointments.professionalId, professionalId),
       ne(appointments.status, 'cancelled'),
@@ -296,7 +293,7 @@ async function generateSlots(
       sql`${appointments.endAt} <= ${toDate.toISOString()}`,
     ));
 
-  const blocked = await db.select().from(blockedTimes)
+  const blocked = await testDb.select().from(blockedTimes)
     .where(and(
       eq(blockedTimes.professionalId, professionalId),
       sql`${blockedTimes.endAt} >= ${fromDate.toISOString()}`,

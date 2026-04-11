@@ -8,7 +8,7 @@ import { defineMiddleware } from '../../lib/create-app.js';
 
 export const getMe = createRoute({
   method: 'get',
-  path: '/me',
+  path: '/professionals/me',
   middleware: defineMiddleware(authMiddleware, requireRole('professional')),
   tags: ['Professionals'],
   summary: "Get the authenticated professional's profile",
@@ -22,7 +22,7 @@ export const getMe = createRoute({
 
 export const updateMe = createRoute({
   method: 'put',
-  path: '/me',
+  path: '/professionals/me',
   middleware: defineMiddleware(authMiddleware, requireRole('professional')),
   tags: ['Professionals'],
   summary: "Update the authenticated professional's profile",
@@ -38,5 +38,21 @@ export const updateMe = createRoute({
   },
 });
 
+export const list = createRoute({
+  method: 'get',
+  path: '/professionals',
+  middleware: defineMiddleware(authMiddleware),
+  tags: ['Professionals'],
+  summary: 'List all professionals',
+  responses: {
+    [HttpStatusCodes.OK]: jsonContent(
+      z.object({ data: z.array(selectProfessionalSchema) }),
+      'List of professionals',
+    ),
+    [HttpStatusCodes.UNAUTHORIZED]: jsonContent(createMessageObjectSchema('Unauthorized'), 'Unauthorized'),
+  },
+});
+
+export type ListRoute = typeof list;
 export type GetMeRoute = typeof getMe;
 export type UpdateMeRoute = typeof updateMe;

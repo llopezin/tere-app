@@ -8,7 +8,7 @@ import { defineMiddleware } from '../../lib/create-app.js';
 
 export const list = createRoute({
   method: 'get',
-  path: '/',
+  path: '/working-schedules',
   middleware: defineMiddleware(authMiddleware, requireRole('professional')),
   tags: ['Working Schedules'],
   summary: 'List working schedules for the authenticated professional',
@@ -24,7 +24,7 @@ export const list = createRoute({
 
 export const bulkReplace = createRoute({
   method: 'put',
-  path: '/',
+  path: '/working-schedules',
   middleware: defineMiddleware(authMiddleware, requireRole('professional')),
   tags: ['Working Schedules'],
   summary: 'Bulk replace working schedules for the authenticated professional',

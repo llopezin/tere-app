@@ -12,7 +12,7 @@ const tags = ['Invoices'];
 // GET /
 export const list = createRoute({
   method: 'get',
-  path: '/',
+  path: '/invoices',
   middleware: defineMiddleware(authMiddleware),
   tags,
   summary: 'List invoices',
@@ -35,7 +35,7 @@ export const list = createRoute({
 // POST /
 export const create = createRoute({
   method: 'post',
-  path: '/',
+  path: '/invoices',
   middleware: defineMiddleware(authMiddleware),
   tags,
   summary: 'Create an invoice',
@@ -53,7 +53,7 @@ export const create = createRoute({
 // GET /:id
 export const getOne = createRoute({
   method: 'get',
-  path: '/{id}',
+  path: '/invoices/{id}',
   middleware: defineMiddleware(authMiddleware),
   tags,
   summary: 'Get an invoice by ID',
@@ -70,7 +70,7 @@ export const getOne = createRoute({
 // GET /:id/pdf
 export const getPdf = createRoute({
   method: 'get',
-  path: '/{id}/pdf',
+  path: '/invoices/{id}/pdf',
   middleware: defineMiddleware(authMiddleware),
   tags,
   summary: 'Get invoice PDF or HTML preview',

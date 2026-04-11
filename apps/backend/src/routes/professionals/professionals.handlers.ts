@@ -1,11 +1,16 @@
 import type { AppRouteHandler } from '../../lib/types.js';
-import type { GetMeRoute, UpdateMeRoute } from './professionals.routes.js';
+import type { ListRoute, GetMeRoute, UpdateMeRoute } from './professionals.routes.js';
 import { db } from '../../db/index.js';
 import { professionals } from '../../db/schema/professionals.js';
 import { eq } from 'drizzle-orm';
 import { getProfileId } from '../../middleware/auth.js';
 import { AppError } from '../../middleware/error-handler.js';
 import * as HttpStatusCodes from 'stoker/http-status-codes';
+
+export const list: AppRouteHandler<ListRoute> = async (c) => {
+  const data = await db.select().from(professionals);
+  return c.json({ data }, HttpStatusCodes.OK);
+};
 
 export const getMe: AppRouteHandler<GetMeRoute> = async (c) => {
   const profileId = getProfileId(c);

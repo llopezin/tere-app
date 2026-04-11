@@ -24,7 +24,7 @@ const bonoTransactionSchema = z.object({
 // GET /
 export const list = createRoute({
   method: 'get',
-  path: '/',
+  path: '/bonos',
   middleware: defineMiddleware(authMiddleware, requireRole('professional')),
   tags,
   summary: 'List bonos',
@@ -47,7 +47,7 @@ export const list = createRoute({
 // POST /
 export const create = createRoute({
   method: 'post',
-  path: '/',
+  path: '/bonos',
   middleware: defineMiddleware(authMiddleware, requireRole('professional')),
   tags,
   summary: 'Create a bono',
@@ -65,7 +65,7 @@ export const create = createRoute({
 // GET /:id
 export const getOne = createRoute({
   method: 'get',
-  path: '/{id}',
+  path: '/bonos/{id}',
   middleware: defineMiddleware(authMiddleware),
   tags,
   summary: 'Get a bono by ID',
@@ -82,7 +82,7 @@ export const getOne = createRoute({
 // GET /:id/transactions
 export const listTransactions = createRoute({
   method: 'get',
-  path: '/{id}/transactions',
+  path: '/bonos/{id}/transactions',
   middleware: defineMiddleware(authMiddleware, requireRole('professional')),
   tags,
   summary: 'List bono transactions',
@@ -103,7 +103,7 @@ export const listTransactions = createRoute({
 // POST /:id/deduct
 export const deduct = createRoute({
   method: 'post',
-  path: '/{id}/deduct',
+  path: '/bonos/{id}/deduct',
   middleware: defineMiddleware(authMiddleware, requireRole('professional')),
   tags,
   summary: 'Deduct a session from a bono',

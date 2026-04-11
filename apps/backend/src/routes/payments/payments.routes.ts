@@ -12,7 +12,7 @@ const tags = ['Payments'];
 // GET /
 export const list = createRoute({
   method: 'get',
-  path: '/',
+  path: '/payments',
   middleware: defineMiddleware(authMiddleware, requireRole('professional')),
   tags,
   summary: 'List payments',
@@ -37,7 +37,7 @@ export const list = createRoute({
 // POST /
 export const create = createRoute({
   method: 'post',
-  path: '/',
+  path: '/payments',
   middleware: defineMiddleware(authMiddleware, requireRole('professional')),
   tags,
   summary: 'Create a payment',
@@ -55,7 +55,7 @@ export const create = createRoute({
 // GET /:id
 export const getOne = createRoute({
   method: 'get',
-  path: '/{id}',
+  path: '/payments/{id}',
   middleware: defineMiddleware(authMiddleware, requireRole('professional')),
   tags,
   summary: 'Get a payment by ID',

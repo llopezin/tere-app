@@ -26,8 +26,8 @@
     "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"],
-      "@fisio-app/backend": ["../backend/src/index.ts"]
+      "@fisio-app/backend": ["../backend/dist/app.d.ts"]
     }
   },
-  "include": ["src", "../backend/src"]
+  "include": ["src"]
 }

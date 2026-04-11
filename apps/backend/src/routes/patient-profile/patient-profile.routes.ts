@@ -15,7 +15,7 @@ const patientMiddleware = defineMiddleware(authMiddleware, requireRole('patient'
 
 export const getMe = createRoute({
   method: 'get',
-  path: '/me',
+  path: '/patient/me',
   middleware: patientMiddleware,
   tags,
   summary: 'Get the authenticated patient profile',
@@ -28,7 +28,7 @@ export type GetMeRoute = typeof getMe;
 
 export const updateMe = createRoute({
   method: 'put',
-  path: '/me',
+  path: '/patient/me',
   middleware: patientMiddleware,
   tags,
   summary: 'Update the authenticated patient profile',
@@ -44,7 +44,7 @@ export type UpdateMeRoute = typeof updateMe;
 
 export const getMyAppointments = createRoute({
   method: 'get',
-  path: '/me/appointments',
+  path: '/patient/me/appointments',
   middleware: patientMiddleware,
   tags,
   summary: "Get the authenticated patient's appointments",
@@ -66,7 +66,7 @@ export type GetMyAppointmentsRoute = typeof getMyAppointments;
 
 export const getMyBillingData = createRoute({
   method: 'get',
-  path: '/me/billing-data',
+  path: '/patient/me/billing-data',
   middleware: patientMiddleware,
   tags,
   summary: "Get the authenticated patient's billing data",
@@ -81,7 +81,7 @@ export type GetMyBillingDataRoute = typeof getMyBillingData;
 
 export const upsertMyBillingData = createRoute({
   method: 'put',
-  path: '/me/billing-data',
+  path: '/patient/me/billing-data',
   middleware: patientMiddleware,
   tags,
   summary: "Create or update the authenticated patient's billing data",
@@ -101,7 +101,7 @@ const consentIdParamsSchema = z.object({
 
 export const getMyConsents = createRoute({
   method: 'get',
-  path: '/me/consents',
+  path: '/patient/me/consents',
   middleware: patientMiddleware,
   tags,
   summary: "List the authenticated patient's assigned consent documents",
@@ -125,7 +125,7 @@ export type GetMyConsentsRoute = typeof getMyConsents;
 
 export const getMyConsent = createRoute({
   method: 'get',
-  path: '/me/consents/{consentId}',
+  path: '/patient/me/consents/{consentId}',
   middleware: patientMiddleware,
   tags,
   summary: 'View a specific consent document with full content',
@@ -146,7 +146,7 @@ export type GetMyConsentRoute = typeof getMyConsent;
 
 export const signMyConsent = createRoute({
   method: 'post',
-  path: '/me/consents/{consentId}/sign',
+  path: '/patient/me/consents/{consentId}/sign',
   middleware: patientMiddleware,
   tags,
   summary: 'Sign a consent document',

@@ -15,7 +15,7 @@ const tags = ['Appointment Types'];
 
 export const list = createRoute({
   method: 'get',
-  path: '/',
+  path: '/appointment-types',
   middleware: defineMiddleware(authMiddleware),
   tags,
   summary: 'List appointment types',
@@ -36,7 +36,7 @@ export const list = createRoute({
 
 export const create = createRoute({
   method: 'post',
-  path: '/',
+  path: '/appointment-types',
   middleware: defineMiddleware(authMiddleware, requireRole('professional')),
   tags,
   summary: 'Create an appointment type',
@@ -53,7 +53,7 @@ export const create = createRoute({
 
 export const update = createRoute({
   method: 'put',
-  path: '/{id}',
+  path: '/appointment-types/{id}',
   middleware: defineMiddleware(authMiddleware, requireRole('professional')),
   tags,
   summary: 'Update an appointment type',
@@ -72,7 +72,7 @@ export const update = createRoute({
 
 export const remove = createRoute({
   method: 'delete',
-  path: '/{id}',
+  path: '/appointment-types/{id}',
   middleware: defineMiddleware(authMiddleware, requireRole('professional')),
   tags,
   summary: 'Deactivate an appointment type',

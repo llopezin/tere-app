@@ -18,7 +18,7 @@ const tags = ['Appointments'];
 // GET /
 export const list = createRoute({
   method: 'get',
-  path: '/',
+  path: '/appointments',
   middleware: defineMiddleware(authMiddleware, requireRole('professional')),
   tags,
   summary: 'List appointments',
@@ -43,7 +43,7 @@ export const list = createRoute({
 // POST /
 export const create = createRoute({
   method: 'post',
-  path: '/',
+  path: '/appointments',
   middleware: defineMiddleware(authMiddleware),
   tags,
   summary: 'Create a single appointment',
@@ -62,7 +62,7 @@ export const create = createRoute({
 // POST /batch
 export const batch = createRoute({
   method: 'post',
-  path: '/batch',
+  path: '/appointments/batch',
   middleware: defineMiddleware(authMiddleware, requireRole('professional')),
   tags,
   summary: 'Create batch appointments',
@@ -84,7 +84,7 @@ export const batch = createRoute({
 // POST /recurring
 export const recurring = createRoute({
   method: 'post',
-  path: '/recurring',
+  path: '/appointments/recurring',
   middleware: defineMiddleware(authMiddleware, requireRole('professional')),
   tags,
   summary: 'Create recurring appointments',
@@ -106,7 +106,7 @@ export const recurring = createRoute({
 // GET /:id
 export const getOne = createRoute({
   method: 'get',
-  path: '/{id}',
+  path: '/appointments/{id}',
   middleware: defineMiddleware(authMiddleware),
   tags,
   summary: 'Get an appointment by ID',
@@ -123,7 +123,7 @@ export const getOne = createRoute({
 // PUT /:id
 export const update = createRoute({
   method: 'put',
-  path: '/{id}',
+  path: '/appointments/{id}',
   middleware: defineMiddleware(authMiddleware, requireRole('professional')),
   tags,
   summary: 'Update an appointment',
@@ -143,7 +143,7 @@ export const update = createRoute({
 // PATCH /:id/cancel
 export const cancel = createRoute({
   method: 'patch',
-  path: '/{id}/cancel',
+  path: '/appointments/{id}/cancel',
   middleware: defineMiddleware(authMiddleware),
   tags,
   summary: 'Cancel an appointment',
@@ -161,7 +161,7 @@ export const cancel = createRoute({
 // PATCH /:id/complete
 export const complete = createRoute({
   method: 'patch',
-  path: '/{id}/complete',
+  path: '/appointments/{id}/complete',
   middleware: defineMiddleware(authMiddleware, requireRole('professional')),
   tags,
   summary: 'Mark an appointment as completed',
@@ -179,7 +179,7 @@ export const complete = createRoute({
 // PATCH /:id/no-show
 export const noShow = createRoute({
   method: 'patch',
-  path: '/{id}/no-show',
+  path: '/appointments/{id}/no-show',
   middleware: defineMiddleware(authMiddleware, requireRole('professional')),
   tags,
   summary: 'Mark an appointment as no-show',

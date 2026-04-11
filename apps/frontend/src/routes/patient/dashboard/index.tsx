@@ -3,8 +3,12 @@ import { createFileRoute } from "@tanstack/react-router";
 import { PatientTopBar } from "./-components/PatientTopBar";
 import { DashboardTabs, type DashboardTab } from "./-components/DashboardTabs";
 import { BookingForm } from "./-components/BookingForm";
+import { AppointmentList } from "./-components/AppointmentList";
+import { professionalsQueryOptions } from "@/api/professionals";
 
 export const Route = createFileRoute("/patient/dashboard/")({
+  loader: ({ context: { queryClient } }) =>
+    queryClient.ensureQueryData(professionalsQueryOptions()),
   component: PatientDashboard,
 });
 
@@ -19,11 +23,7 @@ function PatientDashboard() {
       <main className="flex-1 px-4 py-6 md:px-8">
         <div className="mx-auto max-w-3xl">
           {activeTab === "book" && <BookingForm />}
-          {activeTab === "appointments" && (
-            <div className="rounded-lg border border-border bg-surface p-8 text-center text-text-secondary">
-              Mis Citas — próximamente
-            </div>
-          )}
+          {activeTab === "appointments" && <AppointmentList />}
         </div>
       </main>
     </div>

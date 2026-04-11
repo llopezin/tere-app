@@ -7,7 +7,7 @@ import { defineMiddleware } from '../../lib/create-app.js';
 
 export const getAvailability = createRoute({
   method: 'get',
-  path: '/',
+  path: '/availability',
   middleware: defineMiddleware(authMiddleware),
   tags: ['Availability'],
   summary: 'Compute available appointment slots for a professional',

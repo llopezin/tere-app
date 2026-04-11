@@ -15,7 +15,7 @@ const yearMonthQuerySchema = z.object({
 // GET /revenue/monthly
 export const revenueMonthly = createRoute({
   method: 'get',
-  path: '/revenue/monthly',
+  path: '/reports/revenue/monthly',
   middleware: defineMiddleware(authMiddleware, requireRole('professional')),
   tags,
   summary: 'Monthly revenue report',
@@ -41,7 +41,7 @@ export const revenueMonthly = createRoute({
 // GET /revenue/quarterly
 export const revenueQuarterly = createRoute({
   method: 'get',
-  path: '/revenue/quarterly',
+  path: '/reports/revenue/quarterly',
   middleware: defineMiddleware(authMiddleware, requireRole('professional')),
   tags,
   summary: 'Quarterly revenue report',
@@ -70,7 +70,7 @@ export const revenueQuarterly = createRoute({
 // GET /revenue/by-method
 export const revenueByMethod = createRoute({
   method: 'get',
-  path: '/revenue/by-method',
+  path: '/reports/revenue/by-method',
   middleware: defineMiddleware(authMiddleware, requireRole('professional')),
   tags,
   summary: 'Revenue breakdown by payment method',

@@ -16,7 +16,7 @@ const professionalMiddleware = defineMiddleware(authMiddleware, requireRole('pro
 
 export const list = createRoute({
   method: 'get',
-  path: '/',
+  path: '/consent-documents',
   middleware: professionalMiddleware,
   tags,
   summary: 'List own consent document templates',
@@ -31,7 +31,7 @@ export type ListRoute = typeof list;
 
 export const create = createRoute({
   method: 'post',
-  path: '/',
+  path: '/consent-documents',
   middleware: professionalMiddleware,
   tags,
   summary: 'Create a consent document template',
@@ -46,7 +46,7 @@ export type CreateRoute = typeof create;
 
 export const getOne = createRoute({
   method: 'get',
-  path: '/{id}',
+  path: '/consent-documents/{id}',
   middleware: professionalMiddleware,
   tags,
   summary: 'Get a consent document by ID',
@@ -62,7 +62,7 @@ export type GetOneRoute = typeof getOne;
 
 export const update = createRoute({
   method: 'put',
-  path: '/{id}',
+  path: '/consent-documents/{id}',
   middleware: professionalMiddleware,
   tags,
   summary: 'Update a consent document',
@@ -79,7 +79,7 @@ export type UpdateRoute = typeof update;
 
 export const remove = createRoute({
   method: 'delete',
-  path: '/{id}',
+  path: '/consent-documents/{id}',
   middleware: professionalMiddleware,
   tags,
   summary: 'Delete a consent document (fails if assigned to patients)',

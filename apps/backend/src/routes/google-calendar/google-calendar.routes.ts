@@ -7,7 +7,7 @@ import { defineMiddleware } from '../../lib/create-app.js';
 
 export const connect = createRoute({
   method: 'post',
-  path: '/connect',
+  path: '/integrations/google-calendar/connect',
   middleware: defineMiddleware(authMiddleware, requireRole('professional')),
   tags: ['Google Calendar'],
   summary: 'Initiate Google Calendar OAuth flow (stub)',
@@ -26,7 +26,7 @@ export const connect = createRoute({
 
 export const disconnect = createRoute({
   method: 'delete',
-  path: '/disconnect',
+  path: '/integrations/google-calendar/disconnect',
   middleware: defineMiddleware(authMiddleware, requireRole('professional')),
   tags: ['Google Calendar'],
   summary: 'Disconnect Google Calendar integration',
@@ -42,7 +42,7 @@ export const disconnect = createRoute({
 
 export const sync = createRoute({
   method: 'post',
-  path: '/sync',
+  path: '/integrations/google-calendar/sync',
   middleware: defineMiddleware(authMiddleware, requireRole('professional')),
   tags: ['Google Calendar'],
   summary: 'Sync appointments to Google Calendar (stub)',

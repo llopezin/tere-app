@@ -18,7 +18,7 @@ const professionalMiddleware = defineMiddleware(authMiddleware, requireRole('pro
 
 export const list = createRoute({
   method: 'get',
-  path: '/',
+  path: '/patients',
   middleware: professionalMiddleware,
   tags,
   summary: 'List patients with optional search',
@@ -42,7 +42,7 @@ export type ListRoute = typeof list;
 
 export const create = createRoute({
   method: 'post',
-  path: '/',
+  path: '/patients',
   middleware: professionalMiddleware,
   tags,
   summary: 'Create a new patient',
@@ -57,7 +57,7 @@ export type CreateRoute = typeof create;
 
 export const getOne = createRoute({
   method: 'get',
-  path: '/{id}',
+  path: '/patients/{id}',
   middleware: professionalMiddleware,
   tags,
   summary: 'Get a patient by ID',
@@ -73,7 +73,7 @@ export type GetOneRoute = typeof getOne;
 
 export const update = createRoute({
   method: 'put',
-  path: '/{id}',
+  path: '/patients/{id}',
   middleware: professionalMiddleware,
   tags,
   summary: 'Update a patient',
@@ -90,7 +90,7 @@ export type UpdateRoute = typeof update;
 
 export const getAppointments = createRoute({
   method: 'get',
-  path: '/{id}/appointments',
+  path: '/patients/{id}/appointments',
   middleware: professionalMiddleware,
   tags,
   summary: "Get a patient's appointments",
@@ -118,7 +118,7 @@ export type GetAppointmentsRoute = typeof getAppointments;
 
 export const getBonos = createRoute({
   method: 'get',
-  path: '/{id}/bonos',
+  path: '/patients/{id}/bonos',
   middleware: professionalMiddleware,
   tags,
   summary: "Get a patient's bonos",
@@ -140,7 +140,7 @@ export type GetBonosRoute = typeof getBonos;
 
 export const getPayments = createRoute({
   method: 'get',
-  path: '/{id}/payments',
+  path: '/patients/{id}/payments',
   middleware: professionalMiddleware,
   tags,
   summary: "Get a patient's payments",
@@ -159,7 +159,7 @@ export type GetPaymentsRoute = typeof getPayments;
 
 export const getBillingData = createRoute({
   method: 'get',
-  path: '/{id}/billing-data',
+  path: '/patients/{id}/billing-data',
   middleware: professionalMiddleware,
   tags,
   summary: "Get a patient's billing data",
@@ -178,7 +178,7 @@ export type GetBillingDataRoute = typeof getBillingData;
 
 export const upsertBillingData = createRoute({
   method: 'put',
-  path: '/{id}/billing-data',
+  path: '/patients/{id}/billing-data',
   middleware: professionalMiddleware,
   tags,
   summary: "Create or update a patient's billing data",
@@ -196,7 +196,7 @@ export type UpsertBillingDataRoute = typeof upsertBillingData;
 
 export const getRgpdConsent = createRoute({
   method: 'get',
-  path: '/{id}/rgpd-consent',
+  path: '/patients/{id}/rgpd-consent',
   middleware: professionalMiddleware,
   tags,
   summary: "Get a patient's RGPD consent status",
@@ -215,7 +215,7 @@ export type GetRgpdConsentRoute = typeof getRgpdConsent;
 
 export const submitRgpdConsent = createRoute({
   method: 'post',
-  path: '/{id}/rgpd-consent',
+  path: '/patients/{id}/rgpd-consent',
   middleware: professionalMiddleware,
   tags,
   summary: 'Submit RGPD consent signature for a patient',
@@ -232,7 +232,7 @@ export type SubmitRgpdConsentRoute = typeof submitRgpdConsent;
 
 export const getContactLink = createRoute({
   method: 'get',
-  path: '/{id}/contact-link',
+  path: '/patients/{id}/contact-link',
   middleware: professionalMiddleware,
   tags,
   summary: 'Get the contact link for a patient',
@@ -251,7 +251,7 @@ export type GetContactLinkRoute = typeof getContactLink;
 
 export const assignConsent = createRoute({
   method: 'post',
-  path: '/{id}/consents',
+  path: '/patients/{id}/consents',
   middleware: professionalMiddleware,
   tags,
   summary: 'Assign a consent document to a patient',
@@ -269,7 +269,7 @@ export type AssignConsentRoute = typeof assignConsent;
 
 export const getConsents = createRoute({
   method: 'get',
-  path: '/{id}/consents',
+  path: '/patients/{id}/consents',
   middleware: professionalMiddleware,
   tags,
   summary: "List a patient's assigned consent documents with status",

@@ -9,7 +9,7 @@ import { defineMiddleware } from '../../lib/create-app.js';
 
 export const list = createRoute({
   method: 'get',
-  path: '/',
+  path: '/blocked-times',
   middleware: defineMiddleware(authMiddleware, requireRole('professional')),
   tags: ['Blocked Times'],
   summary: 'List blocked times with optional date range filter',
@@ -31,7 +31,7 @@ export const list = createRoute({
 
 export const create = createRoute({
   method: 'post',
-  path: '/',
+  path: '/blocked-times',
   middleware: defineMiddleware(authMiddleware, requireRole('professional')),
   tags: ['Blocked Times'],
   summary: 'Create a blocked time',
@@ -48,7 +48,7 @@ export const create = createRoute({
 
 export const remove = createRoute({
   method: 'delete',
-  path: '/{id}',
+  path: '/blocked-times/{id}',
   middleware: defineMiddleware(authMiddleware, requireRole('professional')),
   tags: ['Blocked Times'],
   summary: 'Delete a blocked time',
