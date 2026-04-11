@@ -1,9 +1,16 @@
-import { createLazyFileRoute } from "@tanstack/react-router";
+import { createFileRoute, redirect } from "@tanstack/react-router";
+import { authClient } from "@/lib/auth-client";
 import { BrandLogo } from "@/components/ui/BrandLogo";
 import { HeroCard } from "@/routes/patient/-components/HeroCard";
 import { AuthCard } from "@/routes/patient/-components/AuthCard";
 
-export const Route = createLazyFileRoute("/patient/welcome")({
+export const Route = createFileRoute("/patient/welcome")({
+  beforeLoad: async () => {
+    const session = await authClient.getSession();
+    if (session.data?.session) {
+      throw redirect({ to: "/patient/dashboard" });
+    }
+  },
   component: WelcomePage,
 });
 
