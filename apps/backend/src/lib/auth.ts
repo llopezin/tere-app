@@ -2,10 +2,14 @@ import { betterAuth } from 'better-auth';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 import { openAPI } from 'better-auth/plugins';
 import { eq } from 'drizzle-orm';
+import type { InferInsertModel } from 'drizzle-orm';
 import { db } from '../db/index.js';
 import { professionals } from '../db/schema/professionals.js';
 import { patients } from '../db/schema/patients.js';
 import * as schema from '../db/schema/auth-schema.js';
+
+type NewProfessional = InferInsertModel<typeof professionals>;
+type NewPatient = InferInsertModel<typeof patients>;
 
 
 export const auth = betterAuth({
@@ -38,6 +42,16 @@ export const auth = betterAuth({
         required: false,
         input: false,
       },
+      firstName: {
+        type: 'string',
+        required: true,
+        input: true,
+      },
+      lastName: {
+        type: 'string',
+        required: true,
+        input: true,
+      },
     },
   },
   session: {
@@ -52,30 +66,32 @@ export const auth = betterAuth({
     user: {
       create: {
         after: async (user) => {
-          // TO DO: This pattern needs revisiting
-          const nameParts = user.name.split(' ');
-          const firstName = nameParts[0] || user.name;
-          const lastName = nameParts.slice(1).join(' ') || '';
+          const fName = (user as any).firstName as string | undefined;
+          const lName = (user as any).lastName as string | undefined;
+          const firstName = fName || user.name.split(' ')[0] || user.name;
+          const lastName = lName || user.name.split(' ').slice(1).join(' ') || '';
 
           if (user.role === 'professional') {
-            const [prof] = await db.insert(professionals).values({
+            const profValues: NewProfessional = {
               authUserId: user.id,
               firstName,
               lastName,
               email: user.email,
-            }).returning();
+            };
+            const [prof] = await db.insert(professionals).values(profValues).returning();
 
             await db.update(schema.user)
               .set({ profileId: prof.id })
               .where(eq(schema.user.id, user.id));
           } else if (user.role === 'patient') {
-            const [patient] = await db.insert(patients).values({
+            const patValues: NewPatient = {
               authUserId: user.id,
               firstName,
               lastName,
               email: user.email,
               phone: '',
-            }).returning();
+            };
+            const [patient] = await db.insert(patients).values(patValues).returning();
 
             await db.update(schema.user)
               .set({ profileId: patient.id })

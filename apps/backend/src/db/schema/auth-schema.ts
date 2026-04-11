@@ -14,6 +14,8 @@ export const user = pgTable("user", {
     .notNull(),
   role: text("role").default("patient").notNull(),
   profileId: text("profile_id"),
+  firstName: text("first_name"),
+  lastName: text("last_name"),
 });
 
 export const session = pgTable(

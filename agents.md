@@ -1,4 +1,4 @@
-always ask the user what to do next before closing the request
+always ask the user what to do next before closing the request or declaring a task complete
 Use pnpm as package manager
 Always output plans to an md file and let me know where to find them. Once implemented ask if they can be removed.
 Use lucide for icons

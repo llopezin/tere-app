@@ -6,6 +6,8 @@ import { Select } from "@/components/ui/Select";
 import type { SelectOption } from "@/components/ui/Select";
 import { professionalsQueryOptions } from "@/api/professionals";
 import { appointmentTypesQueryOptions } from "@/api/appointment-types";
+import { WeeklySchedule } from "./WeeklySchedule";
+import { BookingConfirmationModal } from "./BookingConfirmationModal";
 
 interface ProfessionalOption extends SelectOption {
   subtitle: string;
@@ -55,10 +57,16 @@ export function BookingForm() {
     () => professionalOptions[0]?.value ?? "",
   );
   const [consultationType, setConsultationType] = useState<string>();
+  const [selectedSlot, setSelectedSlot] = useState<{
+    startAt: string;
+    endAt: string;
+  } | null>(null);
+  const [modalOpen, setModalOpen] = useState(false);
 
   // Reset consultation type when professional changes
   useEffect(() => {
     setConsultationType(undefined);
+    setSelectedSlot(null);
   }, [professional]);
 
   const selectedProfessional = professionalOptions.find(
@@ -78,6 +86,15 @@ export function BookingForm() {
     durationMinutes: at.durationMinutes,
     price: at.price,
   }));
+
+  const selectedConsultation = consultationTypes.find(
+    (c) => c.value === consultationType,
+  );
+
+  const handleSlotSelect = (slot: { startAt: string; endAt: string }) => {
+    setSelectedSlot(slot);
+    setModalOpen(true);
+  };
 
   return (
     <Card className="p-6">
@@ -110,6 +127,24 @@ export function BookingForm() {
           renderOption={(opt) => <ConsultationOption option={opt} />}
         />
       </div>
+
+      {professional && consultationType && (
+        <div className="mt-6">
+          <WeeklySchedule
+            professionalId={professional}
+            appointmentTypeId={consultationType}
+            onSlotSelect={handleSlotSelect}
+          />
+        </div>
+      )}
+
+      <BookingConfirmationModal
+        open={modalOpen}
+        onOpenChange={setModalOpen}
+        slot={selectedSlot}
+        professionalName={selectedProfessional?.label ?? ""}
+        consultationName={selectedConsultation?.label ?? ""}
+      />
     </Card>
   );
 }

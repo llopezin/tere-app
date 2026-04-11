@@ -13,7 +13,8 @@ interface SignupModalProps {
 }
 
 export function SignupModal({ open, onOpenChange, onSwitchToLogin }: SignupModalProps) {
-  const [name, setName] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
@@ -34,10 +35,12 @@ export function SignupModal({ open, onOpenChange, onSwitchToLogin }: SignupModal
     setLoading(true);
 
     const { error: authError } = await signUp.email({
-      name,
+      name: `${firstName} ${lastName}`.trim(),
       email,
       password,
       role: "patient",
+      firstName,
+      lastName,
     });
     setLoading(false);
 
@@ -61,12 +64,20 @@ export function SignupModal({ open, onOpenChange, onSwitchToLogin }: SignupModal
     >
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
         <Input
-          label="Nombre Completo"
+          label="Nombre"
           type="text"
-          placeholder="Tu nombre completo"
+          placeholder="Tu nombre"
           icon={<User className="size-5" />}
-          value={name}
-          onChange={(e) => setName(e.target.value)}
+          value={firstName}
+          onChange={(e) => setFirstName(e.target.value)}
+          required
+        />
+        <Input
+          label="Apellidos"
+          type="text"
+          placeholder="Tus apellidos"
+          value={lastName}
+          onChange={(e) => setLastName(e.target.value)}
           required
         />
 
