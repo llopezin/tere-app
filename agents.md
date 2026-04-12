@@ -6,6 +6,8 @@ Use tanstack router Link component for links
 No barrel exports — always import directly from the component file (e.g. `@/components/ui/Button`)
 Make a commit after every request with code changesLets 
 
+This project uses tankstack router, use it for links and 
+
 ## Key Files & Context
 
 - `docs/PRD.md`: Feature list and business rules.

@@ -1,4 +1,5 @@
 import { type FormEvent, useState } from "react";
+import { useRouter } from "@tanstack/react-router";
 import { User, Mail, Phone, Lock } from "lucide-react";
 import { signUp } from "@/lib/auth-client";
 import { client } from "@/lib/client";
@@ -14,6 +15,7 @@ interface SignupModalProps {
 }
 
 export function SignupModal({ open, onOpenChange, onSwitchToLogin }: SignupModalProps) {
+  const router = useRouter();
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
@@ -53,12 +55,13 @@ export function SignupModal({ open, onOpenChange, onSwitchToLogin }: SignupModal
     // Record RGPD consent acceptance — best-effort, don't block signup on failure
     try {
       await client.patient.me["rgpd-consent"].$post({});
-    } catch {
+    } catch (e) {
       // Non-fatal: user can still log in; consent can be collected later
+      console.log(e);
     }
 
-    // Session cookie is set — redirect to patient dashboard
-    window.location.href = "/patient/dashboard";
+    // Session cookie is set — navigate to patient dashboard
+    router.navigate({ to: "/patient/dashboard" });
   }
 
   const canSubmit = rgpdAccepted && !loading;
