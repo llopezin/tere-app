@@ -7,7 +7,7 @@ interface ModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   title: string;
-  subtitle?: string;
+  subtitle?: ReactNode;
   children: ReactNode;
   className?: string;
 }

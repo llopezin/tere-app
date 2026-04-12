@@ -210,7 +210,9 @@ export function BookingConfirmationModal({
       subtitle={
         confirmed
           ? undefined
-          : `Revisa los datos de tu cita de ${consultationName} con ${professionalName}`
+          : slot
+            ? <>Revisa los datos de tu cita de {consultationName} con {professionalName} — <strong>{formatDate(slot.startAt)}</strong> a las <strong>{formatTime(slot.startAt)}</strong></>
+            : undefined
       }
       className="max-w-lg"
     >
@@ -279,28 +281,6 @@ export function BookingConfirmationModal({
           )}
         >
           <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Summary Box */}
-            <div className="rounded-lg border border-green-200 bg-green-50 p-4">
-              <div className="flex gap-4">
-                <div>
-                  <p className="text-xs font-medium uppercase text-green-600">
-                    Fecha
-                  </p>
-                  <p className="text-sm font-semibold text-green-800">
-                    {formatDate(slot.startAt)}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-xs font-medium uppercase text-green-600">
-                    Hora
-                  </p>
-                  <p className="text-sm font-semibold text-green-800">
-                    {formatTime(slot.startAt)} - {formatTime(slot.endAt)}
-                  </p>
-                </div>
-              </div>
-            </div>
-
             {/* Form Fields */}
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <Input
