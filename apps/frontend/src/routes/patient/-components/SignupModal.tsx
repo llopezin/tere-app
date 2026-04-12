@@ -2,11 +2,9 @@ import { type FormEvent, useState } from "react";
 import { useRouter } from "@tanstack/react-router";
 import { User, Mail, Phone, Lock } from "lucide-react";
 import { signIn, signUp } from "@/lib/auth-client";
-import { client } from "@/lib/client";
 import { Modal } from "@/components/ui/Modal";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
-import { Checkbox } from "@/components/ui/Checkbox";
 
 interface SignupModalProps {
   open: boolean;
@@ -22,17 +20,12 @@ export function SignupModal({ open, onOpenChange, onSwitchToLogin }: SignupModal
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [rgpdAccepted, setRgpdAccepted] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setError(null);
-
-    if (!rgpdAccepted) {
-      setError("Acepta el consentimiento de protección de datos");
-    }
 
     if (password !== confirmPassword) {
       setError("Las contraseñas no coinciden");
@@ -58,19 +51,9 @@ export function SignupModal({ open, onOpenChange, onSwitchToLogin }: SignupModal
       return;
     }
 
-    try {
-      await client.patient.me["rgpd-consent"].$post();
-    } catch (e) {
-      console.log("Error al crear la cuenta: ", e);
-      setError("Error al crear la cuenta");
-    } finally {
-      setLoading(false);
-    }
-
+    setLoading(false);
     router.navigate({ to: "/patient/dashboard" });
   }
-
-  const canSubmit = rgpdAccepted && !loading;
 
   return (
     <Modal
@@ -139,23 +122,9 @@ export function SignupModal({ open, onOpenChange, onSwitchToLogin }: SignupModal
           minLength={8}
         />
 
-        <div className="flex flex-col gap-3 pt-1">
-          <Checkbox checked={rgpdAccepted} onCheckedChange={setRgpdAccepted}>
-            Acepto el {/* Uses <a> because this route is not yet registered in the router */}
-            <a
-              href="/rgpd"
-              className="font-semibold text-primary-600 hover:text-primary-hover underline-offset-2 hover:underline"
-              onClick={(e) => e.stopPropagation()}
-            >
-              consentimiento RGPD
-            </a>{" "}
-            para el tratamiento de mis datos personales
-          </Checkbox>
-        </div>
-
         {error && <p className="rounded-md bg-danger/10 px-3 py-2 text-sm text-danger">{error}</p>}
 
-        <Button size="lg" type="submit" disabled={!canSubmit}>
+        <Button size="lg" type="submit" disabled={loading}>
           {loading ? "Creando cuenta…" : "Crear Cuenta"}
         </Button>
 
