@@ -1,7 +1,7 @@
 import { type FormEvent, useState } from "react";
 import { useRouter } from "@tanstack/react-router";
 import { User, Mail, Phone, Lock } from "lucide-react";
-import { signUp } from "@/lib/auth-client";
+import { signIn, signUp } from "@/lib/auth-client";
 import { client } from "@/lib/client";
 import { Modal } from "@/components/ui/Modal";
 import { Input } from "@/components/ui/Input";
@@ -30,6 +30,10 @@ export function SignupModal({ open, onOpenChange, onSwitchToLogin }: SignupModal
     e.preventDefault();
     setError(null);
 
+    if (!rgpdAccepted) {
+      setError("Acepta el consentimiento de protección de datos");
+    }
+
     if (password !== confirmPassword) {
       setError("Las contraseñas no coinciden");
       return;
@@ -37,7 +41,7 @@ export function SignupModal({ open, onOpenChange, onSwitchToLogin }: SignupModal
 
     setLoading(true);
 
-    const { error: authError } = await signUp.email({
+    const { error: signUpError } = await signUp.email({
       name: `${firstName} ${lastName}`.trim(),
       email,
       password,
@@ -46,21 +50,23 @@ export function SignupModal({ open, onOpenChange, onSwitchToLogin }: SignupModal
       lastName,
     });
 
-    if (authError) {
+    const { data, error: signInError } = await signIn.email({ email, password });
+
+    if (signUpError || signInError) {
+      setError("Error al crear la cuenta");
       setLoading(false);
-      setError(authError.message ?? "Error al crear la cuenta");
       return;
     }
 
-    // Record RGPD consent acceptance — best-effort, don't block signup on failure
-    // try {
-    //   await client.patient.me["rgpd-consent"].$post({});
-    // } catch (e) {
-    //   // Non-fatal: user can still log in; consent can be collected later
-    //   console.log(e);
-    // }
+    try {
+      await client.patient.me["rgpd-consent"].$post();
+    } catch (e) {
+      console.log("Error al crear la cuenta: ", e);
+      setError("Error al crear la cuenta");
+    } finally {
+      setLoading(false);
+    }
 
-    // Session cookie is set — navigate to patient dashboard
     router.navigate({ to: "/patient/dashboard" });
   }
 
