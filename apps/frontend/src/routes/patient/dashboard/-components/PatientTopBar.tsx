@@ -1,9 +1,13 @@
 import { ArrowLeft, LogOut } from "lucide-react";
 import { Link } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
 import { BrandLogo } from "@/components/ui/BrandLogo";
 import { Avatar } from "@/components/ui/Avatar";
+import { patientProfileQueryOptions } from "@/api/patient-profile";
 
 export function PatientTopBar() {
+  const { data: profile } = useQuery(patientProfileQueryOptions());
+  const fullName = profile ? `${profile.firstName} ${profile.lastName}` : null;
   return (
     <header className="flex items-center justify-between border-b border-border bg-surface px-4 py-3">
       {/* Left — back arrow */}
@@ -22,7 +26,7 @@ export function PatientTopBar() {
       {/* Desktop */}
       <div className="hidden items-center gap-3 md:flex">
         <div className="text-right">
-          <p className="text-sm font-semibold text-text">Laura Martínez</p>
+          <p className="text-sm font-semibold text-text">{fullName ?? "—"}</p>
           <p className="text-xs text-text-muted">Paciente</p>
         </div>
         <Avatar size="sm" />
