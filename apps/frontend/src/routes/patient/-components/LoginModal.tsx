@@ -1,5 +1,6 @@
 import { type FormEvent, useState } from "react";
 import { Mail, Lock } from "lucide-react";
+import { useRouter } from "@tanstack/react-router";
 import { signIn } from "@/lib/auth-client";
 import { Modal } from "@/components/ui/Modal";
 import { Input } from "@/components/ui/Input";
@@ -12,6 +13,7 @@ interface LoginModalProps {
 }
 
 export function LoginModal({ open, onOpenChange, onSwitchToSignup }: LoginModalProps) {
+  const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -22,17 +24,15 @@ export function LoginModal({ open, onOpenChange, onSwitchToSignup }: LoginModalP
     setError(null);
     setLoading(true);
 
-    const { data, error: authError } = await signIn.email({ email, password });
+    const { error: authError } = await signIn.email({ email, password });
     setLoading(false);
-    
+
     if (authError) {
       setError(authError.message ?? "Error al iniciar sesión");
       return;
     }
-    
-    // TODO: add redirect based on role when routes ready 
-    console.log('data: ', data);
 
+    router.navigate({ to: "/patient/dashboard" });
   }
 
   return (
