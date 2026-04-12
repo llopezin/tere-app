@@ -20,7 +20,6 @@ export const auth = betterAuth({
   plugins: [
     openAPI({
       path: '/reference',
-      // disableDefaultReference: true, // We'll integrate it with our main Scalar docs
     }),
   ],
   baseURL: process.env.BETTER_AUTH_URL || 'http://localhost:3000',
@@ -28,6 +27,7 @@ export const auth = betterAuth({
   trustedOrigins: ['http://localhost:5173'],
   emailAndPassword: {
     enabled: true,
+    autoSignIn: false // We dynamically sign in after creation to guarantee profile entry is created and already linked to profile ID
   },
   user: {
     additionalFields: {

@@ -50,7 +50,7 @@ export function SignupModal({ open, onOpenChange, onSwitchToLogin }: SignupModal
       lastName,
     });
 
-    const { data, error: signInError } = await signIn.email({ email, password });
+    const { error: signInError } = await signIn.email({ email, password });
 
     if (signUpError || signInError) {
       setError("Error al crear la cuenta");
