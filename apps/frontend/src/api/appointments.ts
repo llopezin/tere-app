@@ -29,6 +29,7 @@ export function useCreateAppointment() {
       queryClient.invalidateQueries({
         queryKey: patientAppointmentsQueryOptions().queryKey,
       });
+      queryClient.invalidateQueries({ queryKey: ["availability"] });
     },
   });
 }

@@ -84,12 +84,13 @@ export const auth = betterAuth({
               .set({ profileId: prof.id })
               .where(eq(schema.user.id, user.id));
           } else if (user.role === 'patient') {
+            const phone = (user as any).phone as string | undefined;
             const patValues: NewPatient = {
               authUserId: user.id,
               firstName,
               lastName,
               email: user.email,
-              phone: '',
+              phone: phone || '',
             };
             const [patient] = await db.insert(patients).values(patValues).returning();
 

@@ -35,7 +35,8 @@ export function SignupModal({ open, onOpenChange, onSwitchToLogin }: SignupModal
       role: "patient",
       firstName,
       lastName,
-    });
+      phone,
+    } as Parameters<typeof signUp.email>[0]);
 
     const { error: signInError } = await signIn.email({ email, password });
 
@@ -107,7 +108,7 @@ export function SignupModal({ open, onOpenChange, onSwitchToLogin }: SignupModal
 
         {error && <p className="rounded-md bg-danger/10 px-3 py-2 text-sm text-danger">{error}</p>}
 
-        <Button size="lg" type="submit" disabled={loading}>
+        <Button className="mt-2" size="lg" type="submit" disabled={loading}>
           {loading ? "Creando cuenta…" : "Crear Cuenta"}
         </Button>
 
