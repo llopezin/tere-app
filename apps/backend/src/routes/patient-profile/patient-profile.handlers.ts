@@ -8,6 +8,7 @@ import type {
   GetMyConsentsRoute,
   GetMyConsentRoute,
   SignMyConsentRoute,
+  GetMyRgpdConsentRoute,
   AcceptMyRgpdConsentRoute,
 } from './patient-profile.routes.js';
 import { db } from '../../db/index.js';
@@ -162,6 +163,13 @@ export const signMyConsent: AppRouteHandler<SignMyConsentRoute> = async (c) => {
     .returning();
 
   return c.json(updated, HttpStatusCodes.OK);
+};
+
+export const getMyRgpdConsent: AppRouteHandler<GetMyRgpdConsentRoute> = async (c) => {
+  const profileId = getProfileId(c);
+  const [existing] = await db.select().from(rgpdConsents)
+    .where(eq(rgpdConsents.patientId, profileId));
+  return c.json({ signed: existing?.signed === true }, HttpStatusCodes.OK);
 };
 
 export const acceptMyRgpdConsent: AppRouteHandler<AcceptMyRgpdConsentRoute> = async (c) => {

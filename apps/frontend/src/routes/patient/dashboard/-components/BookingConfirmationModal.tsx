@@ -6,9 +6,12 @@ import { Input } from "@/components/ui/Input";
 import { Textarea } from "@/components/ui/Textarea";
 import { RadioGroup } from "@/components/ui/RadioGroup";
 import { Button } from "@/components/ui/Button";
+import { Checkbox } from "@/components/ui/Checkbox";
 import { patientProfileQueryOptions } from "@/api/patient-profile";
 import { patientAppointmentsQueryOptions } from "@/api/patient-appointments";
 import { createAppointment } from "@/api/appointments";
+import { rgpdConsentQueryOptions } from "@/api/rgpd-consent";
+import { client } from "@/lib/client";
 import { phoneSchema, nieSchema } from "@fisio-app/validators";
 import { cn } from "@/lib/cn";
 
@@ -66,8 +69,11 @@ export function BookingConfirmationModal({
   consultationName,
 }: BookingConfirmationModalProps) {
   const { data: profile } = useQuery(patientProfileQueryOptions());
+  const { data: rgpdConsent } = useQuery(rgpdConsentQueryOptions());
   const queryClient = useQueryClient();
   const profileLoaded = useRef(false);
+
+  const alreadySigned = rgpdConsent?.signed === true;
 
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
@@ -76,6 +82,7 @@ export function BookingConfirmationModal({
   const [email, setEmail] = useState("");
   const [contactMethod, setContactMethod] = useState("email");
   const [comments, setComments] = useState("");
+  const [rgpdAccepted, setRgpdAccepted] = useState(false);
   const [errors, setErrors] = useState<{ nie?: string; phone?: string }>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -151,12 +158,23 @@ export function BookingConfirmationModal({
     setErrors(newErrors);
     if (newErrors.nie || newErrors.phone) return;
 
+    if (!alreadySigned && !rgpdAccepted) {
+      setSubmitError("Debes aceptar el consentimiento de protección de datos");
+      return;
+    }
+
     if (!profile?.id || !slot) return;
 
     setIsSubmitting(true);
     setSubmitError(null);
 
     try {
+      if (!alreadySigned) {
+        const rgpdRes = await client.patient.me["rgpd-consent"].$post();
+        if (!rgpdRes.ok) throw new Error("Error al registrar el consentimiento RGPD");
+        await queryClient.invalidateQueries({ queryKey: rgpdConsentQueryOptions().queryKey });
+      }
+
       await createAppointment({
         patientId: profile.id,
         appointmentTypeId,
@@ -359,6 +377,25 @@ export function BookingConfirmationModal({
               onChange={(e) => setComments(e.target.value)}
             />
 
+            {/* RGPD consent — only shown if not already signed */}
+            {!alreadySigned && (
+              <Checkbox
+                checked={rgpdAccepted}
+                onCheckedChange={setRgpdAccepted}
+              >
+                He leído y acepto la{" "}
+                <a
+                  href="/politica-de-privacidad"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-primary-600 underline"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  política de privacidad y protección de datos (RGPD)
+                </a>
+              </Checkbox>
+            )}
+
             {/* API error */}
             {submitError && (
               <p className="rounded-md bg-danger/10 px-3 py-2 text-sm text-danger">
@@ -376,7 +413,11 @@ export function BookingConfirmationModal({
               >
                 Cancelar
               </Button>
-              <Button variant="primary" type="submit" disabled={isSubmitting}>
+              <Button
+                variant="primary"
+                type="submit"
+                disabled={isSubmitting || (!alreadySigned && !rgpdAccepted)}
+              >
                 {isSubmitting ? "Confirmando..." : "Confirmar cita"}
               </Button>
             </div>

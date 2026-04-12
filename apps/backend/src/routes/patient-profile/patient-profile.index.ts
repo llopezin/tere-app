@@ -11,6 +11,7 @@ const router = createRouter()
   .openapi(routes.getMyConsents, handlers.getMyConsents)
   .openapi(routes.getMyConsent, handlers.getMyConsent)
   .openapi(routes.signMyConsent, handlers.signMyConsent)
+  .openapi(routes.getMyRgpdConsent, handlers.getMyRgpdConsent)
   .openapi(routes.acceptMyRgpdConsent, handlers.acceptMyRgpdConsent);
 
 export default router;

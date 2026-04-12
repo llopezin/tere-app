@@ -163,6 +163,22 @@ export const signMyConsent = createRoute({
 });
 export type SignMyConsentRoute = typeof signMyConsent;
 
+export const getMyRgpdConsent = createRoute({
+  method: 'get',
+  path: '/patient/me/rgpd-consent',
+  middleware: patientMiddleware,
+  tags,
+  summary: "Get the authenticated patient's RGPD consent status",
+  responses: {
+    [HttpStatusCodes.OK]: jsonContent(
+      z.object({ signed: z.boolean() }),
+      'RGPD consent status',
+    ),
+    [HttpStatusCodes.NOT_FOUND]: jsonContent(z.object({ message: z.string() }), 'Patient profile not found'),
+  },
+});
+export type GetMyRgpdConsentRoute = typeof getMyRgpdConsent;
+
 export const acceptMyRgpdConsent = createRoute({
   method: 'post',
   path: '/patient/me/rgpd-consent',
