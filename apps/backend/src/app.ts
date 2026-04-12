@@ -1,8 +1,8 @@
 import { cors } from 'hono/cors';
 import { logger } from 'hono/logger';
+import { onError, notFound } from 'stoker/middlewares';
 import createApp, { createRouter } from './lib/create-app.js';
 import configureOpenAPI from './lib/configure-open-api.js';
-import { errorHandler } from './middleware/error-handler.js';
 import { auth } from './lib/auth.js';
 
 // Routes
@@ -31,7 +31,8 @@ app.use('*', cors({
   credentials: true,
 }));
 app.use('*', logger());
-app.use('*', errorHandler);
+
+app.onError(onError);
 
 // Health check
 app.get('/api/v1/health', (c) => c.json({ status: 'ok', timestamp: new Date().toISOString() }));
@@ -69,8 +70,7 @@ routes.forEach((route) => {
 
 app.route('/api/v1', api);
 
-// 404 handler
-app.notFound((c) => c.json({ error: 'Not found' }, 404));
+app.notFound(notFound);
 
 export type AppType = typeof routes[number];
 

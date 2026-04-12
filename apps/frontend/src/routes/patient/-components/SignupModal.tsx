@@ -53,12 +53,12 @@ export function SignupModal({ open, onOpenChange, onSwitchToLogin }: SignupModal
     }
 
     // Record RGPD consent acceptance — best-effort, don't block signup on failure
-    try {
-      await client.patient.me["rgpd-consent"].$post({});
-    } catch (e) {
-      // Non-fatal: user can still log in; consent can be collected later
-      console.log(e);
-    }
+    // try {
+    //   await client.patient.me["rgpd-consent"].$post({});
+    // } catch (e) {
+    //   // Non-fatal: user can still log in; consent can be collected later
+    //   console.log(e);
+    // }
 
     // Session cookie is set — navigate to patient dashboard
     router.navigate({ to: "/patient/dashboard" });
