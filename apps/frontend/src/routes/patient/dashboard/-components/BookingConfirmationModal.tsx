@@ -3,7 +3,6 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Mail, MessageCircle, Phone, CheckCircle2 } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
 import { Input } from "@/components/ui/Input";
-import { Textarea } from "@/components/ui/Textarea";
 import { RadioGroup } from "@/components/ui/RadioGroup";
 import { Button } from "@/components/ui/Button";
 import { Checkbox } from "@/components/ui/Checkbox";
@@ -15,15 +14,7 @@ import { client } from "@/lib/client";
 import { phoneSchema, nieSchema } from "@fisio-app/validators";
 import { cn } from "@/lib/cn";
 
-const DAYS = [
-  "Domingo",
-  "Lunes",
-  "Martes",
-  "Miércoles",
-  "Jueves",
-  "Viernes",
-  "Sábado",
-];
+const DAYS = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
 const MONTHS = [
   "enero",
   "febrero",
@@ -81,7 +72,6 @@ export function BookingConfirmationModal({
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
   const [contactMethod, setContactMethod] = useState("email");
-  const [comments, setComments] = useState("");
   const [rgpdAccepted, setRgpdAccepted] = useState(false);
   const [errors, setErrors] = useState<{ nie?: string; phone?: string }>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -151,9 +141,7 @@ export function BookingConfirmationModal({
             }
           ).error.issues[0]?.message
         : undefined,
-      phone: !phoneResult.success
-        ? phoneResult.error.issues[0]?.message
-        : undefined,
+      phone: !phoneResult.success ? phoneResult.error.issues[0]?.message : undefined,
     };
     setErrors(newErrors);
     if (newErrors.nie || newErrors.phone) return;
@@ -179,7 +167,6 @@ export function BookingConfirmationModal({
         patientId: profile.id,
         appointmentTypeId,
         startAt: slot.startAt,
-        notes: comments || undefined,
       });
 
       // Invalidate appointments cache so Mis Citas updates
@@ -194,9 +181,7 @@ export function BookingConfirmationModal({
         setBlurring(false);
       }, 300);
     } catch (err) {
-      setSubmitError(
-        err instanceof Error ? err.message : "Error al crear la cita",
-      );
+      setSubmitError(err instanceof Error ? err.message : "Error al crear la cita");
     } finally {
       setIsSubmitting(false);
     }
@@ -208,11 +193,13 @@ export function BookingConfirmationModal({
       onOpenChange={onOpenChange}
       title={confirmed ? "¡Cita confirmada!" : "Confirmar cita"}
       subtitle={
-        confirmed
-          ? undefined
-          : slot
-            ? <>Revisa los datos de tu cita de {consultationName} con {professionalName} — <strong>{formatDate(slot.startAt)}</strong> a las <strong>{formatTime(slot.startAt)}</strong></>
-            : undefined
+        confirmed ? undefined : slot ? (
+          <>
+            Revisa los datos de tu cita de {consultationName} con {professionalName} el{" "}
+            <strong>{formatDate(slot.startAt)}</strong> a las{" "}
+            <strong>{formatTime(slot.startAt)}</strong>
+          </>
+        ) : undefined
       }
       className="max-w-lg"
     >
@@ -224,44 +211,29 @@ export function BookingConfirmationModal({
               <CheckCircle2 className="size-9 text-green-600" strokeWidth={1.5} />
             </div>
             <p className="text-sm text-text-secondary">
-              Tu cita ha sido reservada. Te contactaremos para confirmarte los
-              detalles.
+              Tu cita ha sido reservada. Te contactaremos para confirmarte los detalles.
             </p>
           </div>
 
           <div className="rounded-lg border border-green-200 bg-green-50 p-4 space-y-3">
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <p className="text-xs font-medium uppercase text-green-600">
-                  Fecha
-                </p>
-                <p className="text-sm font-semibold text-green-800">
-                  {formatDate(slot.startAt)}
-                </p>
+                <p className="text-xs font-medium uppercase text-green-600">Fecha</p>
+                <p className="text-sm font-semibold text-green-800">{formatDate(slot.startAt)}</p>
               </div>
               <div>
-                <p className="text-xs font-medium uppercase text-green-600">
-                  Hora
-                </p>
+                <p className="text-xs font-medium uppercase text-green-600">Hora</p>
                 <p className="text-sm font-semibold text-green-800">
                   {formatTime(slot.startAt)} – {formatTime(slot.endAt)}
                 </p>
               </div>
               <div>
-                <p className="text-xs font-medium uppercase text-green-600">
-                  Tipo de cita
-                </p>
-                <p className="text-sm font-semibold text-green-800">
-                  {consultationName}
-                </p>
+                <p className="text-xs font-medium uppercase text-green-600">Tipo de cita</p>
+                <p className="text-sm font-semibold text-green-800">{consultationName}</p>
               </div>
               <div>
-                <p className="text-xs font-medium uppercase text-green-600">
-                  Profesional
-                </p>
-                <p className="text-sm font-semibold text-green-800">
-                  {professionalName}
-                </p>
+                <p className="text-xs font-medium uppercase text-green-600">Profesional</p>
+                <p className="text-sm font-semibold text-green-800">{professionalName}</p>
               </div>
             </div>
           </div>
@@ -351,18 +323,9 @@ export function BookingConfirmationModal({
               />
             )}
 
-            <Textarea
-              label="Comentarios sobre la visita (opcional)"
-              value={comments}
-              onChange={(e) => setComments(e.target.value)}
-            />
-
             {/* RGPD consent — only shown if not already signed */}
             {!alreadySigned && (
-              <Checkbox
-                checked={rgpdAccepted}
-                onCheckedChange={setRgpdAccepted}
-              >
+              <Checkbox checked={rgpdAccepted} onCheckedChange={setRgpdAccepted}>
                 He leído y acepto la{" "}
                 <a
                   href="/politica-de-privacidad"
@@ -378,9 +341,7 @@ export function BookingConfirmationModal({
 
             {/* API error */}
             {submitError && (
-              <p className="rounded-md bg-danger/10 px-3 py-2 text-sm text-danger">
-                {submitError}
-              </p>
+              <p className="rounded-md bg-danger/10 px-3 py-2 text-sm text-danger">{submitError}</p>
             )}
 
             {/* Action Buttons */}
