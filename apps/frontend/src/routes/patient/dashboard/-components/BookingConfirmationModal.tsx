@@ -7,8 +7,7 @@ import { RadioGroup } from "@/components/ui/RadioGroup";
 import { Button } from "@/components/ui/Button";
 import { Checkbox } from "@/components/ui/Checkbox";
 import { patientProfileQueryOptions } from "@/api/patient-profile";
-import { patientAppointmentsQueryOptions } from "@/api/patient-appointments";
-import { createAppointment } from "@/api/appointments";
+import { useCreateAppointment } from "@/api/appointments";
 import { rgpdConsentQueryOptions } from "@/api/rgpd-consent";
 import { client } from "@/lib/client";
 import { phoneSchema, nieSchema } from "@fisio-app/validators";
@@ -62,6 +61,7 @@ export function BookingConfirmationModal({
   const { data: profile } = useQuery(patientProfileQueryOptions());
   const { data: rgpdConsent } = useQuery(rgpdConsentQueryOptions());
   const queryClient = useQueryClient();
+  const createAppointment = useCreateAppointment();
   const profileLoaded = useRef(false);
 
   const alreadySigned = rgpdConsent?.signed === true;
@@ -163,15 +163,10 @@ export function BookingConfirmationModal({
         await queryClient.invalidateQueries({ queryKey: rgpdConsentQueryOptions().queryKey });
       }
 
-      await createAppointment({
+      await createAppointment.mutateAsync({
         patientId: profile.id,
         appointmentTypeId,
         startAt: slot.startAt,
-      });
-
-      // Invalidate appointments cache so Mis Citas updates
-      await queryClient.invalidateQueries({
-        queryKey: patientAppointmentsQueryOptions().queryKey,
       });
 
       // Blur out form, then reveal confirmation
