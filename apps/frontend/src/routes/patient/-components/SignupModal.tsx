@@ -19,18 +19,12 @@ export function SignupModal({ open, onOpenChange, onSwitchToLogin }: SignupModal
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setError(null);
-
-    if (password !== confirmPassword) {
-      setError("Las contraseñas no coinciden");
-      return;
-    }
 
     setLoading(true);
 
@@ -107,17 +101,6 @@ export function SignupModal({ open, onOpenChange, onSwitchToLogin }: SignupModal
           icon={<Lock className="size-5" />}
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          required
-          minLength={8}
-        />
-
-        <Input
-          label="Confirmar Contraseña"
-          type="password"
-          placeholder="••••••••"
-          icon={<Lock className="size-5" />}
-          value={confirmPassword}
-          onChange={(e) => setConfirmPassword(e.target.value)}
           required
           minLength={8}
         />
