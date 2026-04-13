@@ -1,6 +1,7 @@
 import { type FormEvent, useState } from "react";
 import { useRouter } from "@tanstack/react-router";
 import { User, Mail, Phone, Lock } from "lucide-react";
+import { phoneSchema } from "@fisio-app/validators";
 import { signIn, signUp } from "@/lib/auth-client";
 import { Modal } from "@/components/ui/Modal";
 import { Input } from "@/components/ui/Input";
@@ -18,13 +19,22 @@ export function SignupModal({ open, onOpenChange, onSwitchToLogin }: SignupModal
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
+  const [phoneError, setPhoneError] = useState<string | undefined>(undefined);
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
+  function validatePhone(value: string) {
+    const result = phoneSchema.safeParse(value);
+    setPhoneError(result.success ? undefined : result.error.issues[0]?.message);
+    return result.success;
+  }
+
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setError(null);
+
+    if (!validatePhone(phone)) return;
 
     setLoading(true);
 
@@ -92,7 +102,12 @@ export function SignupModal({ open, onOpenChange, onSwitchToLogin }: SignupModal
           placeholder="+34 600 000 000"
           icon={<Phone className="size-5" />}
           value={phone}
-          onChange={(e) => setPhone(e.target.value)}
+          onChange={(e) => {
+            setPhone(e.target.value);
+            if (phoneError) validatePhone(e.target.value);
+          }}
+          onBlur={() => validatePhone(phone)}
+          error={phoneError}
         />
 
         <Input
