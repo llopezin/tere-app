@@ -8,6 +8,13 @@
       "when": 1774717486224,
       "tag": "0000_fixed_norrin_radd",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1776075584999,
+      "tag": "0001_redundant_golden_guardian",
+      "breakpoints": true
     }
   ]
 }
