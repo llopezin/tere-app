@@ -14,6 +14,7 @@ interface RadioGroupProps {
   onValueChange: (value: string) => void;
   options: RadioOption[];
   className?: string;
+  optionLabelClassName?: string;
 }
 
 export function RadioGroup({
@@ -23,6 +24,7 @@ export function RadioGroup({
   onValueChange,
   options,
   className,
+  optionLabelClassName,
 }: RadioGroupProps) {
   const labelId = useId();
   const optionRefs = useRef<(HTMLDivElement | null)[]>([]);
@@ -99,7 +101,7 @@ export function RadioGroup({
                   {option.icon}
                 </span>
               )}
-              <span className="hidden min-[450px]:inline">{option.label}</span>
+              <span className={optionLabelClassName}>{option.label}</span>
             </div>
           );
         })}

@@ -160,7 +160,9 @@ export function BookingConfirmationModal({
       if (!alreadySigned) {
         const rgpdRes = await client.patient.me["rgpd-consent"].$post();
         if (!rgpdRes.ok) throw new Error("Error al registrar el consentimiento RGPD");
-        await queryClient.invalidateQueries({ queryKey: rgpdConsentQueryOptions().queryKey });
+        await queryClient.invalidateQueries({
+          queryKey: rgpdConsentQueryOptions().queryKey,
+        });
       }
 
       await createAppointment.mutateAsync({
@@ -298,6 +300,7 @@ export function BookingConfirmationModal({
                 name="contactMethod"
                 value={contactMethod}
                 onValueChange={setContactMethod}
+                optionLabelClassName="hidden min-[450px]:inline"
                 options={[
                   {
                     value: "email",
@@ -341,12 +344,7 @@ export function BookingConfirmationModal({
 
             {/* Action Buttons */}
             <div className="flex justify-end gap-3">
-              <Button
-                variant="outline"
-                type="button"
-                onClick={() => onOpenChange(false)}
-                disabled={isSubmitting}
-              >
+              <Button type="button" onClick={() => onOpenChange(false)} disabled={isSubmitting}>
                 Cancelar
               </Button>
               <Button
