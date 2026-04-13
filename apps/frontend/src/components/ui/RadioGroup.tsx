@@ -99,7 +99,7 @@ export function RadioGroup({
                   {option.icon}
                 </span>
               )}
-              {option.label}
+              <span className="hidden min-[450px]:inline">{option.label}</span>
             </div>
           );
         })}
