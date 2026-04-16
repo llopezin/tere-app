@@ -344,7 +344,12 @@ export function BookingConfirmationModal({
 
             {/* Action Buttons */}
             <div className="flex justify-end gap-3">
-              <Button type="button" onClick={() => onOpenChange(false)} disabled={isSubmitting}>
+              <Button
+                variant="secondary"
+                type="button"
+                onClick={() => onOpenChange(false)}
+                disabled={isSubmitting}
+              >
                 Cancelar
               </Button>
               <Button
