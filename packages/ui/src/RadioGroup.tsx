@@ -1,5 +1,5 @@
 import { useId, useRef, useCallback, type ReactNode } from "react";
-import { cn } from "@/lib/cn";
+import { cn } from "./cn";
 
 interface RadioOption {
   value: string;

@@ -1,5 +1,5 @@
 import { Pencil, Download, Clock } from "lucide-react";
-import { Button } from "@/components/ui/Button";
+import { Button } from "@fisio-app/ui";
 import { DateBadge } from "./DateBadge";
 import { StatusBadge } from "./StatusBadge";
 

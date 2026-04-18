@@ -1,17 +1,17 @@
 import { useState, useEffect, useRef } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Mail, MessageCircle, Phone, CheckCircle2 } from "lucide-react";
-import { Modal } from "@/components/ui/Modal";
-import { Input } from "@/components/ui/Input";
-import { RadioGroup } from "@/components/ui/RadioGroup";
-import { Button } from "@/components/ui/Button";
-import { Checkbox } from "@/components/ui/Checkbox";
+import { Modal } from "@fisio-app/ui";
+import { Input } from "@fisio-app/ui";
+import { RadioGroup } from "@fisio-app/ui";
+import { Button } from "@fisio-app/ui";
+import { Checkbox } from "@fisio-app/ui";
 import { patientProfileQueryOptions } from "@/api/patient-profile";
 import { useCreateAppointment } from "@/api/appointments";
 import { rgpdConsentQueryOptions } from "@/api/rgpd-consent";
 import { client } from "@/lib/client";
 import { phoneSchema, nieSchema } from "@fisio-app/validators";
-import { cn } from "@/lib/cn";
+import { cn } from "@fisio-app/ui";
 
 const DAYS = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
 const MONTHS = [

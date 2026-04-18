@@ -2,7 +2,7 @@ import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { CalendarClock, History } from "lucide-react";
-import { Card } from "@/components/ui/Card";
+import { Card } from "@fisio-app/ui";
 import { professionalsQueryOptions } from "@/api/professionals";
 import { appointmentTypesQueryOptions } from "@/api/appointment-types";
 import { patientAppointmentsQueryOptions } from "@/api/patient-appointments";

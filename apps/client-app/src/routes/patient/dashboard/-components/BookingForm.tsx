@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
 import { useSuspenseQuery, useQuery } from "@tanstack/react-query";
 import { Clock } from "lucide-react";
-import { Card } from "@/components/ui/Card";
-import { Select } from "@/components/ui/Select";
-import type { SelectOption } from "@/components/ui/Select";
+import { Card } from "@fisio-app/ui";
+import { Select } from "@fisio-app/ui";
+import type { SelectOption } from "@fisio-app/ui";
 import { professionalsQueryOptions } from "@/api/professionals";
 import { appointmentTypesQueryOptions } from "@/api/appointment-types";
 import { WeeklySchedule } from "./WeeklySchedule";

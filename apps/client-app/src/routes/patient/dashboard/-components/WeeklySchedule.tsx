@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
-import { cn } from "@/lib/cn";
+import { cn } from "@fisio-app/ui";
 import { availabilityQueryOptions } from "@/api/availability";
 
 const MONTH_NAMES = [

@@ -1,5 +1,5 @@
 import { User } from "lucide-react";
-import { cn } from "@/lib/cn";
+import { cn } from "./cn";
 
 type AvatarSize = "sm" | "md";
 

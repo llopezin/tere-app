@@ -2,9 +2,9 @@ import { type FormEvent, useState } from "react";
 import { Mail, Lock } from "lucide-react";
 import { useRouter } from "@tanstack/react-router";
 import { signIn } from "@/lib/auth-client";
-import { Modal } from "@/components/ui/Modal";
-import { Input } from "@/components/ui/Input";
-import { Button } from "@/components/ui/Button";
+import { Modal } from "@fisio-app/ui";
+import { Input } from "@fisio-app/ui";
+import { Button } from "@fisio-app/ui";
 
 interface LoginModalProps {
   open: boolean;

@@ -1,6 +1,6 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { authClient } from "@/lib/auth-client";
-import { BrandLogo } from "@/components/ui/BrandLogo";
+import { BrandLogo } from "@fisio-app/ui";
 import { HeroCard } from "@/routes/patient/-components/HeroCard";
 import { AuthCard } from "@/routes/patient/-components/AuthCard";
 

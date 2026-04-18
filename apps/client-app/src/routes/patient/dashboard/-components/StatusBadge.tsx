@@ -1,15 +1,15 @@
-import { Badge } from "@/components/ui/Badge";
+import { Badge } from "@fisio-app/ui";
 
 type AppointmentStatus = "scheduled" | "completed" | "cancelled" | "no_show";
 
 const statusConfig: Record<
   AppointmentStatus,
-  { label: string; variant: "blue" | "green" | "gray" | "red" }
+  { label: string; variant: "info" | "success" | "neutral" | "danger" }
 > = {
-  scheduled: { label: "Programada", variant: "blue" },
-  completed: { label: "Completada", variant: "green" },
-  cancelled: { label: "Cancelada", variant: "gray" },
-  no_show: { label: "No Asistió", variant: "red" },
+  scheduled: { label: "Programada", variant: "info" },
+  completed: { label: "Completada", variant: "success" },
+  cancelled: { label: "Cancelada", variant: "neutral" },
+  no_show: { label: "No Asistió", variant: "danger" },
 };
 
 interface StatusBadgeProps {

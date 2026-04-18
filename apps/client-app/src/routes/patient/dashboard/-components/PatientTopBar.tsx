@@ -1,8 +1,8 @@
 import { ArrowLeft, LogOut } from "lucide-react";
 import { Link, useRouter } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { BrandLogo } from "@/components/ui/BrandLogo";
-import { Avatar } from "@/components/ui/Avatar";
+import { BrandLogo } from "@fisio-app/ui";
+import { Avatar } from "@fisio-app/ui";
 import { patientProfileQueryOptions } from "@/api/patient-profile";
 import { signOut } from "@/lib/auth-client";
 

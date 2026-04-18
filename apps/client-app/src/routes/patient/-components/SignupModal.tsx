@@ -3,9 +3,9 @@ import { useRouter } from "@tanstack/react-router";
 import { User, Mail, Phone, Lock } from "lucide-react";
 import { phoneSchema } from "@fisio-app/validators";
 import { signIn, signUp } from "@/lib/auth-client";
-import { Modal } from "@/components/ui/Modal";
-import { Input } from "@/components/ui/Input";
-import { Button } from "@/components/ui/Button";
+import { Modal } from "@fisio-app/ui";
+import { Input } from "@fisio-app/ui";
+import { Button } from "@fisio-app/ui";
 
 interface SignupModalProps {
   open: boolean;

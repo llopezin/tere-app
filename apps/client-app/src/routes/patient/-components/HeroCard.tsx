@@ -1,6 +1,6 @@
-import { Card } from "@/components/ui/Card";
-import { InfoBanner } from "@/components/ui/InfoBanner";
-import { BrandLogo } from "@/components/ui/BrandLogo";
+import { Card } from "@fisio-app/ui";
+import { InfoBanner } from "@fisio-app/ui";
+import { BrandLogo } from "@fisio-app/ui";
 import { FeatureItem } from "@/routes/patient/-components/FeatureItem";
 
 const FEATURES = [

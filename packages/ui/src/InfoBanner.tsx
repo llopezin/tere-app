@@ -1,5 +1,5 @@
 import { type ReactNode } from "react";
-import { cn } from "@/lib/cn";
+import { cn } from "./cn";
 
 type InfoBannerVariant = "info" | "warning";
 
@@ -11,7 +11,7 @@ interface InfoBannerProps {
 
 const variantStyles: Record<InfoBannerVariant, string> = {
   info: "bg-notice-bg border-notice-border",
-  warning: "bg-status-pending-bg border-amber-200",
+  warning: "bg-status-pending-bg border-warning/40",
 };
 
 export function InfoBanner({

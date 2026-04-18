@@ -1,7 +1,7 @@
 import { useState } from "react";
-import { Card } from "@/components/ui/Card";
-import { Button } from "@/components/ui/Button";
-import { Divider } from "@/components/ui/Divider";
+import { Card } from "@fisio-app/ui";
+import { Button } from "@fisio-app/ui";
+import { Divider } from "@fisio-app/ui";
 import { LoginModal } from "./LoginModal";
 import { SignupModal } from "./SignupModal";
 

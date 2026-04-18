@@ -1,7 +1,7 @@
 import { type ReactNode } from "react";
 import * as RadixCheckbox from "@radix-ui/react-checkbox";
 import { Check } from "lucide-react";
-import { cn } from "@/lib/cn";
+import { cn } from "./cn";
 
 interface CheckboxProps {
   checked: boolean;

@@ -1,6 +1,6 @@
 import { type InputHTMLAttributes, type ReactNode, forwardRef, useId, useState } from "react";
 import { Eye, EyeOff } from "lucide-react";
-import { cn } from "@/lib/cn";
+import { cn } from "./cn";
 
 interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
   label: string;
@@ -36,7 +36,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
           className={cn(
             "peer h-full w-full rounded-lg border bg-input-bg pb-1 pt-5 text-sm text-text transition-all focus:outline-none focus:ring-2 not-focus:placeholder-transparent",
             error
-              ? "border-red-400 focus:border-red-500 focus:ring-red-400/20"
+              ? "border-danger focus:border-danger focus:ring-danger/20"
               : "border-border focus:border-primary-600 focus:ring-primary-600/20",
             icon ? "pl-10 pr-3" : "px-3",
             isPassword && "pr-10",
@@ -69,7 +69,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
         )}
         </div>
         {error && (
-          <p id={`${inputId}-error`} className="mt-1 text-xs text-red-500">
+          <p id={`${inputId}-error`} className="mt-1 text-xs text-danger">
             {error}
           </p>
         )}

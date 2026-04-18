@@ -1,5 +1,5 @@
 import { CalendarPlus, ClipboardList } from "lucide-react";
-import { cn } from "@/lib/cn";
+import { cn } from "@fisio-app/ui";
 
 export type DashboardTab = "book" | "appointments";
 

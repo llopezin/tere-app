@@ -1,5 +1,5 @@
 import { Calendar, Stethoscope } from "lucide-react";
-import { cn } from "@/lib/cn";
+import { cn } from "./cn";
 
 type BrandLogoSize = "default" | "sm";
 

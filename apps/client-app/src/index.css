@@ -1,5 +1,8 @@
 @import "tailwindcss";
 
+/* Scan the shared UI package so Tailwind picks up its class names. */
+@source "../../../packages/ui/src";
+
 /* ─── Design System Tokens ─── */
 @theme {
   /* Colors — Primary (green used across all CTAs, active states, badges) */
