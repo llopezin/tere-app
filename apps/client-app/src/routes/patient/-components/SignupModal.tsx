@@ -99,7 +99,7 @@ export function SignupModal({ open, onOpenChange, onSwitchToLogin }: SignupModal
         <Input
           label="Teléfono"
           type="tel"
-          placeholder="+34 600 000 000"
+          placeholder="600 000 000"
           icon={<Phone className="size-5" />}
           value={phone}
           onChange={(e) => {
