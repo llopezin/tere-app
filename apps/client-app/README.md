@@ -1,4 +1,4 @@
-# ClinicFlow — Frontend
+# ClinicFlow — Client App
 
 React 19 + Vite + TanStack Router + Tailwind v4.
 
@@ -6,7 +6,7 @@ React 19 + Vite + TanStack Router + Tailwind v4.
 
 ```bash
 pnpm install
-pnpm --filter frontend dev
+pnpm --filter @fisio-app/client-app dev
 ```
 
 ## Folder structure
