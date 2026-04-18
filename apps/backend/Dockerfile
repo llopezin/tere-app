@@ -16,8 +16,8 @@ COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY apps/backend/package.json ./apps/backend/package.json
 COPY packages/validators/package.json ./packages/validators/package.json
 
-# Install production + build-time deps for the backend and its workspace deps
-RUN pnpm install --frozen-lockfile --filter @fisio-app/backend...
+# Install all deps for the workspace (filter is not supported on install)
+RUN pnpm install --frozen-lockfile
 
 # =============================================================================
 # Stage 2: build — compile TypeScript → dist/
@@ -30,8 +30,6 @@ COPY packages/validators/ ./packages/validators/
 
 # Build the validators package first (it exports raw .ts — we need compiled JS
 # at runtime when running node dist/index.js from the backend).
-# TypeScript is a devDependency of the backend; use pnpm exec to run tsc from
-# the backend workspace context which has typescript installed.
 RUN pnpm --filter @fisio-app/backend exec tsc \
         --module ESNext --moduleResolution bundler \
         --target ES2020 --outDir /app/packages/validators/dist \
@@ -51,6 +49,12 @@ RUN pnpm --filter @fisio-app/backend exec tsc \
 # Compile the backend
 RUN pnpm --filter @fisio-app/backend run build
 
+# Deploy production-only deps + compiled output to a clean directory
+RUN pnpm deploy --filter @fisio-app/backend --prod /app/deploy
+
+# Copy compiled validators dist into the deploy output so the backend can resolve it
+COPY --from=build /app/packages/validators/dist /app/deploy/node_modules/@fisio-app/validators/dist
+
 # =============================================================================
 # Stage 3: runtime — minimal production image
 # =============================================================================
@@ -58,22 +62,8 @@ FROM node:24-alpine AS runtime
 
 WORKDIR /app
 
-# Enable pnpm at the correct version
-RUN corepack enable
-
-# Copy workspace manifest files
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
-COPY apps/backend/package.json ./apps/backend/package.json
-
-# Use the patched validators package.json from the build stage
-COPY --from=build /app/packages/validators/package.json ./packages/validators/package.json
-
-# Install production-only dependencies
-RUN pnpm install --frozen-lockfile --prod --filter @fisio-app/backend...
-
-# Copy compiled output from both packages
-COPY --from=build /app/apps/backend/dist ./apps/backend/dist
-COPY --from=build /app/packages/validators/dist ./packages/validators/dist
+# Copy the clean deploy output (production deps + compiled backend)
+COPY --from=build /app/deploy ./
 
 # Run as non-root
 USER node
@@ -84,4 +74,4 @@ EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
   CMD wget -qO- http://localhost:${PORT:-3000}/api/v1/health || exit 1
 
-CMD ["node", "apps/backend/dist/index.js"]
+CMD ["node", "dist/index.js"]
