@@ -121,7 +121,11 @@ export function SignupModal({ open, onOpenChange, onSwitchToLogin }: SignupModal
           minLength={8}
         />
 
-        {error && <p className="rounded-md bg-danger/10 px-3 py-2 text-sm text-danger">{error}</p>}
+        {error && (
+          <p role="alert" className="rounded-md bg-danger/10 px-3 py-2 text-sm text-danger">
+            {error}
+          </p>
+        )}
 
         <Button className="mt-2" size="lg" type="submit" disabled={loading}>
           {loading ? "Creando cuenta…" : "Crear Cuenta"}
