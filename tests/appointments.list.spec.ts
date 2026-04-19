@@ -12,14 +12,11 @@ test.describe('Appointments — list', () => {
     // Wait for the appointment list to render
     await expect(page.getByRole('heading', { name: 'Mis Citas' })).toBeVisible({ timeout: 8_000 });
 
-    // Default sub-tab should be "Próximas Citas"
-    await expect(page.getByText(/Próximas Citas/)).toBeVisible();
+    // Default sub-tab should be "Próximas Citas" with a (1) counter
+    await expect(page.getByRole('button', { name: /Próximas Citas \(1\)/ })).toBeVisible();
 
     // Should show the future appointment with "Programada" status
     await expect(page.getByText('Programada')).toBeVisible({ timeout: 8_000 });
-
-    // Counter should show (1)
-    await expect(page.getByText('(1)')).toBeVisible();
   });
 
   test('history tab shows 1 completed appointment', async ({ page, seedAppointmentsForPatient }) => {

@@ -7,17 +7,17 @@ test.describe('Appointments — book (already consented)', () => {
     await expect(page).toHaveURL('/patient/dashboard', { timeout: 10_000 });
     await expect(page.getByText('Reservar una Cita')).toBeVisible({ timeout: 8_000 });
 
-    // Select consultation type
     const consultationSelect = page.getByRole('combobox').nth(1);
+    await expect(consultationSelect).toBeEnabled({ timeout: 8_000 });
     await consultationSelect.click();
-    await page.getByText('Sesión estándar').click();
+    await page.getByRole('option', { name: /Sesión estándar/ }).click();
 
     // Click first slot
     const slotButtons = page.locator('button').filter({ hasText: /^\d{2}:\d{2}$/ });
     await expect(slotButtons.first()).toBeVisible({ timeout: 10_000 });
     await slotButtons.first().click();
 
-    await expect(page.getByText('Confirmar cita')).toBeVisible({ timeout: 5_000 });
+    await expect(page.getByRole('heading', { name: 'Confirmar cita' })).toBeVisible({ timeout: 5_000 });
 
     // RGPD checkbox should NOT be present
     await expect(
@@ -33,17 +33,17 @@ test.describe('Appointments — book (already consented)', () => {
     await page.goto('/patient/dashboard');
     await expect(page.getByText('Reservar una Cita')).toBeVisible({ timeout: 8_000 });
 
-    // Select consultation type
     const consultationSelect = page.getByRole('combobox').nth(1);
+    await expect(consultationSelect).toBeEnabled({ timeout: 8_000 });
     await consultationSelect.click();
-    await page.getByText('Sesión estándar').click();
+    await page.getByRole('option', { name: /Sesión estándar/ }).click();
 
     // Click first available slot
     const slotButtons = page.locator('button').filter({ hasText: /^\d{2}:\d{2}$/ });
     await expect(slotButtons.first()).toBeVisible({ timeout: 10_000 });
     await slotButtons.first().click();
 
-    await expect(page.getByText('Confirmar cita')).toBeVisible({ timeout: 5_000 });
+    await expect(page.getByRole('heading', { name: 'Confirmar cita' })).toBeVisible({ timeout: 5_000 });
 
     // Fill in NIE
     await page.getByLabel('DNI/NIE').fill('12345678Z');

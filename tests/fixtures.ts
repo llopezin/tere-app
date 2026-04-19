@@ -1,4 +1,4 @@
-import { test as base, expect, type APIRequestContext } from '@playwright/test';
+import { test as base, expect, type BrowserContext } from '@playwright/test';
 
 const BACKEND_URL = 'http://localhost:3000';
 const API_BASE = `${BACKEND_URL}/api/v1`;
@@ -39,17 +39,17 @@ export interface AppointmentSeed {
 export interface AuthedPatientFixture {
   patient: PatientSeed;
   professional: ProfessionalSeed;
-  cookies: { name: string; value: string; domain: string; path: string }[];
 }
 
-// ── Helper: sign in via API and grab cookies ─────────────────────────────────
-
-async function signInViaApi(
-  request: APIRequestContext,
+// Sign in against the browser context — cookies land in the context's cookie
+// jar automatically (context.request shares storage state with the context),
+// so page.goto() and page.request.* both see the session.
+async function signInIntoContext(
+  context: BrowserContext,
   email: string,
   password: string,
-): Promise<{ name: string; value: string; domain: string; path: string }[]> {
-  const response = await request.post(`${BACKEND_URL}/api/auth/sign-in/email`, {
+): Promise<void> {
+  const response = await context.request.post(`${BACKEND_URL}/api/auth/sign-in/email`, {
     data: { email, password },
     headers: { 'Content-Type': 'application/json' },
   });
@@ -58,29 +58,6 @@ async function signInViaApi(
     const body = await response.text();
     throw new Error(`Sign-in failed for ${email}: ${response.status()} ${body}`);
   }
-
-  // Parse Set-Cookie header(s)
-  const setCookieHeader = response.headers()['set-cookie'];
-  if (!setCookieHeader) {
-    throw new Error('No Set-Cookie header in sign-in response');
-  }
-
-  // Handle multiple cookies (may be comma- or newline-separated)
-  const cookieStrings = setCookieHeader.split(/,(?=[^ ])/);
-  const cookies = cookieStrings.map((str) => {
-    const parts = str.split(';');
-    const [nameValue] = parts;
-    const [name, ...valueParts] = nameValue.trim().split('=');
-    const value = valueParts.join('=');
-    return {
-      name: name.trim(),
-      value: value.trim(),
-      domain: 'localhost',
-      path: '/',
-    };
-  });
-
-  return cookies;
 }
 
 // ── Fixture definitions ──────────────────────────────────────────────────────
@@ -184,11 +161,9 @@ export const test = base.extend<Fixtures>({
       const patJson = await patRes.json();
       const patient: PatientSeed = { ...patJson, ...patData };
 
-      // Sign in via API and grab cookies
-      const cookies = await signInViaApi(request, patient.email, patient.password);
-      await context.addCookies(cookies);
+      await signInIntoContext(context, patient.email, patient.password);
 
-      await use({ patient, professional, cookies });
+      await use({ patient, professional });
     },
     { auto: false },
   ],
@@ -221,11 +196,9 @@ export const test = base.extend<Fixtures>({
       const patJson = await patRes.json();
       const patient: PatientSeed = { ...patJson, ...patData };
 
-      // Sign in
-      const cookies = await signInViaApi(request, patient.email, patient.password);
-      await context.addCookies(cookies);
+      await signInIntoContext(context, patient.email, patient.password);
 
-      await use({ patient, professional, cookies });
+      await use({ patient, professional });
     },
     { auto: false },
   ],
@@ -299,9 +272,7 @@ export const test = base.extend<Fixtures>({
       if (!pastRes.ok()) throw new Error(`seedPastAppointment failed: ${pastRes.status()}`);
       const past: AppointmentSeed = await pastRes.json();
 
-      // Sign in patient
-      const cookies = await signInViaApi(request, patient.email, patient.password);
-      await context.addCookies(cookies);
+      await signInIntoContext(context, patient.email, patient.password);
 
       await use({ future, past, patient, professional });
     },

@@ -12,7 +12,7 @@ test.describe('Auth — sign up', () => {
     await page.getByLabel('Apellidos').fill('Martínez');
     await page.getByLabel('Correo Electrónico').fill('maria@test.com');
     await page.getByLabel('Teléfono').fill('+34 600 000 002');
-    await page.getByLabel('Contraseña').fill('password123');
+    await page.getByLabel('Contraseña', { exact: true }).fill('password123');
 
     // Submit
     await page.getByRole('button', { name: 'Crear Cuenta' }).click();
@@ -24,7 +24,7 @@ test.describe('Auth — sign up', () => {
     await expect(page.getByText('María Martínez')).toBeVisible({ timeout: 8_000 });
   });
 
-  test('user row has role=patient after signup (via API verification)', async ({ page, resetDb, seedProfessional, request }) => {
+  test('user row has role=patient after signup (via API verification)', async ({ page, resetDb, seedProfessional }) => {
     await page.goto('/patient/welcome');
 
     await page.getByRole('button', { name: 'Crear Cuenta Nueva' }).click();
@@ -32,18 +32,12 @@ test.describe('Auth — sign up', () => {
     await page.getByLabel('Apellidos').fill('Sánchez');
     await page.getByLabel('Correo Electrónico').fill('pedro@test.com');
     await page.getByLabel('Teléfono').fill('+34 600 000 003');
-    await page.getByLabel('Contraseña').fill('password123');
+    await page.getByLabel('Contraseña', { exact: true }).fill('password123');
     await page.getByRole('button', { name: 'Crear Cuenta' }).click();
 
     await expect(page).toHaveURL('/patient/dashboard', { timeout: 10_000 });
 
-    // Verify via API that the patient is signed in and has a profile
-    const profileRes = await page.evaluate(async () => {
-      const res = await fetch('http://localhost:3000/api/v1/patient/me', {
-        credentials: 'include',
-      });
-      return { status: res.status, ok: res.ok };
-    });
-    expect(profileRes.ok).toBe(true);
+    const profileRes = await page.request.get('http://localhost:3000/api/v1/patient/me');
+    expect(profileRes.ok()).toBe(true);
   });
 });

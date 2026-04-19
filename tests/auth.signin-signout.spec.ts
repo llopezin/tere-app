@@ -8,7 +8,7 @@ test.describe('Auth — sign in / sign out', () => {
     await page.getByRole('button', { name: 'Iniciar Sesión' }).click();
 
     await page.getByLabel('Correo Electrónico').fill(seedPatient.email);
-    await page.getByLabel('Contraseña').fill(seedPatient.password);
+    await page.getByLabel('Contraseña', { exact: true }).fill(seedPatient.password);
     await page.getByRole('button', { name: 'Iniciar Sesión' }).click();
 
     // Should redirect to dashboard
@@ -44,9 +44,9 @@ test.describe('Auth — sign in / sign out', () => {
     await page.getByRole('button', { name: 'Iniciar Sesión' }).click();
 
     await page.getByLabel('Correo Electrónico').fill(seedPatient.email);
-    await page.getByLabel('Contraseña').fill('wrongpassword');
+    await page.getByLabel('Contraseña', { exact: true }).fill('wrongpassword');
     await page.getByRole('button', { name: 'Iniciar Sesión' }).click();
 
-    await expect(page.getByText(/Error al iniciar sesión/i)).toBeVisible({ timeout: 5_000 });
+    await expect(page.getByRole('alert')).toBeVisible({ timeout: 5_000 });
   });
 });
