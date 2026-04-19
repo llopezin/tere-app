@@ -4,6 +4,7 @@ import { onError, notFound } from 'stoker/middlewares';
 import createApp, { createRouter } from './lib/create-app.js';
 import configureOpenAPI from './lib/configure-open-api.js';
 import { auth } from './lib/auth.js';
+import { env } from './config/env.js';
 
 // Routes
 import professionalRoutes from './routes/professionals/professionals.index.js';
@@ -69,6 +70,15 @@ routes.forEach((route) => {
 });
 
 app.route('/api/v1', api);
+
+// Test-only routes — gated by NODE_ENV !== 'production'
+if (env.NODE_ENV !== 'production') {
+  // Lazy import to avoid loading test code in production builds
+  const { default: testRoutes } = await import('./routes/test/test.index.js');
+  const testApi = createRouter();
+  testApi.route('/', testRoutes);
+  app.route('/api/v1', testApi);
+}
 
 app.notFound(notFound);
 
