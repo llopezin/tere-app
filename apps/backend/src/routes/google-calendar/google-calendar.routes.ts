@@ -5,7 +5,7 @@ import { createMessageObjectSchema } from 'stoker/openapi/schemas';
 import { authMiddleware, requireRole } from '../../middleware/auth.js';
 import { defineMiddleware } from '../../lib/create-app.js';
 
-const BASE = '/integrations/google';
+const BASE = '/integrations/google-calendar';
 
 const statusSchema = z.object({
   connected: z.boolean(),

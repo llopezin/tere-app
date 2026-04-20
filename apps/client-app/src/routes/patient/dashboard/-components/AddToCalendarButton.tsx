@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { CalendarPlus, Chrome, Mail, Apple, Download } from "lucide-react";
+import { CalendarPlus, Calendar, Mail, Apple, Download } from "lucide-react";
 import { Button } from "@fisio-app/ui";
 import { buildGoogleUrl, buildOutlookUrl, buildIcs } from "@/lib/calendar-links";
 import type { CalendarEvent } from "@/lib/calendar-links";
@@ -39,7 +39,7 @@ export function AddToCalendarButton({ event }: AddToCalendarButtonProps) {
   const options = [
     {
       label: "Google Calendar",
-      icon: <Chrome className="size-4" />,
+      icon: <Calendar className="size-4" />,
       onClick: () => {
         window.open(buildGoogleUrl(event), "_blank");
         setOpen(false);

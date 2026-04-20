@@ -20,9 +20,9 @@ export interface PushArgs {
 function isEnabled(): boolean {
   return Boolean(
     env.GCAL_SYNC_ENABLED &&
-      env.GOOGLE_CLIENT_ID &&
-      env.GOOGLE_CLIENT_SECRET &&
-      env.GOOGLE_REDIRECT_URI,
+    env.GOOGLE_CLIENT_ID &&
+    env.GOOGLE_CLIENT_SECRET &&
+    env.GOOGLE_REDIRECT_URI,
   );
 }
 
@@ -56,6 +56,7 @@ export async function push(args: PushArgs): Promise<void> {
       .select()
       .from(googleCalendarIntegrations)
       .where(eq(googleCalendarIntegrations.professionalId, appt.professionalId));
+
     if (!integration || integration.status !== 'active') return;
     integrationId = integration.id;
 
@@ -64,6 +65,7 @@ export async function push(args: PushArgs): Promise<void> {
       db.select().from(patients).where(eq(patients.id, appt.patientId)),
       db.select().from(professionals).where(eq(professionals.id, appt.professionalId)),
     ]);
+
     if (!apptType || !patient || !professional) return;
 
     const locationAddress = [
@@ -112,9 +114,6 @@ export async function push(args: PushArgs): Promise<void> {
     await recordSuccess(integration.id);
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
-    console.error(
-      `[gcal-sync] failed op=${args.op} appointment=${args.appointmentId}: ${message}`,
-    );
     if (integrationId) {
       try {
         await recordError(integrationId, message);
