@@ -28,32 +28,9 @@ FROM deps AS build
 COPY apps/backend/ ./apps/backend/
 COPY packages/validators/ ./packages/validators/
 
-# Build the validators package first (it exports raw .ts — we need compiled JS
-# at runtime when running node dist/index.js from the backend).
-RUN pnpm --filter @fisio-app/backend exec tsc \
-        --module ESNext --moduleResolution bundler \
-        --target ES2020 --outDir /app/packages/validators/dist \
-        --declaration --strict --skipLibCheck \
-        /app/packages/validators/src/index.ts \
-        /app/packages/validators/src/phone.ts \
-        /app/packages/validators/src/nie.ts && \
-    # Patch package.json exports to point at compiled output
-    node -e " \
-      const fs = require('fs'); \
-      const p = JSON.parse(fs.readFileSync('/app/packages/validators/package.json', 'utf8')); \
-      p.main = './dist/index.js'; \
-      p.exports = { '.': { import: './dist/index.js', default: './dist/index.js' } }; \
-      fs.writeFileSync('/app/packages/validators/package.json', JSON.stringify(p, null, 2)); \
-    "
-
-# Compile the backend
-RUN pnpm --filter @fisio-app/backend run build
 
 # Deploy production-only deps + compiled output to a clean directory
 RUN pnpm deploy --filter @fisio-app/backend --prod /app/deploy
-
-# Copy compiled validators dist into the deploy output so the backend can resolve it
-COPY --from=build /app/packages/validators/dist /app/deploy/node_modules/@fisio-app/validators/dist
 
 # =============================================================================
 # Stage 3: runtime — minimal production image
@@ -64,6 +41,9 @@ WORKDIR /app
 
 # Copy the clean deploy output (production deps + compiled backend)
 COPY --from=build /app/deploy ./
+
+# Copy compiled validators dist into the deploy output so the backend can resolve it
+COPY --from=build /app/packages/validators/dist ./node_modules/@fisio-app/validators/dist
 
 # Run as non-root
 USER node
