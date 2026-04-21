@@ -72,6 +72,6 @@ app.route('/api/v1', api);
 
 app.notFound(notFound);
 
-export type AppType = typeof routes[number];
+export type AppType = typeof api;
 
 export default app;
