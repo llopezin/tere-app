@@ -71,7 +71,11 @@ export function LoginModal({ open, onOpenChange, onSwitchToSignup }: LoginModalP
           ¿Olvidaste tu contraseña?
         </a>
 
-        {error && <p className="rounded-md bg-danger/10 px-3 py-2 text-sm text-danger">{error}</p>}
+        {error && (
+          <p role="alert" className="rounded-md bg-danger/10 px-3 py-2 text-sm text-danger">
+            {error}
+          </p>
+        )}
 
         <Button size="lg" type="submit" disabled={loading}>
           {loading ? "Iniciando sesión…" : "Iniciar Sesión"}

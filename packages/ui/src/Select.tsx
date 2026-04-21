@@ -30,6 +30,7 @@ export function Select<T extends SelectOption>({
   const containerRef = useRef<HTMLDivElement>(null);
 
   const selected = options.find((o) => o.value === value);
+  const listboxId = `select-listbox-${label?.replace(/\s+/g, "-") ?? "anon"}`;
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
@@ -58,6 +59,11 @@ export function Select<T extends SelectOption>({
 
       <button
         type="button"
+        role="combobox"
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        aria-controls={listboxId}
+        aria-label={label}
         onClick={() => setOpen((prev) => !prev)}
         className={cn(
           "flex w-full items-center justify-between rounded-lg border border-border bg-input-bg px-3 py-2.5 text-sm transition-colors",
@@ -78,9 +84,13 @@ export function Select<T extends SelectOption>({
       </button>
 
       {open && (
-        <ul className="absolute z-50 mt-1 max-h-60 w-full overflow-auto rounded-lg border border-border bg-surface shadow-md">
+        <ul
+          id={listboxId}
+          role="listbox"
+          className="absolute z-50 mt-1 max-h-60 w-full overflow-auto rounded-lg border border-border bg-surface shadow-md"
+        >
           {options.map((option) => (
-            <li key={option.value}>
+            <li key={option.value} role="option" aria-selected={value === option.value}>
               <button
                 type="button"
                 onClick={() => {
