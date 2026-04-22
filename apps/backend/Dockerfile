@@ -28,6 +28,8 @@ FROM deps AS build
 COPY apps/backend/ ./apps/backend/
 COPY packages/validators/ ./packages/validators/
 
+# Compile validators then backend (pnpm deploy does not run build scripts)
+RUN pnpm --filter @fisio-app/backend... build
 
 # Deploy production-only deps + compiled output to a clean directory
 RUN pnpm deploy --filter @fisio-app/backend --prod /app/deploy
@@ -40,10 +42,8 @@ FROM node:24-alpine AS runtime
 WORKDIR /app
 
 # Copy the clean deploy output (production deps + compiled backend)
+# pnpm deploy includes workspace deps (validators/dist) automatically
 COPY --from=build /app/deploy ./
-
-# Copy compiled validators dist into the deploy output so the backend can resolve it
-COPY --from=build /app/packages/validators/dist ./node_modules/@fisio-app/validators/dist
 
 # Run as non-root
 USER node
