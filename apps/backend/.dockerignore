@@ -1,0 +1,54 @@
+# Dependencies
+node_modules/
+**/node_modules/
+
+# Git
+.git/
+.gitignore
+
+# Build output (copied explicitly from build stage)
+dist/
+**/dist/
+
+# TanStack / framework caches
+.tanstack/
+**/.tanstack/
+
+# Environment files
+.env
+.env.*
+**/.env
+**/.env.*
+!**/.env.example
+
+# Editor and IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs
+*.log
+logs/
+**/logs/
+
+# Test artefacts
+coverage/
+**/coverage/
+__snapshots__/
+**/__snapshots__/
+*.test.ts
+*.spec.ts
+**/__tests__/
+vitest.config.*
+
+# Drizzle kit artefacts (not needed at runtime)
+drizzle/
+seed-*.sql
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# TypeScript build info
+*.tsbuildinfo

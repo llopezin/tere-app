@@ -9,6 +9,11 @@ const envSchema = z.object({
   BETTER_AUTH_URL: z.string().default('http://localhost:3000'),
   PORT: z.coerce.number().default(3000),
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
+  FRONTEND_URL: z.string().default('http://localhost:5173'),
+  GOOGLE_CLIENT_ID: z.string().optional(),
+  GOOGLE_CLIENT_SECRET: z.string().optional(),
+  GOOGLE_REDIRECT_URI: z.string().optional(),
+  GCAL_SYNC_ENABLED: z.coerce.boolean().default(false),
 });
 
 export const env = envSchema.parse(process.env);

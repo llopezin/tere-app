@@ -4,6 +4,7 @@ import { onError, notFound } from 'stoker/middlewares';
 import createApp, { createRouter } from './lib/create-app.js';
 import configureOpenAPI from './lib/configure-open-api.js';
 import { auth } from './lib/auth.js';
+import { env } from './config/env.js';
 
 // Routes
 import professionalRoutes from './routes/professionals/professionals.index.js';
@@ -25,7 +26,7 @@ const app = createApp();
 
 // Global middleware
 app.use('*', cors({
-  origin: ['http://localhost:5173'],
+  origin: [env.FRONTEND_URL],
   allowHeaders: ['Content-Type', 'Authorization'],
   allowMethods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   credentials: true,
@@ -46,32 +47,26 @@ app.on(['POST', 'GET'], '/api/auth/*', (c) => {
 });
 
 // API v1 routes — mounted at root since each route module defines full paths
-const routes = [
-  professionalRoutes,
-  patientRoutes,
-  patientProfile,
-  appointmentTypeRoutes,
-  scheduleRoutes,
-  blockedTimeRoutes,
-  availabilityRoutes,
-  appointmentRoutes,
-  bonoRoutes,
-  paymentRoutes,
-  reportRoutes,
-  invoiceRoutes,
-  gcalRoutes,
-  consentDocumentRoutes,
-] as const;
-
-const api = createRouter();
-routes.forEach((route) => {
-  api.route('/', route);
-});
+const api = createRouter()
+  .route('/', professionalRoutes)
+  .route('/', patientRoutes)
+  .route('/', patientProfile)
+  .route('/', appointmentTypeRoutes)
+  .route('/', scheduleRoutes)
+  .route('/', blockedTimeRoutes)
+  .route('/', availabilityRoutes)
+  .route('/', appointmentRoutes)
+  .route('/', bonoRoutes)
+  .route('/', paymentRoutes)
+  .route('/', reportRoutes)
+  .route('/', invoiceRoutes)
+  .route('/', gcalRoutes)
+  .route('/', consentDocumentRoutes);
 
 app.route('/api/v1', api);
 
 app.notFound(notFound);
 
-export type AppType = typeof routes[number];
+export type AppType = typeof api;
 
 export default app;

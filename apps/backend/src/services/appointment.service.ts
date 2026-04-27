@@ -6,6 +6,7 @@ import { bonoTransactions } from '../db/schema/bono-transactions.js';
 import { blockedTimes } from '../db/schema/blocked-times.js';
 import { eq, and, ne, sql } from 'drizzle-orm';
 import { AppError } from '../middleware/error-handler.js';
+import * as gcalSync from './google-calendar/sync.js';
 
 type Transaction = Parameters<Parameters<typeof db.transaction>[0]>[0];
 
@@ -235,7 +236,7 @@ export async function cancelAppointment(
     throw new AppError(400, 'Cannot cancel an appointment that has already started or passed');
   }
 
-  return db.transaction(async (tx) => {
+  const result = await db.transaction(async (tx) => {
     const [updated] = await tx.update(appointments)
       .set({ status: 'cancelled', updatedAt: new Date() })
       .where(eq(appointments.id, appointmentId))
@@ -247,4 +248,8 @@ export async function cancelAppointment(
 
     return updated;
   });
+
+  void gcalSync.push({ appointmentId, op: 'delete' });
+
+  return result;
 }

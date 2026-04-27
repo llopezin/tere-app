@@ -40,17 +40,13 @@ function ConsultationOption({ option }: { option: AppointmentTypeOption }) {
 }
 
 export function BookingForm() {
-  const { data: professionalsData } = useSuspenseQuery(
-    professionalsQueryOptions(),
-  );
+  const { data: professionalsData } = useSuspenseQuery(professionalsQueryOptions());
 
-  const professionalOptions: ProfessionalOption[] = professionalsData.data.map(
-    (p) => ({
-      value: p.id,
-      label: [p.firstName, p.lastName].join(" "),
-      subtitle: p.businessName ?? "Profesional",
-    }),
-  );
+  const professionalOptions: ProfessionalOption[] = professionalsData.data.map((p) => ({
+    value: p.id,
+    label: [p.firstName, p.lastName].join(" "),
+    subtitle: p.businessName ?? "Profesional",
+  }));
 
   // Auto-select first professional on load
   const [professional, setProfessional] = useState<string>(
@@ -69,27 +65,23 @@ export function BookingForm() {
     setSelectedSlot(null);
   }, [professional]);
 
-  const selectedProfessional = professionalOptions.find(
-    (p) => p.value === professional,
-  );
+  const selectedProfessional = professionalOptions.find((p) => p.value === professional);
 
   const { data: appointmentTypesData, isLoading: loadingTypes } = useQuery({
     ...appointmentTypesQueryOptions(professional),
     enabled: !!professional,
   });
 
-  const consultationTypes: AppointmentTypeOption[] = (
-    appointmentTypesData?.data ?? []
-  ).map((at) => ({
-    value: at.id,
-    label: at.name,
-    durationMinutes: at.durationMinutes,
-    price: at.price,
-  }));
-
-  const selectedConsultation = consultationTypes.find(
-    (c) => c.value === consultationType,
+  const consultationTypes: AppointmentTypeOption[] = (appointmentTypesData?.data ?? []).map(
+    (at) => ({
+      value: at.id,
+      label: at.name,
+      durationMinutes: at.durationMinutes,
+      price: at.price,
+    }),
   );
+
+  const selectedConsultation = consultationTypes.find((c) => c.value === consultationType);
 
   const handleSlotSelect = (slot: { startAt: string; endAt: string }) => {
     setSelectedSlot(slot);
@@ -114,13 +106,9 @@ export function BookingForm() {
         />
         <Select
           label={
-            selectedProfessional
-              ? `Consultas de ${selectedProfessional.label}`
-              : "Tipo de Consulta"
+            selectedProfessional ? `Consultas de ${selectedProfessional.label}` : "Tipo de Consulta"
           }
-          placeholder={
-            loadingTypes ? "Cargando..." : "Selecciona un tipo..."
-          }
+          placeholder={loadingTypes ? "Cargando..." : "Selecciona un tipo..."}
           options={consultationTypes}
           value={consultationType}
           onValueChange={setConsultationType}
@@ -138,14 +126,16 @@ export function BookingForm() {
         </div>
       )}
 
-      <BookingConfirmationModal
-        open={modalOpen}
-        onOpenChange={setModalOpen}
-        slot={selectedSlot}
-        appointmentTypeId={consultationType ?? ""}
-        professionalName={selectedProfessional?.label ?? ""}
-        consultationName={selectedConsultation?.label ?? ""}
-      />
+      {modalOpen && (
+        <BookingConfirmationModal
+          open={modalOpen}
+          onOpenChange={setModalOpen}
+          slot={selectedSlot}
+          appointmentTypeId={consultationType ?? ""}
+          professionalName={selectedProfessional?.label ?? ""}
+          consultationName={selectedConsultation?.label ?? ""}
+        />
+      )}
     </Card>
   );
 }
