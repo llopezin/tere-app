@@ -18,7 +18,7 @@ COPY packages/validators/package.json ./packages/validators/package.json
 COPY packages/ui/package.json      ./packages/ui/package.json
 
 # Install deps for @fisio-app/client-app and all workspace deps it needs
-RUN pnpm install --frozen-lockfile --filter @fisio-app/client-app...
+RUN pnpm install --frozen-lockfile
 
 
 # ─── Stage 2: build the Vite SPA ────────────────────────────────────────────
@@ -41,9 +41,8 @@ COPY apps/client-app/     ./apps/client-app/
 # Root files needed by pnpm/tooling
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 
-WORKDIR /app/apps/client-app
-
-RUN pnpm run build
+ARG VITE_API_URL
+RUN pnpm -F @fisio-app/client-app... run build
 
 
 # ─── Stage 3: serve with nginx (no Node in final image) ─────────────────────
