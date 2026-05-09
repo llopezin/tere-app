@@ -74,8 +74,8 @@ jobs:
             --tunnel-through-iap \
             --command="
               cd /opt/fisio
-              gcloud auth configure-docker ${{ vars.GCP_REGION }}-docker.pkg.dev --quiet
-              docker compose -f docker-compose.prod.yml pull
-              docker compose -f docker-compose.prod.yml up -d
-              docker image prune -f
+              sudo gcloud auth configure-docker ${{ vars.GCP_REGION }}-docker.pkg.dev --quiet
+              sudo docker compose -f docker-compose.prod.yml pull
+              sudo docker compose -f docker-compose.prod.yml up -d
+              sudo docker image prune -f
             "
