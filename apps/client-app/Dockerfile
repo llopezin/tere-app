@@ -31,6 +31,8 @@ WORKDIR /app
 # Reuse the installed node_modules from deps stage
 COPY --from=deps /app/node_modules ./node_modules
 COPY --from=deps /app/apps/client-app/node_modules ./apps/client-app/node_modules
+COPY --from=deps /app/packages/validators/node_modules ./packages/validators/node_modules
+COPY --from=deps /app/packages/ui/node_modules ./packages/ui/node_modules
 
 # Copy source for each workspace package needed at build time
 COPY packages/validators/ ./packages/validators/
