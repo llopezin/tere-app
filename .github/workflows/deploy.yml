@@ -1,0 +1,80 @@
+name: Deploy to GCE
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false # never cancel a deploy mid-flight; a half-applied migration is worse than queueing
+
+env:
+  IMAGE_BACKEND: ${{ vars.GCP_REGION }}-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/${{ vars.GCP_AR_REPO }}/backend
+  IMAGE_CLIENT: ${{ vars.GCP_REGION }}-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/${{ vars.GCP_AR_REPO }}/client-app
+  COMPOSE_PROJECT_NAME: fisio-app # pin so image tags after `compose build` are deterministic regardless of runner checkout path
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write # required for Workload Identity Federation
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - id: auth
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WIF_PROVIDER }}
+          service_account: ${{ secrets.GCP_DEPLOY_SA }}
+
+      - uses: google-github-actions/setup-gcloud@v2
+
+      - name: Configure Docker for Artifact Registry
+        run: gcloud auth configure-docker ${{ vars.GCP_REGION }}-docker.pkg.dev --quiet
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Build images via docker compose
+        env:
+          VITE_API_URL: ${{ vars.VITE_API_URL }} # only var that is actually a build-arg in compose
+          # Placeholders so compose's runtime-env interpolation does not warn during build.
+          # These are never used at build time — they are only needed when services start on the VM.
+          POSTGRES_USER: build
+          POSTGRES_PASSWORD: build
+          POSTGRES_DB: build
+          DATABASE_URL: postgres://build:build@db:5432/build
+          BETTER_AUTH_SECRET: build
+          BETTER_AUTH_URL: http://localhost
+          FRONTEND_URL: http://localhost
+          # Deliberately NOT setting NODE_ENV=production: pnpm install skips devDependencies
+          # when NODE_ENV=production, which would break TypeScript compilation inside the build stage.
+          # NODE_ENV=production is set on the runtime containers via /opt/fisio/.env on the VM.
+        run: docker compose build backend client-app
+
+      - name: Tag and push images
+        run: |
+          SHA="${{ github.sha }}"
+          docker tag fisio-app-backend    "$IMAGE_BACKEND:$SHA"
+          docker tag fisio-app-backend    "$IMAGE_BACKEND:latest"
+          docker tag fisio-app-client-app "$IMAGE_CLIENT:$SHA"
+          docker tag fisio-app-client-app "$IMAGE_CLIENT:latest"
+          docker push "$IMAGE_BACKEND:$SHA"
+          docker push "$IMAGE_BACKEND:latest"
+          docker push "$IMAGE_CLIENT:$SHA"
+          docker push "$IMAGE_CLIENT:latest"
+
+      - name: Deploy on VM
+        run: |
+          gcloud compute ssh "${{ vars.GCP_VM_NAME }}" \
+            --zone="${{ vars.GCP_VM_ZONE }}" \
+            --tunnel-through-iap \
+            --command="
+              cd /opt/fisio
+              gcloud auth configure-docker ${{ vars.GCP_REGION }}-docker.pkg.dev --quiet
+              docker compose -f docker-compose.prod.yml pull
+              docker compose -f docker-compose.prod.yml up -d
+              docker image prune -f
+            "
