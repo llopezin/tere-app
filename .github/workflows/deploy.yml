@@ -75,14 +75,14 @@ jobs:
 
       - name: Deploy on VM
         run: |
-          gcloud compute ssh "${{ vars.GCP_VM_NAME }}" \
+          gcloud compute ssh "deploy@${{ vars.GCP_VM_NAME }}" \
             --zone="${{ vars.GCP_VM_ZONE }}" \
             --tunnel-through-iap \
             --ssh-key-file=/tmp/deploy_key \
             --command="
               cd /opt/fisio
-              sudo gcloud auth configure-docker ${{ vars.GCP_REGION }}-docker.pkg.dev --quiet
-              sudo docker compose -f docker-compose.prod.yml pull
-              sudo docker compose -f docker-compose.prod.yml up -d
-              sudo docker image prune -f
+              gcloud auth configure-docker ${{ vars.GCP_REGION }}-docker.pkg.dev --quiet
+              docker compose -f docker-compose.prod.yml pull
+              docker compose -f docker-compose.prod.yml up -d
+              docker image prune -f
             "
