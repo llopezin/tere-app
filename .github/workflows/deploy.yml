@@ -71,6 +71,7 @@ jobs:
         run: |
           echo "${{ secrets.GCE_SSH_KEY }}" > /tmp/deploy_key
           chmod 600 /tmp/deploy_key
+          ssh-keygen -y -f /tmp/deploy_key > /tmp/deploy_key.pub
 
       - name: Deploy on VM
         run: |
