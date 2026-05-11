@@ -75,14 +75,8 @@ jobs:
 
       - name: Deploy on VM
         run: |
-          gcloud compute ssh "deploy@${{ vars.GCP_VM_NAME }}" \
-            --zone="${{ vars.GCP_VM_ZONE }}" \
-            --tunnel-through-iap \
-            --ssh-key-file=/tmp/deploy_key \
-            --command="
-              cd /opt/fisio
-              gcloud auth configure-docker ${{ vars.GCP_REGION }}-docker.pkg.dev --quiet
-              docker compose -f docker-compose.prod.yml pull
-              docker compose -f docker-compose.prod.yml up -d
-              docker image prune -f
-            "
+          ssh -i /tmp/deploy_key \
+            -o StrictHostKeyChecking=no \
+            -o ProxyCommand="gcloud compute start-iap-tunnel ${{ vars.GCP_VM_NAME }} 22 --listen-on-stdin --zone=${{ vars.GCP_VM_ZONE }} --project=${{ vars.GCP_PROJECT_ID }}" \
+            deploy@${{ vars.GCP_VM_NAME }} \
+            "cd /opt/fisio && gcloud auth configure-docker ${{ vars.GCP_REGION }}-docker.pkg.dev --quiet && docker compose -f docker-compose.prod.yml pull && docker compose -f docker-compose.prod.yml up -d && docker image prune -f"
