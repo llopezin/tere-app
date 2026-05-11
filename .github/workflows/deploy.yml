@@ -67,11 +67,17 @@ jobs:
           docker push "$IMAGE_CLIENT:$SHA"
           docker push "$IMAGE_CLIENT:latest"
 
+      - name: Write SSH key
+        run: |
+          echo "${{ secrets.GCE_SSH_KEY }}" > /tmp/deploy_key
+          chmod 600 /tmp/deploy_key
+
       - name: Deploy on VM
         run: |
           gcloud compute ssh "${{ vars.GCP_VM_NAME }}" \
             --zone="${{ vars.GCP_VM_ZONE }}" \
             --tunnel-through-iap \
+            --ssh-key-file=/tmp/deploy_key \
             --command="
               cd /opt/fisio
               sudo gcloud auth configure-docker ${{ vars.GCP_REGION }}-docker.pkg.dev --quiet
