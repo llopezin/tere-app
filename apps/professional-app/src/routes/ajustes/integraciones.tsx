@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { client } from "../../lib/client";
+import { ApiError } from "../../lib/api-error";
 import { Button } from "@fisio-app/ui";
 
 export const Route = createFileRoute("/ajustes/integraciones")({
@@ -15,7 +16,7 @@ function IntegracionesPage() {
     queryFn: async () => {
       // Correct RPC path: /api/v1/integrations/google-calendar/status
       const res = await client.integrations["google-calendar"].status.$get();
-      if (!res.ok) throw new Error("Failed to fetch status");
+      if (!res.ok) throw new ApiError(res.status, "Failed to fetch status");
       return res.json();
     },
   });
