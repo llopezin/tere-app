@@ -15,6 +15,13 @@
       "when": 1776075584999,
       "tag": "0001_redundant_golden_guardian",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1776615717956,
+      "tag": "0002_premium_miss_america",
+      "breakpoints": true
     }
   ]
 }

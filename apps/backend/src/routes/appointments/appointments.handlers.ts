@@ -18,6 +18,7 @@ import { getProfileId } from '../../middleware/auth.js';
 import { AppError } from '../../middleware/error-handler.js';
 import * as HttpStatusCodes from 'stoker/http-status-codes';
 import * as appointmentService from '../../services/appointment.service.js';
+import * as gcalSync from '../../services/google-calendar/sync.js';
 
 // --- Handlers ---
 
@@ -66,6 +67,8 @@ export const create: AppRouteHandler<CreateRoute> = async (c) => {
     });
   });
 
+  void gcalSync.push({ appointmentId: result.id, op: 'create' });
+
   return c.json(result, HttpStatusCodes.CREATED);
 };
 
@@ -102,6 +105,10 @@ export const batch: AppRouteHandler<BatchRoute> = async (c) => {
     bonoId: body.bonoId,
     useBonoSession: body.useBonoSession ?? true,
   });
+
+  for (const appt of results) {
+    void gcalSync.push({ appointmentId: appt.id, op: 'create' });
+  }
 
   return c.json({ data: results }, HttpStatusCodes.CREATED);
 };
@@ -160,6 +167,10 @@ export const recurring: AppRouteHandler<RecurringRoute> = async (c) => {
     }
   );
 
+  for (const appt of result.appointments) {
+    void gcalSync.push({ appointmentId: appt.id, op: 'create' });
+  }
+
   return c.json({ data: result.appointments, recurrence_group_id: result.recurrenceGroupId }, HttpStatusCodes.CREATED);
 };
 
@@ -203,6 +214,15 @@ export const update: AppRouteHandler<UpdateRoute> = async (c) => {
   if (body.price !== undefined) updateData.price = body.price.toFixed(2);
 
   const [updated] = await db.update(appointments).set(updateData).where(eq(appointments.id, id)).returning();
+
+  const needsGcalUpdate =
+    body.startAt !== undefined ||
+    body.appointmentTypeId !== undefined ||
+    body.notes !== undefined;
+  if (needsGcalUpdate) {
+    void gcalSync.push({ appointmentId: id, op: 'update' });
+  }
+
   return c.json(updated, HttpStatusCodes.OK);
 };
 

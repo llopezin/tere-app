@@ -180,7 +180,7 @@ describe('Invoice Creation', () => {
 
 // Helper functions that mimic the actual service logic
 async function generateInvoiceNumber(professionalId: string): Promise<string> {
-  const { db } = await import('../db/index.js');
+  const { testDb: db } = await import('./setup.js');
   const { invoices } = await import('../db/schema/invoices.js');
   const { eq, and, sql } = await import('drizzle-orm');
   
@@ -201,7 +201,7 @@ async function generateInvoiceNumber(professionalId: string): Promise<string> {
 }
 
 async function createInvoice(professionalId: string, patientId: string, appointmentId: string) {
-  const { db } = await import('../db/index.js');
+  const { testDb: db } = await import('./setup.js');
   const { invoices } = await import('../db/schema/invoices.js');
   const { appointments } = await import('../db/schema/appointments.js');
   const { professionals } = await import('../db/schema/professionals.js');

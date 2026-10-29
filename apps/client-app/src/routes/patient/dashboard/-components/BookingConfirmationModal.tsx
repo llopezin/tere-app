@@ -81,6 +81,19 @@ export function BookingConfirmationModal({
   const [blurring, setBlurring] = useState(false);
   const [confirmed, setConfirmed] = useState(false);
 
+  const restoreFields = () => {
+    setFirstName("");
+    setLastName("");
+    setNie("");
+    setPhone("");
+    setEmail("");
+    setContactMethod("email");
+    setRgpdAccepted(false);
+    setErrors({});
+    setIsSubmitting(false);
+    setSubmitError(null);
+  };
+
   const validateField = (field: "nie" | "phone", value: string) => {
     if (field === "nie") {
       if (!value) return setErrors((e) => ({ ...e, nie: undefined }));
@@ -97,21 +110,19 @@ export function BookingConfirmationModal({
       }));
     }
   };
-
-  useEffect(() => {
-    if (profile && !profileLoaded.current) {
-      profileLoaded.current = true;
-      setFirstName(profile.firstName ?? "");
-      setLastName(profile.lastName ?? "");
-      setNie(profile.nie ?? "");
-      setPhone(profile.phone ?? "");
-      setEmail(profile.email ?? "");
-      if (profile.contactMethod) {
-        setContactMethod(profile.contactMethod);
-      }
+useEffect(() => {
+  if (open && profile && !profileLoaded.current) {
+    profileLoaded.current = true;
+    setFirstName(profile.firstName ?? "");
+    setLastName(profile.lastName ?? "");
+    setNie(profile.nie ?? "");
+    setPhone(profile.phone ?? "");
+    setEmail(profile.email ?? "");
+    if (profile.contactMethod) {
+      setContactMethod(profile.contactMethod);
     }
-  }, [profile]);
-
+  }
+}, [profile, open]);
   // Reset animation state when modal closes
   useEffect(() => {
     if (!open) {
@@ -120,6 +131,7 @@ export function BookingConfirmationModal({
         setBlurring(false);
         setSubmitError(null);
         setIsSubmitting(false);
+        restoreFields();
       }, 300);
       return () => clearTimeout(t);
     }

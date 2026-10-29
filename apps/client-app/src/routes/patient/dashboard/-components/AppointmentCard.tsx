@@ -2,6 +2,7 @@ import { Pencil, Download, Clock } from "lucide-react";
 import { Button } from "@fisio-app/ui";
 import { DateBadge } from "./DateBadge";
 import { StatusBadge } from "./StatusBadge";
+import { AddToCalendarButton } from "./AddToCalendarButton";
 
 type AppointmentStatus = "scheduled" | "completed" | "cancelled" | "no_show";
 
@@ -21,11 +22,14 @@ interface AppointmentCardProps {
 }
 
 export function AppointmentCard({ appointment }: AppointmentCardProps) {
-  const date = new Date(appointment.startAt);
+  const startDate = new Date(appointment.startAt);
+  const endDate = new Date(appointment.endAt);
+  const isUpcomingScheduled =
+    appointment.status === "scheduled" && startDate.getTime() > Date.now();
 
   return (
     <div className="flex items-start gap-4 rounded-lg border border-border bg-surface p-4">
-      <DateBadge date={date} />
+      <DateBadge date={startDate} />
 
       <div className="flex min-w-0 flex-1 flex-col gap-1">
         <div className="flex items-start justify-between gap-2">
@@ -41,6 +45,21 @@ export function AppointmentCard({ appointment }: AppointmentCardProps) {
               {appointment.durationMinutes} min · {appointment.price}€
             </p>
           </div>
+
+          {isUpcomingScheduled && (
+            <div className="flex shrink-0 gap-2 pb-1">
+              <AddToCalendarButton
+                event={{
+                  id: appointment.id,
+                  title: `${appointment.appointmentTypeName} — ${appointment.professionalName}`,
+                  description: `Cita con ${appointment.professionalName}`,
+                  location: "",
+                  startAt: startDate,
+                  endAt: endDate,
+                }}
+              />
+            </div>
+          )}
 
           {appointment.status === "completed" && (
             <div className="flex shrink-0 gap-2 pb-1">

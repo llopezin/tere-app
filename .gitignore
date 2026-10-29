@@ -2,4 +2,7 @@ node_modules
 dist
 .env
 *.tsbuildinfo
-docs
+docs/*
+!docs/proposals/
+docs/proposals/*
+!docs/proposals/google-calendar-integration.v2.md

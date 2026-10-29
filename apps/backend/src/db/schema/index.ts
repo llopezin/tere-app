@@ -13,3 +13,4 @@ export { payments } from './payments.js';
 export { invoices } from './invoices.js';
 export { consentDocuments } from './consent-documents.js';
 export { patientConsents } from './patient-consents.js';
+export { googleCalendarIntegrations } from './google-calendar-integrations.js';

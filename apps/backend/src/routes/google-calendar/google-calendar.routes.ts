@@ -5,61 +5,88 @@ import { createMessageObjectSchema } from 'stoker/openapi/schemas';
 import { authMiddleware, requireRole } from '../../middleware/auth.js';
 import { defineMiddleware } from '../../lib/create-app.js';
 
-export const connect = createRoute({
-  method: 'post',
-  path: '/integrations/google-calendar/connect',
+const BASE = '/integrations/google-calendar';
+
+const statusSchema = z.object({
+  connected: z.boolean(),
+  email: z.string().nullable(),
+  status: z.enum(['active', 'revoked']).nullable(),
+  lastError: z.string().nullable(),
+  lastSyncedAt: z.string().nullable(),
+});
+
+const authUrlSchema = z.object({
+  authUrl: z.string().url(),
+});
+
+const messageSchema = z.object({
+  message: z.string(),
+});
+
+export const status = createRoute({
+  method: 'get',
+  path: `${BASE}/status`,
   middleware: defineMiddleware(authMiddleware, requireRole('professional')),
   tags: ['Google Calendar'],
-  summary: 'Initiate Google Calendar OAuth flow (stub)',
+  summary: 'Get current Google Calendar integration status',
   responses: {
-    [HttpStatusCodes.OK]: jsonContent(
-      z.object({
-        message: z.string(),
-        redirect_url: z.string(),
-      }),
-      'OAuth flow initiated',
-    ),
+    [HttpStatusCodes.OK]: jsonContent(statusSchema, 'Integration status'),
     [HttpStatusCodes.UNAUTHORIZED]: jsonContent(createMessageObjectSchema('Unauthorized'), 'Unauthorized'),
-    [HttpStatusCodes.FORBIDDEN]: jsonContent(createMessageObjectSchema('Insufficient permissions'), 'Insufficient permissions'),
+    [HttpStatusCodes.FORBIDDEN]: jsonContent(createMessageObjectSchema('Forbidden'), 'Insufficient permissions'),
+    [HttpStatusCodes.SERVICE_UNAVAILABLE]: jsonContent(messageSchema, 'Integration not configured'),
+  },
+});
+
+export const connect = createRoute({
+  method: 'post',
+  path: `${BASE}/connect`,
+  middleware: defineMiddleware(authMiddleware, requireRole('professional')),
+  tags: ['Google Calendar'],
+  summary: 'Start Google Calendar OAuth flow — returns an authUrl',
+  responses: {
+    [HttpStatusCodes.OK]: jsonContent(authUrlSchema, 'OAuth authorization URL'),
+    [HttpStatusCodes.UNAUTHORIZED]: jsonContent(createMessageObjectSchema('Unauthorized'), 'Unauthorized'),
+    [HttpStatusCodes.FORBIDDEN]: jsonContent(createMessageObjectSchema('Forbidden'), 'Insufficient permissions'),
+    [HttpStatusCodes.SERVICE_UNAVAILABLE]: jsonContent(messageSchema, 'Integration not configured'),
+  },
+});
+
+export const callback = createRoute({
+  method: 'get',
+  path: `${BASE}/callback`,
+  tags: ['Google Calendar'],
+  summary: 'OAuth callback — exchanges code, persists tokens, redirects to frontend',
+  request: {
+    query: z.object({
+      code: z.string().optional(),
+      state: z.string().optional(),
+      error: z.string().optional(),
+    }),
+  },
+  responses: {
+    [HttpStatusCodes.MOVED_TEMPORARILY]: {
+      description: 'Redirect to frontend integrations page',
+    },
+    [HttpStatusCodes.BAD_REQUEST]: jsonContent(messageSchema, 'Invalid or missing parameters'),
+    [HttpStatusCodes.SERVICE_UNAVAILABLE]: jsonContent(messageSchema, 'Integration not configured'),
   },
 });
 
 export const disconnect = createRoute({
-  method: 'delete',
-  path: '/integrations/google-calendar/disconnect',
-  middleware: defineMiddleware(authMiddleware, requireRole('professional')),
-  tags: ['Google Calendar'],
-  summary: 'Disconnect Google Calendar integration',
-  responses: {
-    [HttpStatusCodes.OK]: jsonContent(
-      z.object({ message: z.string() }),
-      'Google Calendar disconnected',
-    ),
-    [HttpStatusCodes.UNAUTHORIZED]: jsonContent(createMessageObjectSchema('Unauthorized'), 'Unauthorized'),
-    [HttpStatusCodes.FORBIDDEN]: jsonContent(createMessageObjectSchema('Insufficient permissions'), 'Insufficient permissions'),
-  },
-});
-
-export const sync = createRoute({
   method: 'post',
-  path: '/integrations/google-calendar/sync',
+  path: `${BASE}/disconnect`,
   middleware: defineMiddleware(authMiddleware, requireRole('professional')),
   tags: ['Google Calendar'],
-  summary: 'Sync appointments to Google Calendar (stub)',
+  summary: 'Revoke tokens and remove the integration row',
   responses: {
-    [HttpStatusCodes.OK]: jsonContent(
-      z.object({
-        message: z.string(),
-        synced_count: z.number(),
-      }),
-      'Calendar sync result',
-    ),
-    [HttpStatusCodes.BAD_REQUEST]: jsonContent(createMessageObjectSchema('Google Calendar not connected'), 'Google Calendar not connected'),
+    [HttpStatusCodes.OK]: jsonContent(messageSchema, 'Integration disconnected'),
     [HttpStatusCodes.UNAUTHORIZED]: jsonContent(createMessageObjectSchema('Unauthorized'), 'Unauthorized'),
-    [HttpStatusCodes.FORBIDDEN]: jsonContent(createMessageObjectSchema('Insufficient permissions'), 'Insufficient permissions'),
+    [HttpStatusCodes.FORBIDDEN]: jsonContent(createMessageObjectSchema('Forbidden'), 'Insufficient permissions'),
+    [HttpStatusCodes.SERVICE_UNAVAILABLE]: jsonContent(messageSchema, 'Integration not configured'),
   },
 });
 
+export type StatusRoute = typeof status;
 export type ConnectRoute = typeof connect;
+export type CallbackRoute = typeof callback;
 export type DisconnectRoute = typeof disconnect;
-export type SyncRoute = typeof sync;

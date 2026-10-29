@@ -7,6 +7,7 @@ import { db } from '../db/index.js';
 import { professionals } from '../db/schema/professionals.js';
 import { patients } from '../db/schema/patients.js';
 import * as schema from '../db/schema/auth-schema.js';
+import { env } from '../config/env.js';
 
 type NewProfessional = InferInsertModel<typeof professionals>;
 type NewPatient = InferInsertModel<typeof patients>;
@@ -24,7 +25,7 @@ export const auth = betterAuth({
   ],
   baseURL: process.env.BETTER_AUTH_URL || 'http://localhost:3000',
   secret: process.env.BETTER_AUTH_SECRET,
-  trustedOrigins: ['http://localhost:5173'],
+  trustedOrigins: [env.FRONTEND_URL],
   emailAndPassword: {
     enabled: true,
     autoSignIn: false // We dynamically sign in after creation to guarantee profile entry is created and already linked to profile ID
