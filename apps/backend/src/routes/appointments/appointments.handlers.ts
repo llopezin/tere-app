@@ -125,33 +125,6 @@ export const recurring: AppRouteHandler<RecurringRoute> = async (c) => {
   const durationMs = apptType.durationMinutes * 60 * 1000;
   const startDate = new Date(body.startAt);
 
-  // Generate dates to check for overlaps (must match service logic for all frequencies)
-  const dates: Date[] = [];
-  for (let i = 0; i < body.recurrenceRule.count; i++) {
-    const date = new Date(startDate);
-    switch (body.recurrenceRule.frequency) {
-      case 'daily':
-        date.setDate(date.getDate() + i);
-        break;
-      case 'weekly':
-        date.setDate(date.getDate() + i * 7);
-        break;
-      case 'biweekly':
-        date.setDate(date.getDate() + i * 14);
-        break;
-      case 'monthly':
-        date.setMonth(date.getMonth() + i);
-        break;
-    }
-    dates.push(date);
-  }
-
-  // Check all dates for overlaps
-  for (const date of dates) {
-    const e = new Date(date.getTime() + durationMs);
-    await appointmentService.checkOverlap(profileId, date, e);
-  }
-
   const result = await appointmentService.createRecurringAppointments(
     profileId,
     startDate,

@@ -175,33 +175,55 @@ export async function createBatchAppointments(
   });
 }
 
+export type RecurrenceFrequency = 'daily' | 'weekly' | 'biweekly' | 'monthly';
+
 /**
- * Creates recurring appointments within a transaction
+ * Expands a recurrence rule into the start date of each occurrence
+ */
+export function generateRecurrenceDates(
+  startDate: Date,
+  frequency: RecurrenceFrequency,
+  count: number
+): Date[] {
+  const dates: Date[] = [];
+  for (let i = 0; i < count; i++) {
+    const date = new Date(startDate);
+    switch (frequency) {
+      case 'daily':
+        date.setDate(date.getDate() + i);
+        break;
+      case 'weekly':
+        date.setDate(date.getDate() + i * 7);
+        break;
+      case 'biweekly':
+        date.setDate(date.getDate() + i * 14);
+        break;
+      case 'monthly':
+        date.setMonth(date.getMonth() + i);
+        break;
+    }
+    dates.push(date);
+  }
+  return dates;
+}
+
+/**
+ * Checks every occurrence for overlaps, then creates them all within a transaction
+ * @throws {AppError} 409 if any occurrence overlaps
  */
 export async function createRecurringAppointments(
   professionalId: string,
   startDate: Date,
-  frequency: 'daily' | 'weekly' | 'biweekly' | 'monthly',
+  frequency: RecurrenceFrequency,
   count: number,
   durationMs: number,
   data: Omit<CreateAppointmentData, 'startAt' | 'endAt' | 'recurrenceGroupId'>
 ): Promise<{ appointments: any[]; recurrenceGroupId: string }> {
   const recurrenceGroupId = crypto.randomUUID();
+  const dates = generateRecurrenceDates(startDate, frequency, count);
 
-  // Generate dates
-  const dates: Date[] = [];
-  for (let i = 0; i < count; i++) {
-    const date = new Date(startDate);
-    if (frequency === 'weekly') {
-      date.setDate(date.getDate() + i * 7);
-    } else if (frequency === 'daily') {
-      date.setDate(date.getDate() + i);
-    } else if (frequency === 'biweekly') {
-      date.setDate(date.getDate() + i * 14);
-    } else if (frequency === 'monthly') {
-      date.setMonth(date.getMonth() + i);
-    }
-    dates.push(date);
+  for (const date of dates) {
+    await checkOverlap(professionalId, date, new Date(date.getTime() + durationMs));
   }
 
   const created = await db.transaction(async (tx) => {
