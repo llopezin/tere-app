@@ -13,7 +13,11 @@ interface SignupModalProps {
   onSwitchToLogin: () => void;
 }
 
-export function SignupModal({ open, onOpenChange, onSwitchToLogin }: SignupModalProps) {
+export function SignupModal({
+  open,
+  onOpenChange,
+  onSwitchToLogin,
+}: SignupModalProps) {
   const router = useRouter();
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
@@ -57,7 +61,7 @@ export function SignupModal({ open, onOpenChange, onSwitchToLogin }: SignupModal
     }
 
     setLoading(false);
-    router.navigate({ to: "/patient/dashboard" });
+    router.navigate({ to: "/dashboard" });
   }
 
   return (
@@ -122,7 +126,10 @@ export function SignupModal({ open, onOpenChange, onSwitchToLogin }: SignupModal
         />
 
         {error && (
-          <p role="alert" className="rounded-md bg-danger/10 px-3 py-2 text-sm text-danger">
+          <p
+            role="alert"
+            className="rounded-md bg-danger/10 px-3 py-2 text-sm text-danger"
+          >
             {error}
           </p>
         )}

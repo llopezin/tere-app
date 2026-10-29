@@ -1,14 +1,34 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, redirect } from "@tanstack/react-router";
+import { authClient } from "@/lib/auth-client";
+import { BrandLogo } from "@fisio-app/ui";
+import { HeroCard } from "./-components/HeroCard";
+import { AuthCard } from "./-components/AuthCard";
 
 export const Route = createFileRoute("/")({
-  component: IndexPage,
+  beforeLoad: async () => {
+    const session = await authClient.getSession();
+    if (session.data?.session) {
+      throw redirect({ to: "/dashboard" });
+    }
+  },
+  component: WelcomePage,
 });
 
-function IndexPage() {
+function WelcomePage() {
   return (
-    <div>
-      <h1>Fisio App</h1>
-      <Link to="/patient/welcome">Welcome page</Link>
+    <div className="flex min-h-svh flex-col items-center bg-gradient-to-b from-primary-50 via-background to-background px-4 py-12 md:py-16">
+      <div className="animate-fade-in mb-10">
+        <BrandLogo subtitle="Portal del Paciente" />
+      </div>
+
+      <div className="grid w-full max-w-4xl gap-6 md:grid-cols-2">
+        <div className="animate-slide-up" style={{ animationDelay: "100ms" }}>
+          <HeroCard />
+        </div>
+        <div className="animate-slide-up" style={{ animationDelay: "200ms" }}>
+          <AuthCard />
+        </div>
+      </div>
     </div>
   );
 }

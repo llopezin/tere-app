@@ -13,13 +13,13 @@ export function PatientTopBar() {
 
   async function handleSignOut() {
     await signOut();
-    router.navigate({ to: "/patient/welcome" });
+    router.navigate({ to: "/" });
   }
   return (
     <header className="flex items-center justify-between border-b border-border bg-surface px-4 py-3">
       {/* Left — back arrow */}
       <Link
-        to="/patient/welcome"
+        to="/"
         className="flex items-center justify-center rounded-lg p-1.5 text-text-secondary transition-colors hover:bg-neutral-100 hover:text-text"
         aria-label="Volver"
       >
