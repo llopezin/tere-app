@@ -4,7 +4,6 @@ import { useSuspenseQuery } from "@tanstack/react-query";
 import { CalendarClock, History } from "lucide-react";
 import { Card } from "@fisio-app/ui";
 import { professionalsQueryOptions } from "@/api/professionals";
-import { appointmentTypesQueryOptions } from "@/api/appointment-types";
 import { patientAppointmentsQueryOptions } from "@/api/patient-appointments";
 import { AppointmentCard } from "./AppointmentCard";
 import type { AppointmentCardData } from "./AppointmentCard";
@@ -37,22 +36,15 @@ export function AppointmentList() {
     return map;
   }, [professionalsData]);
 
-  // Fetch all appointment types for each professional to build name map
-  const allProfessionalIds = professionalsData.data.map((p) => p.id);
-  const firstProfId = allProfessionalIds[0] ?? "";
-
-  const { data: typesData } = useQuery({
-    ...appointmentTypesQueryOptions(firstProfId),
-    enabled: !!firstProfId,
-  });
-
   const typeMap = useMemo(() => {
     const map = new Map<string, string>();
-    for (const t of typesData?.data ?? []) {
-      map.set(t.id, t.name);
+    for (const p of professionalsData.data) {
+      for (const t of p.appointmentTypes) {
+        map.set(t.id, t.name);
+      }
     }
     return map;
-  }, [typesData]);
+  }, [professionalsData]);
 
   const now = new Date();
 

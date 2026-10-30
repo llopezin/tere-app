@@ -1,11 +1,10 @@
 import { useEffect, useState } from "react";
-import { useSuspenseQuery, useQuery } from "@tanstack/react-query";
+import { useSuspenseQuery } from "@tanstack/react-query";
 import { Clock } from "lucide-react";
 import { Card } from "@fisio-app/ui";
 import { Select } from "@fisio-app/ui";
 import type { SelectOption } from "@fisio-app/ui";
 import { professionalsQueryOptions } from "@/api/professionals";
-import { appointmentTypesQueryOptions } from "@/api/appointment-types";
 import { WeeklySchedule } from "./WeeklySchedule";
 import { BookingConfirmationModal } from "./BookingConfirmationModal";
 
@@ -67,19 +66,14 @@ export function BookingForm() {
 
   const selectedProfessional = professionalOptions.find((p) => p.value === professional);
 
-  const { data: appointmentTypesData, isLoading: loadingTypes } = useQuery({
-    ...appointmentTypesQueryOptions(professional),
-    enabled: !!professional,
-  });
-
-  const consultationTypes: AppointmentTypeOption[] = (appointmentTypesData?.data ?? []).map(
-    (at) => ({
-      value: at.id,
-      label: at.name,
-      durationMinutes: at.durationMinutes,
-      price: at.price,
-    }),
-  );
+  const consultationTypes: AppointmentTypeOption[] = (
+    professionalsData.data.find((p) => p.id === professional)?.appointmentTypes ?? []
+  ).map((at) => ({
+    value: at.id,
+    label: at.name,
+    durationMinutes: at.durationMinutes,
+    price: at.price,
+  }));
 
   const selectedConsultation = consultationTypes.find((c) => c.value === consultationType);
 
@@ -108,7 +102,7 @@ export function BookingForm() {
           label={
             selectedProfessional ? `Consultas de ${selectedProfessional.label}` : "Tipo de Consulta"
           }
-          placeholder={loadingTypes ? "Cargando..." : "Selecciona un tipo..."}
+          placeholder="Selecciona un tipo..."
           options={consultationTypes}
           value={consultationType}
           onValueChange={setConsultationType}

@@ -104,7 +104,7 @@ Custom auth endpoints implemented in Hono. JWT-based with bcrypt password hashin
 | `GET` | `/patient/me` | Get own profile | Patient | Drizzle query |
 | `PUT` | `/patient/me` | Update own personal data + contact method | Patient | Drizzle query |
 | `GET` | `/patient/me/appointments` | Get own past & upcoming appointments | Patient | Drizzle query |
-| `GET` | `/patient/professionals` | Professionals available to book, shaped for the dashboard (BFF): `{ data: [{ id, name, occupation }] }`, ordered by name | Patient | Drizzle query |
+| `GET` | `/patient/professionals` | Professionals available to book, shaped for the dashboard (BFF): `{ data: [{ id, name, occupation, appointmentTypes: [{ id, name, durationMinutes, price }] }] }`, ordered by name; only active appointment types, so the dashboard needs no per-professional follow-up request | Patient | Drizzle query |
 
 ---
 
