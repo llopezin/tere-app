@@ -50,6 +50,7 @@ Custom auth endpoints implemented in Hono. JWT-based with bcrypt password hashin
   "last_name": "string",
   "phone": "string",
   "business_name": "string",
+  "occupation": "string",
   "tax_id": "string",
   "address_street": "string",
   "address_postal": "string",
@@ -103,6 +104,7 @@ Custom auth endpoints implemented in Hono. JWT-based with bcrypt password hashin
 | `GET` | `/patient/me` | Get own profile | Patient | Drizzle query |
 | `PUT` | `/patient/me` | Update own personal data + contact method | Patient | Drizzle query |
 | `GET` | `/patient/me/appointments` | Get own past & upcoming appointments | Patient | Drizzle query |
+| `GET` | `/patient/professionals` | Professionals available to book, shaped for the dashboard (BFF): `{ data: [{ id, name, occupation }] }`, ordered by name | Patient | Drizzle query |
 
 ---
 
@@ -493,7 +495,7 @@ Custom auth endpoints implemented in Hono. JWT-based with bcrypt password hashin
 | Auth | 5 |
 | Professional Profile | 2 |
 | Patients | 7 |
-| Patient Profile (patient-facing) | 3 |
+| Patient Profile (patient-facing) | 4 |
 | Billing Data | 2 |
 | RGPD Consent | 2 |
 | Appointment Types | 4 |
@@ -507,7 +509,7 @@ Custom auth endpoints implemented in Hono. JWT-based with bcrypt password hashin
 | Invoices | 4 |
 | Google Calendar | 3 |
 | Contact | 1 |
-| **Total** | **59** |
+| **Total** | **60** |
 
 ---
 
