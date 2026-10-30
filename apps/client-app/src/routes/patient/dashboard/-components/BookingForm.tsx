@@ -44,8 +44,8 @@ export function BookingForm() {
 
   const professionalOptions: ProfessionalOption[] = professionalsData.data.map((p) => ({
     value: p.id,
-    label: [p.firstName, p.lastName].join(" "),
-    subtitle: p.businessName ?? "Profesional",
+    label: p.name,
+    subtitle: p.occupation ?? "Profesional",
   }));
 
   // Auto-select first professional on load

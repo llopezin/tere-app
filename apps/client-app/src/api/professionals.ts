@@ -2,7 +2,7 @@ import { queryOptions } from "@tanstack/react-query";
 import { client } from "@/lib/client";
 
 async function fetchProfessionals() {
-  const res = await client.professionals.$get();
+  const res = await client.patient.professionals.$get();
 
   if (!res.ok) throw new Error("Failed to fetch professionals");
   return await res.json();

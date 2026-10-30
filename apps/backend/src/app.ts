@@ -10,6 +10,7 @@ import { env } from './config/env.js';
 import professionalRoutes from './routes/professionals/professionals.index.js';
 import patientRoutes from './routes/patients/patients.index.js';
 import patientProfile from './routes/patient-profile/patient-profile.index.js';
+import patientDashboard from './routes/patient-dashboard/patient-dashboard.index.js';
 import appointmentTypeRoutes from './routes/appointment-types/appointment-types.index.js';
 import scheduleRoutes from './routes/working-schedules/working-schedules.index.js';
 import blockedTimeRoutes from './routes/blocked-times/blocked-times.index.js';
@@ -51,6 +52,7 @@ const api = createRouter()
   .route('/', professionalRoutes)
   .route('/', patientRoutes)
   .route('/', patientProfile)
+  .route('/', patientDashboard)
   .route('/', appointmentTypeRoutes)
   .route('/', scheduleRoutes)
   .route('/', blockedTimeRoutes)

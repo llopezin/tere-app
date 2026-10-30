@@ -32,7 +32,7 @@ export function AppointmentList() {
   const professionalMap = useMemo(() => {
     const map = new Map<string, string>();
     for (const p of professionalsData.data) {
-      map.set(p.id, [p.firstName, p.lastName].join(" "));
+      map.set(p.id, p.name);
     }
     return map;
   }, [professionalsData]);

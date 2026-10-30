@@ -36,6 +36,7 @@ Clinic professionals who manage patients and appointments.
 | `email`            | TEXT         | UNIQUE, NOT NULL                   | Login / contact email                          |
 | `phone`            | TEXT         |                                    | Phone number                                   |
 | `business_name`    | TEXT         |                                    | Business name for invoices                     |
+| `occupation`       | TEXT         |                                    | Job title shown to patients (e.g. "Fisioterapeuta especialista en Bobath") |
 | `tax_id`           | TEXT         |                                    | NIF/CIF for invoices                           |
 | `address_street`   | TEXT         |                                    | Street address for invoices                    |
 | `address_postal`   | TEXT         |                                    | Postal code                                    |

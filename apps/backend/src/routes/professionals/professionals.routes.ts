@@ -1,4 +1,4 @@
-import { createRoute, z } from '@hono/zod-openapi';
+import { createRoute } from '@hono/zod-openapi';
 import { selectProfessionalSchema, updateProfessionalSchema } from '../../db/schema/professionals.js';
 import * as HttpStatusCodes from 'stoker/http-status-codes';
 import { jsonContent, jsonContentRequired } from 'stoker/openapi/helpers';
@@ -38,21 +38,5 @@ export const updateMe = createRoute({
   },
 });
 
-export const list = createRoute({
-  method: 'get',
-  path: '/professionals',
-  middleware: defineMiddleware(authMiddleware),
-  tags: ['Professionals'],
-  summary: 'List all professionals',
-  responses: {
-    [HttpStatusCodes.OK]: jsonContent(
-      z.object({ data: z.array(selectProfessionalSchema) }),
-      'List of professionals',
-    ),
-    [HttpStatusCodes.UNAUTHORIZED]: jsonContent(createMessageObjectSchema('Unauthorized'), 'Unauthorized'),
-  },
-});
-
-export type ListRoute = typeof list;
 export type GetMeRoute = typeof getMe;
 export type UpdateMeRoute = typeof updateMe;

@@ -8,6 +8,7 @@ export const professionals = pgTable('professionals', {
   firstName: text('first_name').notNull(),
   lastName: text('last_name').notNull(),
   businessName: text('business_name'),
+  occupation: text('occupation'),
   email: text('email').notNull().unique(),
   phone: text('phone'),
   taxId: text('tax_id'),
