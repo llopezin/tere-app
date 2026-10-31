@@ -1,8 +1,11 @@
 import { useState, useMemo, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
+import { AlertCircle, ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
 import { cn } from "@fisio-app/ui";
 import { availabilityQueryOptions } from "@/api/availability";
+
+/** Max weeks to auto-skip forward looking for the first week with future slots. */
+const MAX_AUTO_SKIP_WEEKS = 12;
 
 const MONTH_NAMES = [
   "enero",
@@ -95,7 +98,7 @@ export function WeeklySchedule({
   const from = toISODate(monday);
   const to = toISODate(friday);
 
-  const { data, isLoading } = useQuery(
+  const { data, isLoading, isError } = useQuery(
     availabilityQueryOptions(professionalId, appointmentTypeId, from, to),
   );
 
@@ -125,10 +128,16 @@ export function WeeklySchedule({
   }, [slotsByDay]);
 
   useEffect(() => {
-    if (!isLoading && !userNavigated && !hasFutureSlots && weekOffset < 12) {
+    if (
+      !isLoading &&
+      !isError &&
+      !userNavigated &&
+      !hasFutureSlots &&
+      weekOffset < MAX_AUTO_SKIP_WEEKS
+    ) {
       setWeekOffset((o) => o + 1);
     }
-  }, [isLoading, userNavigated, hasFutureSlots, weekOffset]);
+  }, [isLoading, isError, userNavigated, hasFutureSlots, weekOffset]);
 
   return (
     <div className="flex flex-col gap-4">
@@ -163,6 +172,13 @@ export function WeeklySchedule({
       {isLoading ? (
         <div className="flex items-center justify-center py-12">
           <Loader2 className="size-6 animate-spin text-text-muted" />
+        </div>
+      ) : isError ? (
+        <div role="alert" className="flex flex-col items-center gap-2 py-8 text-center">
+          <AlertCircle className="size-6 text-danger" />
+          <p className="text-sm text-text-muted">
+            No se pudo cargar la disponibilidad. Inténtalo de nuevo más tarde.
+          </p>
         </div>
       ) : !hasFutureSlots ? (
         <p className="py-8 text-center text-sm text-text-muted">
