@@ -6,7 +6,7 @@ export function patientProfileQueryOptions() {
   return queryOptions({
     queryKey: ["patient-profile"],
     queryFn: async () => {
-      const res = await client.patient.me.$get();
+      const res = await client.me.$get();
       if (!res.ok) throw new ApiError(res.status, "Failed to fetch patient profile");
       return res.json();
     },

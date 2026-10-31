@@ -28,7 +28,12 @@ export function LoginModal({ open, onOpenChange, onSwitchToSignup }: LoginModalP
     setLoading(false);
 
     if (authError) {
-      setError(authError.message ?? "Error al iniciar sesión");
+      // Professional accounts are rejected here with the same error as a wrong password
+      setError(
+        authError.code === "INVALID_EMAIL_OR_PASSWORD"
+          ? "Email o contraseña incorrectos. Si eres profesional, accede desde la app de profesionales."
+          : (authError.message ?? "Error al iniciar sesión"),
+      );
       return;
     }
 

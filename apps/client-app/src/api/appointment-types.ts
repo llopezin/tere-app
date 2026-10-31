@@ -3,8 +3,8 @@ import { client } from "@/lib/client";
 import { ApiError } from "@/lib/api-error";
 
 async function fetchAppointmentTypes(professionalId: string) {
-  const res = await client["appointment-types"].$get({
-    query: { professional_id: professionalId },
+  const res = await client.professionals[":professionalId"]["appointment-types"].$get({
+    param: { professionalId },
   });
 
   if (!res.ok) throw new ApiError(res.status, "Failed to fetch appointment types");

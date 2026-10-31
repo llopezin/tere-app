@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { Card, Button, Input, BrandLogo } from "@fisio-app/ui";
 import { signIn } from "../lib/auth-client";
@@ -26,7 +26,12 @@ function LoginPage() {
       });
 
       if (authError) {
-        setError(authError.message || "Credenciales inválidas");
+        // Patient accounts are rejected here with the same error as a wrong password
+        setError(
+          authError.code === "INVALID_EMAIL_OR_PASSWORD"
+            ? "Email o contraseña incorrectos"
+            : authError.message || "Credenciales inválidas",
+        );
         return;
       }
 
@@ -72,11 +77,8 @@ function LoginPage() {
             </Button>
           </form>
 
-          <p className="text-sm text-center">
-            ¿No tienes cuenta?{" "}
-            <Link to="/signup" className="text-primary-600 font-medium">
-              Regístrate aquí
-            </Link>
+          <p className="text-sm text-center text-text-secondary">
+            Las cuentas de profesional las crea el administrador de la clínica.
           </p>
         </div>
       </Card>
