@@ -377,6 +377,7 @@ erDiagram
 | 10 | A patient can modify their billing data before downloading an invoice. | UI flow |
 | 11 | Bonos become `exhausted` when `sessions_used = total_sessions`. | App logic or DB trigger |
 | 12 | Recurring appointments share a `recurrence_group_id` UUID. | App generates a UUID and assigns to all appointments in the series |
+| 13 | A patient can only book appointments between now and the end of day of today + 3 calendar months (Europe/Madrid). Professionals are not limited. | App logic: `BOOKING_WINDOW_MONTHS` in `apps/backend/src/lib/booking-window.ts`; availability is clipped and `POST /appointments` returns 400 |
 
 ---
 

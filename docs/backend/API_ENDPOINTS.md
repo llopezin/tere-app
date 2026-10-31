@@ -228,7 +228,8 @@ Custom auth endpoints implemented in Hono. JWT-based with bcrypt password hashin
   "slots": [
     { "start_at": "2026-03-24T09:00:00Z", "end_at": "2026-03-24T10:00:00Z" },
     { "start_at": "2026-03-24T10:00:00Z", "end_at": "2026-03-24T11:00:00Z" }
-  ]
+  ],
+  "booking_window_end": "2026-06-24T21:59:59.999Z"
 }
 ```
 
@@ -237,7 +238,8 @@ Custom auth endpoints implemented in Hono. JWT-based with bcrypt password hashin
 2. Divide each schedule block into slots based on `appointment_types.duration_minutes`.
 3. Subtract slots that overlap with existing `appointments` (status ≠ cancelled).
 4. Subtract slots that overlap with `blocked_times`.
-5. Return remaining available slots.
+5. **Patients only:** clip the range to the booking window (now → end of day of today + 3 months, Europe/Madrid) and drop slots starting after it.
+6. Return remaining available slots plus `booking_window_end` (last bookable instant for patients; `null` for professionals). The client app uses it to limit week navigation, so the limit lives only in the backend.
 
 ---
 
@@ -246,7 +248,7 @@ Custom auth endpoints implemented in Hono. JWT-based with bcrypt password hashin
 | Method | Path | Description | Role | Impl |
 |--------|------|-------------|------|------|
 | `GET` | `/appointments` | List appointments. Supports `?from=&to=&status=&patient_id=` | Professional | Drizzle query |
-| `POST` | `/appointments` | Create single appointment | Professional, Patient | Hono handler |
+| `POST` | `/appointments` | Create single appointment. Patients get `400` if `start_at` is in the past or beyond the booking window | Professional, Patient | Hono handler |
 | `POST` | `/appointments/batch` | Create multiple appointments for same patient (multi-slot) | Professional | Hono handler |
 | `POST` | `/appointments/recurring` | Create recurring appointment series | Professional | Hono handler |
 | `GET` | `/appointments/:id` | Get appointment details (includes patient, type, payment info) | Professional, Patient (own) | Drizzle query |

@@ -18,6 +18,7 @@ import { getProfileId } from '../../middleware/auth.js';
 import { AppError } from '../../middleware/error-handler.js';
 import * as HttpStatusCodes from 'stoker/http-status-codes';
 import * as appointmentService from '../../services/appointment.service.js';
+import { assertPatientCanBookAt } from '../../lib/booking-window.js';
 import * as gcalSync from '../../services/google-calendar/sync.js';
 
 // --- Handlers ---
@@ -50,6 +51,8 @@ export const create: AppRouteHandler<CreateRoute> = async (c) => {
   const profId = professionalId || apptType.professionalId;
   const startAt = new Date(body.startAt);
   const endAt = new Date(startAt.getTime() + apptType.durationMinutes * 60 * 1000);
+
+  if (user.role === 'patient') assertPatientCanBookAt(startAt);
 
   await appointmentService.verifyRgpdConsent(body.patientId);
   await appointmentService.checkOverlap(profId, startAt, endAt);
