@@ -9,6 +9,8 @@ import { parseArgs } from 'node:util';
 import { createProfessionalAccount } from '../services/professional-account.service.js';
 
 const { values } = parseArgs({
+  // `pnpm create-professional -- --email ...` forwards the `--` separator literally
+  args: process.argv.slice(2).filter((arg) => arg !== '--'),
   options: {
     email: { type: 'string' },
     password: { type: 'string' },
