@@ -20,7 +20,7 @@ function LoginPage() {
     setError("");
 
     try {
-      const { data, error: authError } = await signIn.email({
+      const { error: authError } = await signIn.email({
         email,
         password,
       });
@@ -31,7 +31,7 @@ function LoginPage() {
       }
 
       navigate({ to: "/" });
-    } catch (err) {
+    } catch {
       setError("Ocurrió un error inesperado");
     } finally {
       setLoading(false);
@@ -49,26 +49,21 @@ function LoginPage() {
           </div>
 
           <form onSubmit={handleLogin} className="w-full space-y-4">
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Email</label>
-              <Input
-                type="email"
-                placeholder="tu@email.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Contraseña</label>
-              <Input
-                type="password"
-                placeholder="••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-              />
-            </div>
+            <Input
+              label="Email"
+              type="email"
+              placeholder="tu@email.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+            />
+            <Input
+              label="Contraseña"
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+            />
 
             {error && <p className="text-danger text-sm text-center">{error}</p>}
 

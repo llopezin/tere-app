@@ -22,7 +22,7 @@ function SignupPage() {
     setError("");
 
     try {
-      const { data, error: authError } = await signUp.email({
+      const { error: authError } = await signUp.email({
         email,
         password,
         name: `${firstName} ${lastName}`,
@@ -43,7 +43,7 @@ function SignupPage() {
       });
 
       navigate({ to: "/" });
-    } catch (err) {
+    } catch {
       setError("Ocurrió un error inesperado");
     } finally {
       setLoading(false);
@@ -62,47 +62,38 @@ function SignupPage() {
 
           <form onSubmit={handleSignup} className="w-full space-y-4">
             <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Nombre</label>
-                <Input
-                  placeholder="Juan"
-                  value={firstName}
-                  onChange={(e) => setFirstName(e.target.value)}
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Apellidos</label>
-                <Input
-                  placeholder="Pérez"
-                  value={lastName}
-                  onChange={(e) => setLastName(e.target.value)}
-                  required
-                />
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Email</label>
               <Input
-                type="email"
-                placeholder="juan@ejemplo.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                label="Nombre"
+                placeholder="Juan"
+                value={firstName}
+                onChange={(e) => setFirstName(e.target.value)}
+                required
+              />
+              <Input
+                label="Apellidos"
+                placeholder="Pérez"
+                value={lastName}
+                onChange={(e) => setLastName(e.target.value)}
                 required
               />
             </div>
 
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Contraseña</label>
-              <Input
-                type="password"
-                placeholder="••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-              />
-            </div>
+            <Input
+              label="Email"
+              type="email"
+              placeholder="juan@ejemplo.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+            />
+
+            <Input
+              label="Contraseña"
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+            />
 
             {error && <p className="text-danger text-sm text-center">{error}</p>}
 
