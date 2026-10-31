@@ -1,19 +1,16 @@
 import { createRoute, z } from '@hono/zod-openapi';
-import { selectInvoiceSchema, insertInvoiceSchema } from '../../db/schema/invoices.js';
-import { paginationSchema, idParamsSchema } from '../../lib/schemas.js';
+import { selectInvoiceSchema, insertInvoiceSchema } from '../../../db/schema/invoices.js';
+import { paginationSchema, idParamsSchema } from '../../../lib/schemas.js';
 import * as HttpStatusCodes from 'stoker/http-status-codes';
 import { jsonContent, jsonContentRequired } from 'stoker/openapi/helpers';
 import { createMessageObjectSchema } from 'stoker/openapi/schemas';
-import { authMiddleware } from '../../middleware/auth.js';
-import { defineMiddleware } from '../../lib/create-app.js';
 
-const tags = ['Invoices'];
+const tags = ['Professional / Invoices'];
 
 // GET /
 export const list = createRoute({
   method: 'get',
   path: '/invoices',
-  middleware: defineMiddleware(authMiddleware),
   tags,
   summary: 'List invoices',
   request: {
@@ -36,7 +33,6 @@ export const list = createRoute({
 export const create = createRoute({
   method: 'post',
   path: '/invoices',
-  middleware: defineMiddleware(authMiddleware),
   tags,
   summary: 'Create an invoice',
   request: {
@@ -54,7 +50,6 @@ export const create = createRoute({
 export const getOne = createRoute({
   method: 'get',
   path: '/invoices/{id}',
-  middleware: defineMiddleware(authMiddleware),
   tags,
   summary: 'Get an invoice by ID',
   request: {
@@ -71,7 +66,6 @@ export const getOne = createRoute({
 export const getPdf = createRoute({
   method: 'get',
   path: '/invoices/{id}/pdf',
-  middleware: defineMiddleware(authMiddleware),
   tags,
   summary: 'Get invoice PDF or HTML preview',
   request: {

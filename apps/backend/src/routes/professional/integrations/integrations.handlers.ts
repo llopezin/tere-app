@@ -2,18 +2,18 @@ import crypto from 'node:crypto';
 import { eq } from 'drizzle-orm';
 import { setCookie, getCookie, deleteCookie } from 'hono/cookie';
 import * as HttpStatusCodes from 'stoker/http-status-codes';
-import type { AppRouteHandler } from '../../lib/types.js';
+import type { AppRouteHandler } from '../../../lib/types.js';
 import type {
   StatusRoute,
   ConnectRoute,
   CallbackRoute,
   DisconnectRoute,
-} from './google-calendar.routes.js';
-import { db } from '../../db/index.js';
-import { googleCalendarIntegrations } from '../../db/schema/google-calendar-integrations.js';
-import { getProfileId } from '../../middleware/auth.js';
-import { env } from '../../config/env.js';
-import { createOAuthClient } from '../../services/google-calendar/oauth-client.js';
+} from './integrations.routes.js';
+import { db } from '../../../db/index.js';
+import { googleCalendarIntegrations } from '../../../db/schema/google-calendar-integrations.js';
+import { getProfileId } from '../../../middleware/auth.js';
+import { env } from '../../../config/env.js';
+import { createOAuthClient } from '../../../services/google-calendar/oauth-client.js';
 
 /**
  * Constants for OAuth state management.
@@ -160,7 +160,7 @@ export const callback: AppRouteHandler<CallbackRoute> = async (c) => {
 
   // Helper for redirecting back to the frontend with specific status parameters
   const redirect = (params: Record<string, string>) => {
-    const url = new URL('/', env.FRONTEND_URL);
+    const url = new URL('/ajustes/integraciones', env.PROFESSIONAL_APP_URL);
     for (const [k, v] of Object.entries(params)) url.searchParams.set(k, v);
     return c.redirect(url.toString(), HttpStatusCodes.MOVED_TEMPORARILY);
   };

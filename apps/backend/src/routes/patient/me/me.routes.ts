@@ -1,27 +1,21 @@
 import { createRoute, z } from '@hono/zod-openapi';
 import * as HttpStatusCodes from 'stoker/http-status-codes';
 import { jsonContent, jsonContentRequired } from 'stoker/openapi/helpers';
-import { authMiddleware, requireRole } from '../../middleware/auth.js';
-import { defineMiddleware } from '../../lib/create-app.js';
-import { selectPatientSchema, updatePatientSchema } from '../../db/schema/patients.js';
-import { selectAppointmentSchema } from '../../db/schema/appointments.js';
-import { selectPatientBillingDataSchema, upsertBillingDataSchema } from '../../db/schema/patient-billing-data.js';
-import { selectPatientConsentSchema, signConsentSchema } from '../../db/schema/patient-consents.js';
-import { selectConsentDocumentSchema } from '../../db/schema/consent-documents.js';
-import { selectRgpdConsentSchema } from '../../db/schema/rgpd-consents.js';
-import { paginationSchema } from '../../lib/schemas.js';
+import { selectOwnPatientSchema, updateOwnPatientSchema } from '../../../db/schema/patients.js';
+import { selectPatientBillingDataSchema, upsertBillingDataSchema } from '../../../db/schema/patient-billing-data.js';
+import { selectPatientConsentSchema, signConsentSchema } from '../../../db/schema/patient-consents.js';
+import { selectConsentDocumentSchema } from '../../../db/schema/consent-documents.js';
+import { selectRgpdConsentSchema } from '../../../db/schema/rgpd-consents.js';
 
-const tags = ['Patient Profile'];
-const patientMiddleware = defineMiddleware(authMiddleware, requireRole('patient'));
+const tags = ['Patient / Me'];
 
 export const getMe = createRoute({
   method: 'get',
-  path: '/patient/me',
-  middleware: patientMiddleware,
+  path: '/me',
   tags,
   summary: 'Get the authenticated patient profile',
   responses: {
-    [HttpStatusCodes.OK]: jsonContent(selectPatientSchema, 'The patient profile'),
+    [HttpStatusCodes.OK]: jsonContent(selectOwnPatientSchema, 'The patient profile'),
     [HttpStatusCodes.NOT_FOUND]: jsonContent(z.object({ error: z.string() }), 'Patient profile not found'),
   },
 });
@@ -29,46 +23,22 @@ export type GetMeRoute = typeof getMe;
 
 export const updateMe = createRoute({
   method: 'put',
-  path: '/patient/me',
-  middleware: patientMiddleware,
+  path: '/me',
   tags,
   summary: 'Update the authenticated patient profile',
   request: {
-    body: jsonContentRequired(updatePatientSchema, 'Patient profile fields to update'),
+    body: jsonContentRequired(updateOwnPatientSchema, 'Patient profile fields to update'),
   },
   responses: {
-    [HttpStatusCodes.OK]: jsonContent(selectPatientSchema, 'The updated patient profile'),
+    [HttpStatusCodes.OK]: jsonContent(selectOwnPatientSchema, 'The updated patient profile'),
     [HttpStatusCodes.NOT_FOUND]: jsonContent(z.object({ error: z.string() }), 'Patient profile not found'),
   },
 });
 export type UpdateMeRoute = typeof updateMe;
 
-export const getMyAppointments = createRoute({
-  method: 'get',
-  path: '/patient/me/appointments',
-  middleware: patientMiddleware,
-  tags,
-  summary: "Get the authenticated patient's appointments",
-  request: {
-    query: paginationSchema,
-  },
-  responses: {
-    [HttpStatusCodes.OK]: jsonContent(
-      z.object({
-        data: z.array(selectAppointmentSchema),
-        page: z.number(),
-        per_page: z.number(),
-      }),
-      'List of appointments',
-    ),
-  },
-});
-export type GetMyAppointmentsRoute = typeof getMyAppointments;
-
 export const getMyBillingData = createRoute({
   method: 'get',
-  path: '/patient/me/billing-data',
-  middleware: patientMiddleware,
+  path: '/me/billing-data',
   tags,
   summary: "Get the authenticated patient's billing data",
   responses: {
@@ -82,8 +52,7 @@ export type GetMyBillingDataRoute = typeof getMyBillingData;
 
 export const upsertMyBillingData = createRoute({
   method: 'put',
-  path: '/patient/me/billing-data',
-  middleware: patientMiddleware,
+  path: '/me/billing-data',
   tags,
   summary: "Create or update the authenticated patient's billing data",
   request: {
@@ -102,8 +71,7 @@ const consentIdParamsSchema = z.object({
 
 export const getMyConsents = createRoute({
   method: 'get',
-  path: '/patient/me/consents',
-  middleware: patientMiddleware,
+  path: '/consents',
   tags,
   summary: "List the authenticated patient's assigned consent documents",
   request: {
@@ -126,8 +94,7 @@ export type GetMyConsentsRoute = typeof getMyConsents;
 
 export const getMyConsent = createRoute({
   method: 'get',
-  path: '/patient/me/consents/{consentId}',
-  middleware: patientMiddleware,
+  path: '/consents/{consentId}',
   tags,
   summary: 'View a specific consent document with full content',
   request: {
@@ -147,8 +114,7 @@ export type GetMyConsentRoute = typeof getMyConsent;
 
 export const signMyConsent = createRoute({
   method: 'post',
-  path: '/patient/me/consents/{consentId}/sign',
-  middleware: patientMiddleware,
+  path: '/consents/{consentId}/sign',
   tags,
   summary: 'Sign a consent document',
   request: {
@@ -165,8 +131,7 @@ export type SignMyConsentRoute = typeof signMyConsent;
 
 export const getMyRgpdConsent = createRoute({
   method: 'get',
-  path: '/patient/me/rgpd-consent',
-  middleware: patientMiddleware,
+  path: '/me/rgpd-consent',
   tags,
   summary: "Get the authenticated patient's RGPD consent status",
   responses: {
@@ -181,8 +146,7 @@ export type GetMyRgpdConsentRoute = typeof getMyRgpdConsent;
 
 export const acceptMyRgpdConsent = createRoute({
   method: 'post',
-  path: '/patient/me/rgpd-consent',
-  middleware: patientMiddleware,
+  path: '/me/rgpd-consent',
   tags,
   summary: 'Accept RGPD consent (patient self-service)',
   responses: {

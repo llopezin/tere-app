@@ -1,4 +1,4 @@
-import { createRouter } from '../../lib/create-app.js';
+import { createRouter } from '../../../lib/create-app.js';
 import * as routes from './bonos.routes.js';
 import * as handlers from './bonos.handlers.js';
 

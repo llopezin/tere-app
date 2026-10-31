@@ -5,21 +5,18 @@ import {
   updateAppointmentSchema,
   batchAppointmentSchema,
   recurringAppointmentSchema,
-} from '../../db/schema/appointments.js';
-import { paginationSchema, idParamsSchema } from '../../lib/schemas.js';
+} from '../../../db/schema/appointments.js';
+import { paginationSchema, idParamsSchema } from '../../../lib/schemas.js';
 import * as HttpStatusCodes from 'stoker/http-status-codes';
 import { jsonContent, jsonContentRequired } from 'stoker/openapi/helpers';
 import { createMessageObjectSchema } from 'stoker/openapi/schemas';
-import { authMiddleware, requireRole } from '../../middleware/auth.js';
-import { defineMiddleware } from '../../lib/create-app.js';
 
-const tags = ['Appointments'];
+const tags = ['Professional / Appointments'];
 
 // GET /
 export const list = createRoute({
   method: 'get',
   path: '/appointments',
-  middleware: defineMiddleware(authMiddleware, requireRole('professional')),
   tags,
   summary: 'List appointments',
   request: {
@@ -44,7 +41,6 @@ export const list = createRoute({
 export const create = createRoute({
   method: 'post',
   path: '/appointments',
-  middleware: defineMiddleware(authMiddleware),
   tags,
   summary: 'Create a single appointment',
   request: {
@@ -63,7 +59,6 @@ export const create = createRoute({
 export const batch = createRoute({
   method: 'post',
   path: '/appointments/batch',
-  middleware: defineMiddleware(authMiddleware, requireRole('professional')),
   tags,
   summary: 'Create batch appointments',
   request: {
@@ -85,7 +80,6 @@ export const batch = createRoute({
 export const recurring = createRoute({
   method: 'post',
   path: '/appointments/recurring',
-  middleware: defineMiddleware(authMiddleware, requireRole('professional')),
   tags,
   summary: 'Create recurring appointments',
   request: {
@@ -107,7 +101,6 @@ export const recurring = createRoute({
 export const getOne = createRoute({
   method: 'get',
   path: '/appointments/{id}',
-  middleware: defineMiddleware(authMiddleware),
   tags,
   summary: 'Get an appointment by ID',
   request: {
@@ -124,7 +117,6 @@ export const getOne = createRoute({
 export const update = createRoute({
   method: 'put',
   path: '/appointments/{id}',
-  middleware: defineMiddleware(authMiddleware, requireRole('professional')),
   tags,
   summary: 'Update an appointment',
   request: {
@@ -144,7 +136,6 @@ export const update = createRoute({
 export const cancel = createRoute({
   method: 'patch',
   path: '/appointments/{id}/cancel',
-  middleware: defineMiddleware(authMiddleware),
   tags,
   summary: 'Cancel an appointment',
   request: {
@@ -162,7 +153,6 @@ export const cancel = createRoute({
 export const complete = createRoute({
   method: 'patch',
   path: '/appointments/{id}/complete',
-  middleware: defineMiddleware(authMiddleware, requireRole('professional')),
   tags,
   summary: 'Mark an appointment as completed',
   request: {
@@ -180,7 +170,6 @@ export const complete = createRoute({
 export const noShow = createRoute({
   method: 'patch',
   path: '/appointments/{id}/no-show',
-  middleware: defineMiddleware(authMiddleware, requireRole('professional')),
   tags,
   summary: 'Mark an appointment as no-show',
   request: {

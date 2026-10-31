@@ -1,4 +1,4 @@
-import { createRouter } from '../../lib/create-app.js';
+import { createRouter } from '../../../lib/create-app.js';
 import * as routes from './patients.routes.js';
 import * as handlers from './patients.handlers.js';
 

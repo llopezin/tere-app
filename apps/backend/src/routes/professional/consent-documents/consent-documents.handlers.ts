@@ -1,4 +1,4 @@
-import type { AppRouteHandler } from '../../lib/types.js';
+import type { AppRouteHandler } from '../../../lib/types.js';
 import type {
   ListRoute,
   CreateRoute,
@@ -6,12 +6,12 @@ import type {
   UpdateRoute,
   RemoveRoute,
 } from './consent-documents.routes.js';
-import { db } from '../../db/index.js';
-import { consentDocuments } from '../../db/schema/consent-documents.js';
-import { patientConsents } from '../../db/schema/patient-consents.js';
+import { db } from '../../../db/index.js';
+import { consentDocuments } from '../../../db/schema/consent-documents.js';
+import { patientConsents } from '../../../db/schema/patient-consents.js';
 import { eq, and } from 'drizzle-orm';
-import { getProfileId } from '../../middleware/auth.js';
-import { AppError } from '../../middleware/error-handler.js';
+import { getProfileId } from '../../../middleware/auth.js';
+import { AppError } from '../../../middleware/error-handler.js';
 import * as HttpStatusCodes from 'stoker/http-status-codes';
 
 export const list: AppRouteHandler<ListRoute> = async (c) => {

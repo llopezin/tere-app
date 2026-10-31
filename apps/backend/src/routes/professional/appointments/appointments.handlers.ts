@@ -1,4 +1,4 @@
-import type { AppRouteHandler } from '../../lib/types.js';
+import type { AppRouteHandler } from '../../../lib/types.js';
 import type {
   ListRoute,
   CreateRoute,
@@ -10,15 +10,33 @@ import type {
   CompleteRoute,
   NoShowRoute,
 } from './appointments.routes.js';
-import { db } from '../../db/index.js';
-import { appointments } from '../../db/schema/appointments.js';
-import { appointmentTypes } from '../../db/schema/appointment-types.js';
+import { db } from '../../../db/index.js';
+import { appointments } from '../../../db/schema/appointments.js';
 import { eq, and, sql } from 'drizzle-orm';
-import { getProfileId } from '../../middleware/auth.js';
-import { AppError } from '../../middleware/error-handler.js';
+import { getProfileId } from '../../../middleware/auth.js';
+import { AppError } from '../../../middleware/error-handler.js';
 import * as HttpStatusCodes from 'stoker/http-status-codes';
-import * as appointmentService from '../../services/appointment.service.js';
-import * as gcalSync from '../../services/google-calendar/sync.js';
+import * as appointmentService from '../../../services/appointment.service.js';
+import * as gcalSync from '../../../services/google-calendar/sync.js';
+import {
+  assertPatientOfProfessional,
+  assertAppointmentTypeOf,
+  assertBonoOf,
+} from '../../../services/ownership.service.js';
+
+/**
+ * Validates every foreign id of a booking request against the authenticated professional.
+ * Returns the appointment type so callers can compute duration and price.
+ */
+async function validateBookingRefs(
+  professionalId: string,
+  body: { patientId: string; appointmentTypeId: string; bonoId?: string | null },
+) {
+  await assertPatientOfProfessional(professionalId, body.patientId);
+  const apptType = await assertAppointmentTypeOf(professionalId, body.appointmentTypeId);
+  if (body.bonoId) await assertBonoOf({ professionalId, patientId: body.patientId }, body.bonoId);
+  return apptType;
+}
 
 // --- Handlers ---
 
@@ -29,7 +47,10 @@ export const list: AppRouteHandler<ListRoute> = async (c) => {
   if (from) conditions.push(sql`${appointments.startAt} >= ${from}`);
   if (to) conditions.push(sql`${appointments.startAt} <= ${to}`);
   if (status) conditions.push(eq(appointments.status, status as any));
-  if (patientId) conditions.push(eq(appointments.patientId, patientId));
+  if (patientId) {
+    await assertPatientOfProfessional(profileId, patientId);
+    conditions.push(eq(appointments.patientId, patientId));
+  }
   const results = await db.select().from(appointments)
     .where(and(...conditions))
     .orderBy(appointments.startAt)
@@ -39,23 +60,18 @@ export const list: AppRouteHandler<ListRoute> = async (c) => {
 };
 
 export const create: AppRouteHandler<CreateRoute> = async (c) => {
-  const user = c.get('user');
   const profileId = getProfileId(c);
   const body = c.req.valid('json');
-  const professionalId = user.role === 'professional' ? profileId : undefined;
 
-  const [apptType] = await db.select().from(appointmentTypes).where(eq(appointmentTypes.id, body.appointmentTypeId));
-  if (!apptType) throw new AppError(404, 'Appointment type not found');
-
-  const profId = professionalId || apptType.professionalId;
+  const apptType = await validateBookingRefs(profileId, body);
   const startAt = new Date(body.startAt);
   const endAt = new Date(startAt.getTime() + apptType.durationMinutes * 60 * 1000);
 
   await appointmentService.verifyRgpdConsent(body.patientId);
-  await appointmentService.checkOverlap(profId, startAt, endAt);
+  await appointmentService.checkOverlap(profileId, startAt, endAt);
 
   const result = await db.transaction(async (tx) => {
-    return appointmentService.createSingleAppointment(tx, profId, {
+    return appointmentService.createSingleAppointment(tx, profileId, {
       patientId: body.patientId,
       appointmentTypeId: body.appointmentTypeId,
       startAt,
@@ -76,8 +92,7 @@ export const batch: AppRouteHandler<BatchRoute> = async (c) => {
   const profileId = getProfileId(c);
   const body = c.req.valid('json');
 
-  const [apptType] = await db.select().from(appointmentTypes).where(eq(appointmentTypes.id, body.appointmentTypeId));
-  if (!apptType) throw new AppError(404, 'Appointment type not found');
+  const apptType = await validateBookingRefs(profileId, body);
 
   await appointmentService.verifyRgpdConsent(body.patientId);
 
@@ -117,8 +132,7 @@ export const recurring: AppRouteHandler<RecurringRoute> = async (c) => {
   const profileId = getProfileId(c);
   const body = c.req.valid('json');
 
-  const [apptType] = await db.select().from(appointmentTypes).where(eq(appointmentTypes.id, body.appointmentTypeId));
-  if (!apptType) throw new AppError(404, 'Appointment type not found');
+  const apptType = await validateBookingRefs(profileId, body);
 
   await appointmentService.verifyRgpdConsent(body.patientId);
 
@@ -148,13 +162,10 @@ export const recurring: AppRouteHandler<RecurringRoute> = async (c) => {
 };
 
 export const getOne: AppRouteHandler<GetOneRoute> = async (c) => {
-  const user = c.get('user');
   const profileId = getProfileId(c);
   const { id } = c.req.valid('param');
-  const conditions = [eq(appointments.id, id)];
-  if (user.role === 'professional') conditions.push(eq(appointments.professionalId, profileId));
-  else conditions.push(eq(appointments.patientId, profileId));
-  const [appt] = await db.select().from(appointments).where(and(...conditions));
+  const [appt] = await db.select().from(appointments)
+    .where(and(eq(appointments.id, id), eq(appointments.professionalId, profileId)));
   if (!appt) throw new AppError(404, 'Appointment not found');
   return c.json(appt, HttpStatusCodes.OK);
 };
@@ -170,10 +181,11 @@ export const update: AppRouteHandler<UpdateRoute> = async (c) => {
 
   const updateData: Record<string, any> = { updatedAt: new Date() };
 
+  if (body.appointmentTypeId) await assertAppointmentTypeOf(profileId, body.appointmentTypeId);
+
   if (body.startAt) {
     const apptTypeId = body.appointmentTypeId || existing.appointmentTypeId;
-    const [apptType] = await db.select().from(appointmentTypes).where(eq(appointmentTypes.id, apptTypeId));
-    if (!apptType) throw new AppError(404, 'Appointment type not found');
+    const apptType = await assertAppointmentTypeOf(profileId, apptTypeId);
 
     const startAt = new Date(body.startAt);
     const endAt = new Date(startAt.getTime() + apptType.durationMinutes * 60 * 1000);
@@ -200,15 +212,11 @@ export const update: AppRouteHandler<UpdateRoute> = async (c) => {
 };
 
 export const cancel: AppRouteHandler<CancelRoute> = async (c) => {
-  const user = c.get('user');
   const profileId = getProfileId(c);
   const { id } = c.req.valid('param');
 
-  const conditions = [eq(appointments.id, id)];
-  if (user.role === 'professional') conditions.push(eq(appointments.professionalId, profileId));
-  else conditions.push(eq(appointments.patientId, profileId));
-
-  const [appt] = await db.select().from(appointments).where(and(...conditions));
+  const [appt] = await db.select().from(appointments)
+    .where(and(eq(appointments.id, id), eq(appointments.professionalId, profileId)));
   if (!appt) throw new AppError(404, 'Appointment not found');
 
   const result = await appointmentService.cancelAppointment(id, appt);

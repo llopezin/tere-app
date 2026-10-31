@@ -3,33 +3,24 @@ import {
   selectAppointmentTypeSchema,
   insertAppointmentTypeSchema,
   updateAppointmentTypeSchema,
-} from '../../db/schema/appointment-types.js';
-import { idParamsSchema } from '../../lib/schemas.js';
+} from '../../../db/schema/appointment-types.js';
+import { idParamsSchema } from '../../../lib/schemas.js';
 import * as HttpStatusCodes from 'stoker/http-status-codes';
 import { jsonContent, jsonContentRequired } from 'stoker/openapi/helpers';
 import { createMessageObjectSchema } from 'stoker/openapi/schemas';
-import { authMiddleware, requireRole } from '../../middleware/auth.js';
-import { defineMiddleware } from '../../lib/create-app.js';
 
-const tags = ['Appointment Types'];
+const tags = ['Professional / Appointment Types'];
 
 export const list = createRoute({
   method: 'get',
   path: '/appointment-types',
-  middleware: defineMiddleware(authMiddleware),
   tags,
-  summary: 'List appointment types',
-  request: {
-    query: z.object({
-      professional_id: z.string().uuid().optional(),
-    }),
-  },
+  summary: "List the authenticated professional's appointment types (including inactive)",
   responses: {
     [HttpStatusCodes.OK]: jsonContent(
       z.object({ data: z.array(selectAppointmentTypeSchema) }),
       'List of appointment types',
     ),
-    [HttpStatusCodes.BAD_REQUEST]: jsonContent(createMessageObjectSchema('Missing professional_id'), 'Missing professional_id'),
     [HttpStatusCodes.UNAUTHORIZED]: jsonContent(createMessageObjectSchema('Unauthorized'), 'Unauthorized'),
   },
 });
@@ -37,7 +28,6 @@ export const list = createRoute({
 export const create = createRoute({
   method: 'post',
   path: '/appointment-types',
-  middleware: defineMiddleware(authMiddleware, requireRole('professional')),
   tags,
   summary: 'Create an appointment type',
   request: {
@@ -54,7 +44,6 @@ export const create = createRoute({
 export const update = createRoute({
   method: 'put',
   path: '/appointment-types/{id}',
-  middleware: defineMiddleware(authMiddleware, requireRole('professional')),
   tags,
   summary: 'Update an appointment type',
   request: {
@@ -73,7 +62,6 @@ export const update = createRoute({
 export const remove = createRoute({
   method: 'delete',
   path: '/appointment-types/{id}',
-  middleware: defineMiddleware(authMiddleware, requireRole('professional')),
   tags,
   summary: 'Deactivate an appointment type',
   request: {

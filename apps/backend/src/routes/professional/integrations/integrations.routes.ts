@@ -2,8 +2,6 @@ import { createRoute, z } from '@hono/zod-openapi';
 import * as HttpStatusCodes from 'stoker/http-status-codes';
 import { jsonContent } from 'stoker/openapi/helpers';
 import { createMessageObjectSchema } from 'stoker/openapi/schemas';
-import { authMiddleware, requireRole } from '../../middleware/auth.js';
-import { defineMiddleware } from '../../lib/create-app.js';
 
 const BASE = '/integrations/google-calendar';
 
@@ -26,8 +24,7 @@ const messageSchema = z.object({
 export const status = createRoute({
   method: 'get',
   path: `${BASE}/status`,
-  middleware: defineMiddleware(authMiddleware, requireRole('professional')),
-  tags: ['Google Calendar'],
+  tags: ['Professional / Google Calendar'],
   summary: 'Get current Google Calendar integration status',
   responses: {
     [HttpStatusCodes.OK]: jsonContent(statusSchema, 'Integration status'),
@@ -40,8 +37,7 @@ export const status = createRoute({
 export const connect = createRoute({
   method: 'post',
   path: `${BASE}/connect`,
-  middleware: defineMiddleware(authMiddleware, requireRole('professional')),
-  tags: ['Google Calendar'],
+  tags: ['Professional / Google Calendar'],
   summary: 'Start Google Calendar OAuth flow — returns an authUrl',
   responses: {
     [HttpStatusCodes.OK]: jsonContent(authUrlSchema, 'OAuth authorization URL'),
@@ -54,7 +50,7 @@ export const connect = createRoute({
 export const callback = createRoute({
   method: 'get',
   path: `${BASE}/callback`,
-  tags: ['Google Calendar'],
+  tags: ['Public / Google Calendar'],
   summary: 'OAuth callback — exchanges code, persists tokens, redirects to frontend',
   request: {
     query: z.object({
@@ -75,8 +71,7 @@ export const callback = createRoute({
 export const disconnect = createRoute({
   method: 'post',
   path: `${BASE}/disconnect`,
-  middleware: defineMiddleware(authMiddleware, requireRole('professional')),
-  tags: ['Google Calendar'],
+  tags: ['Professional / Google Calendar'],
   summary: 'Revoke tokens and remove the integration row',
   responses: {
     [HttpStatusCodes.OK]: jsonContent(messageSchema, 'Integration disconnected'),

@@ -2,11 +2,16 @@
 
 This module handles the OAuth 2.0 flow for connecting a professional's Google Calendar to the application. It provides endpoints for initiating the connection, handling the callback from Google, checking the integration status, and disconnecting.
 
+## Routing
+
+- `status`, `connect` and `disconnect` live in the professional BFF: `/api/v1/professional/integrations/google-calendar/*` (professional session + professional-app Origin).
+- `callback` is mounted publicly at `/api/v1/integrations/google-calendar/callback` (see `routes/public`): Google redirects the browser there, and that URL is registered in Google Cloud Console. When it finishes it redirects to `PROFESSIONAL_APP_URL/ajustes/integraciones?gcal=connected|error&reason=…`.
+
 ## OAuth 2.0 Flow
 
 The integration follows a secure Authorization Code Flow with CSRF protection:
 
-### 1. Initiation (`GET /connect`)
+### 1. Initiation (`POST /connect`)
 - Generates a cryptographically signed `state` containing the `profileId`, a `nonce`, and an `issuedAt` timestamp.
 - Signs the state using an HMAC (`sha256`) with the system's `BETTER_AUTH_SECRET`.
 - Sets a secure, `httpOnly` cookie (`gcal_oauth_state`) with the signed state.

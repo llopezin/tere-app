@@ -2,18 +2,14 @@ import { createRoute, z } from '@hono/zod-openapi';
 import * as HttpStatusCodes from 'stoker/http-status-codes';
 import { jsonContent } from 'stoker/openapi/helpers';
 import { createMessageObjectSchema } from 'stoker/openapi/schemas';
-import { authMiddleware } from '../../middleware/auth.js';
-import { defineMiddleware } from '../../lib/create-app.js';
 
 export const getAvailability = createRoute({
   method: 'get',
   path: '/availability',
-  middleware: defineMiddleware(authMiddleware),
-  tags: ['Availability'],
-  summary: 'Compute available appointment slots for a professional',
+  tags: ['Professional / Availability'],
+  summary: 'Compute available slots in the authenticated professional\'s agenda',
   request: {
     query: z.object({
-      professional_id: z.string().uuid(),
       appointment_type_id: z.string().uuid(),
       from: z.string(),
       to: z.string(),

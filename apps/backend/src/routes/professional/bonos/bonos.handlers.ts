@@ -1,4 +1,4 @@
-import type { AppRouteHandler } from '../../lib/types.js';
+import type { AppRouteHandler } from '../../../lib/types.js';
 import type {
   ListRoute,
   CreateRoute,
@@ -6,19 +6,23 @@ import type {
   ListTransactionsRoute,
   DeductRoute,
 } from './bonos.routes.js';
-import { db } from '../../db/index.js';
-import { bonos } from '../../db/schema/bonos.js';
-import { bonoTransactions } from '../../db/schema/bono-transactions.js';
+import { db } from '../../../db/index.js';
+import { bonos } from '../../../db/schema/bonos.js';
+import { bonoTransactions } from '../../../db/schema/bono-transactions.js';
 import { eq, and } from 'drizzle-orm';
-import { getProfileId } from '../../middleware/auth.js';
-import { AppError } from '../../middleware/error-handler.js';
+import { getProfileId } from '../../../middleware/auth.js';
+import { AppError } from '../../../middleware/error-handler.js';
 import * as HttpStatusCodes from 'stoker/http-status-codes';
+import { assertPatientOfProfessional, assertAppointmentTypeOf } from '../../../services/ownership.service.js';
 
 export const list: AppRouteHandler<ListRoute> = async (c) => {
   const profileId = getProfileId(c);
   const { patient_id: patientId, status } = c.req.valid('query');
   const conditions = [eq(bonos.professionalId, profileId)];
-  if (patientId) conditions.push(eq(bonos.patientId, patientId));
+  if (patientId) {
+    await assertPatientOfProfessional(profileId, patientId);
+    conditions.push(eq(bonos.patientId, patientId));
+  }
   if (status) conditions.push(eq(bonos.status, status as any));
   const results = await db.select().from(bonos).where(and(...conditions));
   return c.json({ data: results }, HttpStatusCodes.OK);
@@ -27,6 +31,8 @@ export const list: AppRouteHandler<ListRoute> = async (c) => {
 export const create: AppRouteHandler<CreateRoute> = async (c) => {
   const profileId = getProfileId(c);
   const body = c.req.valid('json');
+  await assertPatientOfProfessional(profileId, body.patientId);
+  await assertAppointmentTypeOf(profileId, body.appointmentTypeId);
   const [created] = await db.insert(bonos).values({
     professionalId: profileId,
     patientId: body.patientId,
@@ -39,13 +45,10 @@ export const create: AppRouteHandler<CreateRoute> = async (c) => {
 };
 
 export const getOne: AppRouteHandler<GetOneRoute> = async (c) => {
-  const user = c.get('user');
   const profileId = getProfileId(c);
   const { id } = c.req.valid('param');
-  const conditions = [eq(bonos.id, id)];
-  if (user.role === 'professional') conditions.push(eq(bonos.professionalId, profileId));
-  else conditions.push(eq(bonos.patientId, profileId));
-  const [bono] = await db.select().from(bonos).where(and(...conditions));
+  const [bono] = await db.select().from(bonos)
+    .where(and(eq(bonos.id, id), eq(bonos.professionalId, profileId)));
   if (!bono) throw new AppError(404, 'Bono not found');
   return c.json({ ...bono, sessions_remaining: bono.totalSessions - bono.sessionsUsed }, HttpStatusCodes.OK);
 };

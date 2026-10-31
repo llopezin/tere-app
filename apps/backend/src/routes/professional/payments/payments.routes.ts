@@ -1,19 +1,16 @@
 import { createRoute, z } from '@hono/zod-openapi';
-import { selectPaymentSchema, insertPaymentSchema } from '../../db/schema/payments.js';
-import { paginationSchema, idParamsSchema } from '../../lib/schemas.js';
+import { selectPaymentSchema, insertPaymentSchema } from '../../../db/schema/payments.js';
+import { paginationSchema, idParamsSchema } from '../../../lib/schemas.js';
 import * as HttpStatusCodes from 'stoker/http-status-codes';
 import { jsonContent, jsonContentRequired } from 'stoker/openapi/helpers';
 import { createMessageObjectSchema } from 'stoker/openapi/schemas';
-import { authMiddleware, requireRole } from '../../middleware/auth.js';
-import { defineMiddleware } from '../../lib/create-app.js';
 
-const tags = ['Payments'];
+const tags = ['Professional / Payments'];
 
 // GET /
 export const list = createRoute({
   method: 'get',
   path: '/payments',
-  middleware: defineMiddleware(authMiddleware, requireRole('professional')),
   tags,
   summary: 'List payments',
   request: {
@@ -38,7 +35,6 @@ export const list = createRoute({
 export const create = createRoute({
   method: 'post',
   path: '/payments',
-  middleware: defineMiddleware(authMiddleware, requireRole('professional')),
   tags,
   summary: 'Create a payment',
   request: {
@@ -56,7 +52,6 @@ export const create = createRoute({
 export const getOne = createRoute({
   method: 'get',
   path: '/payments/{id}',
-  middleware: defineMiddleware(authMiddleware, requireRole('professional')),
   tags,
   summary: 'Get a payment by ID',
   request: {

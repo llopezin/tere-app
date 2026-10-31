@@ -1,25 +1,21 @@
 import { createRoute, z } from '@hono/zod-openapi';
 import * as HttpStatusCodes from 'stoker/http-status-codes';
 import { jsonContent, jsonContentRequired } from 'stoker/openapi/helpers';
-import { authMiddleware, requireRole } from '../../middleware/auth.js';
-import { defineMiddleware } from '../../lib/create-app.js';
-import { selectPatientSchema, insertPatientSchema, updatePatientSchema } from '../../db/schema/patients.js';
-import { selectAppointmentSchema } from '../../db/schema/appointments.js';
-import { selectBonoSchema } from '../../db/schema/bonos.js';
-import { selectPaymentSchema } from '../../db/schema/payments.js';
-import { selectPatientBillingDataSchema, upsertBillingDataSchema } from '../../db/schema/patient-billing-data.js';
-import { selectRgpdConsentSchema, submitConsentSchema } from '../../db/schema/rgpd-consents.js';
-import { selectPatientConsentSchema, assignConsentSchema } from '../../db/schema/patient-consents.js';
-import { selectConsentDocumentSchema } from '../../db/schema/consent-documents.js';
-import { paginationSchema, idParamsSchema } from '../../lib/schemas.js';
+import { selectPatientForProfessionalSchema, insertPatientSchema, updatePatientSchema } from '../../../db/schema/patients.js';
+import { selectAppointmentSchema } from '../../../db/schema/appointments.js';
+import { selectBonoSchema } from '../../../db/schema/bonos.js';
+import { selectPaymentSchema } from '../../../db/schema/payments.js';
+import { selectPatientBillingDataSchema, upsertBillingDataSchema } from '../../../db/schema/patient-billing-data.js';
+import { selectRgpdConsentSchema, submitConsentSchema } from '../../../db/schema/rgpd-consents.js';
+import { selectPatientConsentSchema, assignConsentSchema } from '../../../db/schema/patient-consents.js';
+import { selectConsentDocumentSchema } from '../../../db/schema/consent-documents.js';
+import { paginationSchema, idParamsSchema } from '../../../lib/schemas.js';
 
-const tags = ['Patients'];
-const professionalMiddleware = defineMiddleware(authMiddleware, requireRole('professional'));
+const tags = ['Professional / Patients'];
 
 export const list = createRoute({
   method: 'get',
   path: '/patients',
-  middleware: professionalMiddleware,
   tags,
   summary: 'List patients with optional search',
   request: {
@@ -30,7 +26,7 @@ export const list = createRoute({
   responses: {
     [HttpStatusCodes.OK]: jsonContent(
       z.object({
-        data: z.array(selectPatientSchema),
+        data: z.array(selectPatientForProfessionalSchema),
         page: z.number(),
         per_page: z.number(),
       }),
@@ -43,14 +39,13 @@ export type ListRoute = typeof list;
 export const create = createRoute({
   method: 'post',
   path: '/patients',
-  middleware: professionalMiddleware,
   tags,
   summary: 'Create a new patient',
   request: {
     body: jsonContentRequired(insertPatientSchema, 'Patient data'),
   },
   responses: {
-    [HttpStatusCodes.CREATED]: jsonContent(selectPatientSchema, 'Created patient'),
+    [HttpStatusCodes.CREATED]: jsonContent(selectPatientForProfessionalSchema, 'Created patient'),
   },
 });
 export type CreateRoute = typeof create;
@@ -58,14 +53,13 @@ export type CreateRoute = typeof create;
 export const getOne = createRoute({
   method: 'get',
   path: '/patients/{id}',
-  middleware: professionalMiddleware,
   tags,
   summary: 'Get a patient by ID',
   request: {
     params: idParamsSchema,
   },
   responses: {
-    [HttpStatusCodes.OK]: jsonContent(selectPatientSchema, 'Patient details'),
+    [HttpStatusCodes.OK]: jsonContent(selectPatientForProfessionalSchema, 'Patient details'),
     [HttpStatusCodes.NOT_FOUND]: jsonContent(z.object({ error: z.string() }), 'Patient not found'),
   },
 });
@@ -74,7 +68,6 @@ export type GetOneRoute = typeof getOne;
 export const update = createRoute({
   method: 'put',
   path: '/patients/{id}',
-  middleware: professionalMiddleware,
   tags,
   summary: 'Update a patient',
   request: {
@@ -82,7 +75,7 @@ export const update = createRoute({
     body: jsonContentRequired(updatePatientSchema, 'Fields to update'),
   },
   responses: {
-    [HttpStatusCodes.OK]: jsonContent(selectPatientSchema, 'Updated patient'),
+    [HttpStatusCodes.OK]: jsonContent(selectPatientForProfessionalSchema, 'Updated patient'),
     [HttpStatusCodes.NOT_FOUND]: jsonContent(z.object({ error: z.string() }), 'Patient not found'),
   },
 });
@@ -91,7 +84,6 @@ export type UpdateRoute = typeof update;
 export const getAppointments = createRoute({
   method: 'get',
   path: '/patients/{id}/appointments',
-  middleware: professionalMiddleware,
   tags,
   summary: "Get a patient's appointments",
   request: {
@@ -119,7 +111,6 @@ export type GetAppointmentsRoute = typeof getAppointments;
 export const getBonos = createRoute({
   method: 'get',
   path: '/patients/{id}/bonos',
-  middleware: professionalMiddleware,
   tags,
   summary: "Get a patient's bonos",
   request: {
@@ -141,7 +132,6 @@ export type GetBonosRoute = typeof getBonos;
 export const getPayments = createRoute({
   method: 'get',
   path: '/patients/{id}/payments',
-  middleware: professionalMiddleware,
   tags,
   summary: "Get a patient's payments",
   request: {
@@ -160,7 +150,6 @@ export type GetPaymentsRoute = typeof getPayments;
 export const getBillingData = createRoute({
   method: 'get',
   path: '/patients/{id}/billing-data',
-  middleware: professionalMiddleware,
   tags,
   summary: "Get a patient's billing data",
   request: {
@@ -179,7 +168,6 @@ export type GetBillingDataRoute = typeof getBillingData;
 export const upsertBillingData = createRoute({
   method: 'put',
   path: '/patients/{id}/billing-data',
-  middleware: professionalMiddleware,
   tags,
   summary: "Create or update a patient's billing data",
   request: {
@@ -197,7 +185,6 @@ export type UpsertBillingDataRoute = typeof upsertBillingData;
 export const getRgpdConsent = createRoute({
   method: 'get',
   path: '/patients/{id}/rgpd-consent',
-  middleware: professionalMiddleware,
   tags,
   summary: "Get a patient's RGPD consent status",
   request: {
@@ -216,7 +203,6 @@ export type GetRgpdConsentRoute = typeof getRgpdConsent;
 export const submitRgpdConsent = createRoute({
   method: 'post',
   path: '/patients/{id}/rgpd-consent',
-  middleware: professionalMiddleware,
   tags,
   summary: 'Submit RGPD consent signature for a patient',
   request: {
@@ -233,7 +219,6 @@ export type SubmitRgpdConsentRoute = typeof submitRgpdConsent;
 export const getContactLink = createRoute({
   method: 'get',
   path: '/patients/{id}/contact-link',
-  middleware: professionalMiddleware,
   tags,
   summary: 'Get the contact link for a patient',
   request: {
@@ -252,7 +237,6 @@ export type GetContactLinkRoute = typeof getContactLink;
 export const assignConsent = createRoute({
   method: 'post',
   path: '/patients/{id}/consents',
-  middleware: professionalMiddleware,
   tags,
   summary: 'Assign a consent document to a patient',
   request: {
@@ -270,7 +254,6 @@ export type AssignConsentRoute = typeof assignConsent;
 export const getConsents = createRoute({
   method: 'get',
   path: '/patients/{id}/consents',
-  middleware: professionalMiddleware,
   tags,
   summary: "List a patient's assigned consent documents with status",
   request: {

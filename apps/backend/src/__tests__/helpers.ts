@@ -6,6 +6,7 @@ import { appointments } from '../db/schema/appointments.js';
 import { rgpdConsents } from '../db/schema/rgpd-consents.js';
 import { bonos } from '../db/schema/bonos.js';
 import { blockedTimes } from '../db/schema/blocked-times.js';
+import { professionalPatients } from '../db/schema/professional-patients.js';
 import { user } from '../db/schema/auth-schema.js';
 import { eq } from 'drizzle-orm';
 
@@ -52,6 +53,8 @@ export async function createPatient(professionalId: string, data: Partial<typeof
     ...data,
   }).returning();
   
+  await testDb.insert(professionalPatients).values({ professionalId, patientId: patient.id });
+
   // Auto-create RGPD consent
   await testDb.insert(rgpdConsents).values({
     patientId: patient.id,

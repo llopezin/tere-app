@@ -1,13 +1,11 @@
 import { createRoute, z } from '@hono/zod-openapi';
-import { selectBonoSchema, insertBonoSchema, deductBonoSchema } from '../../db/schema/bonos.js';
-import { idParamsSchema } from '../../lib/schemas.js';
+import { selectBonoSchema, insertBonoSchema, deductBonoSchema } from '../../../db/schema/bonos.js';
+import { idParamsSchema } from '../../../lib/schemas.js';
 import * as HttpStatusCodes from 'stoker/http-status-codes';
 import { jsonContent, jsonContentRequired } from 'stoker/openapi/helpers';
 import { createMessageObjectSchema } from 'stoker/openapi/schemas';
-import { authMiddleware, requireRole } from '../../middleware/auth.js';
-import { defineMiddleware } from '../../lib/create-app.js';
 
-const tags = ['Bonos'];
+const tags = ['Professional / Bonos'];
 
 const bonoWithRemainingSchema = selectBonoSchema.extend({
   sessions_remaining: z.number(),
@@ -25,7 +23,6 @@ const bonoTransactionSchema = z.object({
 export const list = createRoute({
   method: 'get',
   path: '/bonos',
-  middleware: defineMiddleware(authMiddleware, requireRole('professional')),
   tags,
   summary: 'List bonos',
   request: {
@@ -48,7 +45,6 @@ export const list = createRoute({
 export const create = createRoute({
   method: 'post',
   path: '/bonos',
-  middleware: defineMiddleware(authMiddleware, requireRole('professional')),
   tags,
   summary: 'Create a bono',
   request: {
@@ -66,7 +62,6 @@ export const create = createRoute({
 export const getOne = createRoute({
   method: 'get',
   path: '/bonos/{id}',
-  middleware: defineMiddleware(authMiddleware),
   tags,
   summary: 'Get a bono by ID',
   request: {
@@ -83,7 +78,6 @@ export const getOne = createRoute({
 export const listTransactions = createRoute({
   method: 'get',
   path: '/bonos/{id}/transactions',
-  middleware: defineMiddleware(authMiddleware, requireRole('professional')),
   tags,
   summary: 'List bono transactions',
   request: {
@@ -104,7 +98,6 @@ export const listTransactions = createRoute({
 export const deduct = createRoute({
   method: 'post',
   path: '/bonos/{id}/deduct',
-  middleware: defineMiddleware(authMiddleware, requireRole('professional')),
   tags,
   summary: 'Deduct a session from a bono',
   request: {

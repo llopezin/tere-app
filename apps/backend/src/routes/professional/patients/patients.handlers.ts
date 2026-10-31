@@ -1,4 +1,4 @@
-import type { AppRouteHandler } from '../../lib/types.js';
+import type { AppRouteHandler } from '../../../lib/types.js';
 import type {
   ListRoute,
   CreateRoute,
@@ -15,81 +15,111 @@ import type {
   AssignConsentRoute,
   GetConsentsRoute,
 } from './patients.routes.js';
-import { db } from '../../db/index.js';
-import { patients } from '../../db/schema/patients.js';
-import { appointments } from '../../db/schema/appointments.js';
-import { bonos } from '../../db/schema/bonos.js';
-import { payments } from '../../db/schema/payments.js';
-import { patientBillingData } from '../../db/schema/patient-billing-data.js';
-import { rgpdConsents } from '../../db/schema/rgpd-consents.js';
-import { consentDocuments } from '../../db/schema/consent-documents.js';
-import { patientConsents } from '../../db/schema/patient-consents.js';
-import { eq, and, ilike, or, sql } from 'drizzle-orm';
-import { getProfileId } from '../../middleware/auth.js';
-import { AppError } from '../../middleware/error-handler.js';
+import { db } from '../../../db/index.js';
+import { patients } from '../../../db/schema/patients.js';
+import { appointments } from '../../../db/schema/appointments.js';
+import { bonos } from '../../../db/schema/bonos.js';
+import { payments } from '../../../db/schema/payments.js';
+import { patientBillingData } from '../../../db/schema/patient-billing-data.js';
+import { rgpdConsents } from '../../../db/schema/rgpd-consents.js';
+import { consentDocuments } from '../../../db/schema/consent-documents.js';
+import { patientConsents } from '../../../db/schema/patient-consents.js';
+import { eq, and, ilike, or, sql, getTableColumns } from 'drizzle-orm';
+import { professionalPatients } from '../../../db/schema/professional-patients.js';
+import { assertPatientOfProfessional, assertConsentDocumentOf } from '../../../services/ownership.service.js';
+import { getProfileId } from '../../../middleware/auth.js';
+import { AppError } from '../../../middleware/error-handler.js';
 import * as HttpStatusCodes from 'stoker/http-status-codes';
+
+const { professionalId: _professionalId, clinicalNotes: _clinicalNotes, ...patientColumns } = getTableColumns(patients);
+
+/** Patient row as seen by a professional: shared personal data + this professional's clinical notes. */
+const patientForProfessional = {
+  ...patientColumns,
+  clinicalNotes: professionalPatients.clinicalNotes,
+};
+
+function selectPatientsOf(professionalId: string) {
+  return db.select(patientForProfessional)
+    .from(patients)
+    .innerJoin(professionalPatients, and(
+      eq(professionalPatients.patientId, patients.id),
+      eq(professionalPatients.professionalId, professionalId),
+    ))
+    .$dynamic();
+}
+
+async function getPatientOf(professionalId: string, patientId: string) {
+  const [patient] = await selectPatientsOf(professionalId).where(eq(patients.id, patientId));
+  if (!patient) throw new AppError(404, 'Patient not found');
+  return patient;
+}
 
 export const list: AppRouteHandler<ListRoute> = async (c) => {
   const profileId = getProfileId(c);
   const { page, per_page, search } = c.req.valid('query');
   const offset = (page - 1) * per_page;
 
-  const conditions = eq(patients.professionalId, profileId);
-
-  if (search) {
-    const searchCondition = or(
+  const searchCondition = search
+    ? or(
       ilike(patients.firstName, `%${search}%`),
       ilike(patients.lastName, `%${search}%`),
       ilike(patients.nie, `%${search}%`),
-    );
-    const results = await db.select().from(patients)
-      .where(and(conditions, searchCondition))
-      .limit(per_page).offset(offset);
-    return c.json({ data: results, page, per_page }, HttpStatusCodes.OK);
-  }
+    )
+    : undefined;
 
-  const results = await db.select().from(patients)
-    .where(conditions)
+  const results = await selectPatientsOf(profileId)
+    .where(searchCondition)
+    .orderBy(patients.lastName, patients.firstName)
     .limit(per_page).offset(offset);
   return c.json({ data: results, page, per_page }, HttpStatusCodes.OK);
 };
 
 export const create: AppRouteHandler<CreateRoute> = async (c) => {
   const profileId = getProfileId(c);
-  const body = c.req.valid('json');
+  const { clinicalNotes, ...personalData } = c.req.valid('json');
 
-  const [patient] = await db.insert(patients).values({
-    ...body,
-    professionalId: profileId,
-  }).returning();
+  const patientId = await db.transaction(async (tx) => {
+    const [patient] = await tx.insert(patients).values(personalData).returning({ id: patients.id });
+    await tx.insert(professionalPatients).values({ professionalId: profileId, patientId: patient.id, clinicalNotes });
+    // Auto-create RGPD consent record (unsigned)
+    await tx.insert(rgpdConsents).values({ patientId: patient.id });
+    return patient.id;
+  });
 
-  // Auto-create RGPD consent record (unsigned)
-  await db.insert(rgpdConsents).values({ patientId: patient.id });
-
-  return c.json(patient, HttpStatusCodes.CREATED);
+  return c.json(await getPatientOf(profileId, patientId), HttpStatusCodes.CREATED);
 };
 
 export const getOne: AppRouteHandler<GetOneRoute> = async (c) => {
   const profileId = getProfileId(c);
   const { id } = c.req.valid('param');
-
-  const [patient] = await db.select().from(patients)
-    .where(and(eq(patients.id, id), eq(patients.professionalId, profileId)));
-  if (!patient) throw new AppError(404, 'Patient not found');
-  return c.json(patient, HttpStatusCodes.OK);
+  return c.json(await getPatientOf(profileId, id), HttpStatusCodes.OK);
 };
 
 export const update: AppRouteHandler<UpdateRoute> = async (c) => {
   const profileId = getProfileId(c);
   const { id } = c.req.valid('param');
-  const body = c.req.valid('json');
+  const { clinicalNotes, ...personalData } = c.req.valid('json');
 
-  const [updated] = await db.update(patients)
-    .set({ ...body, updatedAt: new Date() })
-    .where(and(eq(patients.id, id), eq(patients.professionalId, profileId)))
-    .returning();
-  if (!updated) throw new AppError(404, 'Patient not found');
-  return c.json(updated, HttpStatusCodes.OK);
+  await assertPatientOfProfessional(profileId, id);
+
+  const hasPersonalChanges = Object.values(personalData).some((v) => v !== undefined);
+  if (hasPersonalChanges) {
+    // Personal data is shared between professionals. Once the patient has an account, only they can change it.
+    const [patient] = await db.select({ authUserId: patients.authUserId }).from(patients).where(eq(patients.id, id));
+    if (patient?.authUserId) {
+      throw new AppError(403, 'This patient manages their own personal data');
+    }
+    await db.update(patients).set({ ...personalData, updatedAt: new Date() }).where(eq(patients.id, id));
+  }
+
+  if (clinicalNotes !== undefined) {
+    await db.update(professionalPatients)
+      .set({ clinicalNotes, updatedAt: new Date() })
+      .where(and(eq(professionalPatients.professionalId, profileId), eq(professionalPatients.patientId, id)));
+  }
+
+  return c.json(await getPatientOf(profileId, id), HttpStatusCodes.OK);
 };
 
 export const getAppointments: AppRouteHandler<GetAppointmentsRoute> = async (c) => {
@@ -97,11 +127,9 @@ export const getAppointments: AppRouteHandler<GetAppointmentsRoute> = async (c) 
   const { id } = c.req.valid('param');
   const { page, per_page, status, from, to } = c.req.valid('query');
 
-  const [patient] = await db.select({ id: patients.id }).from(patients)
-    .where(and(eq(patients.id, id), eq(patients.professionalId, profileId)));
-  if (!patient) throw new AppError(404, 'Patient not found');
+  await assertPatientOfProfessional(profileId, id);
 
-  const conditions = [eq(appointments.patientId, id)];
+  const conditions = [eq(appointments.patientId, id), eq(appointments.professionalId, profileId)];
   if (status) conditions.push(eq(appointments.status, status));
   if (from) conditions.push(sql`${appointments.startAt} >= ${from}`);
   if (to) conditions.push(sql`${appointments.startAt} <= ${to}`);
@@ -119,11 +147,9 @@ export const getBonos: AppRouteHandler<GetBonosRoute> = async (c) => {
   const { id } = c.req.valid('param');
   const { status } = c.req.valid('query');
 
-  const [patient] = await db.select({ id: patients.id }).from(patients)
-    .where(and(eq(patients.id, id), eq(patients.professionalId, profileId)));
-  if (!patient) throw new AppError(404, 'Patient not found');
+  await assertPatientOfProfessional(profileId, id);
 
-  const conditions = [eq(bonos.patientId, id)];
+  const conditions = [eq(bonos.patientId, id), eq(bonos.professionalId, profileId)];
   if (status) conditions.push(eq(bonos.status, status));
 
   const results = await db.select().from(bonos).where(and(...conditions));
@@ -134,12 +160,10 @@ export const getPayments: AppRouteHandler<GetPaymentsRoute> = async (c) => {
   const profileId = getProfileId(c);
   const { id } = c.req.valid('param');
 
-  const [patient] = await db.select({ id: patients.id }).from(patients)
-    .where(and(eq(patients.id, id), eq(patients.professionalId, profileId)));
-  if (!patient) throw new AppError(404, 'Patient not found');
+  await assertPatientOfProfessional(profileId, id);
 
   const results = await db.select().from(payments)
-    .where(eq(payments.patientId, id))
+    .where(and(eq(payments.patientId, id), eq(payments.professionalId, profileId)))
     .orderBy(payments.paidAt);
   return c.json({ data: results }, HttpStatusCodes.OK);
 };
@@ -148,9 +172,7 @@ export const getBillingData: AppRouteHandler<GetBillingDataRoute> = async (c) =>
   const profileId = getProfileId(c);
   const { id } = c.req.valid('param');
 
-  const [patient] = await db.select({ id: patients.id }).from(patients)
-    .where(and(eq(patients.id, id), eq(patients.professionalId, profileId)));
-  if (!patient) throw new AppError(404, 'Patient not found');
+  await assertPatientOfProfessional(profileId, id);
 
   const [billing] = await db.select().from(patientBillingData)
     .where(eq(patientBillingData.patientId, id));
@@ -162,9 +184,7 @@ export const upsertBillingData: AppRouteHandler<UpsertBillingDataRoute> = async 
   const { id } = c.req.valid('param');
   const body = c.req.valid('json');
 
-  const [patient] = await db.select({ id: patients.id }).from(patients)
-    .where(and(eq(patients.id, id), eq(patients.professionalId, profileId)));
-  if (!patient) throw new AppError(404, 'Patient not found');
+  await assertPatientOfProfessional(profileId, id);
 
   const [existing] = await db.select().from(patientBillingData)
     .where(eq(patientBillingData.patientId, id));
@@ -186,9 +206,7 @@ export const getRgpdConsent: AppRouteHandler<GetRgpdConsentRoute> = async (c) =>
   const profileId = getProfileId(c);
   const { id } = c.req.valid('param');
 
-  const [patient] = await db.select({ id: patients.id }).from(patients)
-    .where(and(eq(patients.id, id), eq(patients.professionalId, profileId)));
-  if (!patient) throw new AppError(404, 'Patient not found');
+  await assertPatientOfProfessional(profileId, id);
 
   const [consent] = await db.select().from(rgpdConsents)
     .where(eq(rgpdConsents.patientId, id));
@@ -196,7 +214,9 @@ export const getRgpdConsent: AppRouteHandler<GetRgpdConsentRoute> = async (c) =>
 };
 
 export const submitRgpdConsent: AppRouteHandler<SubmitRgpdConsentRoute> = async (c) => {
+  const profileId = getProfileId(c);
   const { id } = c.req.valid('param');
+  await assertPatientOfProfessional(profileId, id);
   const body = c.req.valid('json');
 
   const ip = c.req.header('x-forwarded-for') || c.req.header('x-real-ip') || 'unknown';
@@ -232,9 +252,7 @@ export const getContactLink: AppRouteHandler<GetContactLinkRoute> = async (c) =>
   const profileId = getProfileId(c);
   const { id } = c.req.valid('param');
 
-  const [patient] = await db.select().from(patients)
-    .where(and(eq(patients.id, id), eq(patients.professionalId, profileId)));
-  if (!patient) throw new AppError(404, 'Patient not found');
+  const patient = await getPatientOf(profileId, id);
 
   const method = patient.contactMethod ?? 'whatsapp';
 
@@ -261,15 +279,9 @@ export const assignConsent: AppRouteHandler<AssignConsentRoute> = async (c) => {
   const { id } = c.req.valid('param');
   const body = c.req.valid('json');
 
-  // Verify patient belongs to professional
-  const [patient] = await db.select({ id: patients.id }).from(patients)
-    .where(and(eq(patients.id, id), eq(patients.professionalId, profileId)));
-  if (!patient) throw new AppError(404, 'Patient not found');
+  await assertPatientOfProfessional(profileId, id);
 
-  // Verify consent document belongs to professional
-  const [doc] = await db.select({ id: consentDocuments.id }).from(consentDocuments)
-    .where(and(eq(consentDocuments.id, body.consentDocumentId), eq(consentDocuments.professionalId, profileId)));
-  if (!doc) throw new AppError(404, 'Consent document not found');
+  await assertConsentDocumentOf(profileId, body.consentDocumentId);
 
   // Check if already assigned
   const [existing] = await db.select({ id: patientConsents.id }).from(patientConsents)
@@ -293,12 +305,9 @@ export const getConsents: AppRouteHandler<GetConsentsRoute> = async (c) => {
   const { id } = c.req.valid('param');
   const { status } = c.req.valid('query');
 
-  // Verify patient belongs to professional
-  const [patient] = await db.select({ id: patients.id }).from(patients)
-    .where(and(eq(patients.id, id), eq(patients.professionalId, profileId)));
-  if (!patient) throw new AppError(404, 'Patient not found');
+  await assertPatientOfProfessional(profileId, id);
 
-  const conditions = [eq(patientConsents.patientId, id)];
+  const conditions = [eq(patientConsents.patientId, id), eq(patientConsents.professionalId, profileId)];
   if (status) conditions.push(eq(patientConsents.status, status));
 
   const results = await db.select({

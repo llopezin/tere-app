@@ -2,10 +2,8 @@ import { createRoute, z } from '@hono/zod-openapi';
 import * as HttpStatusCodes from 'stoker/http-status-codes';
 import { jsonContent } from 'stoker/openapi/helpers';
 import { createMessageObjectSchema } from 'stoker/openapi/schemas';
-import { authMiddleware, requireRole } from '../../middleware/auth.js';
-import { defineMiddleware } from '../../lib/create-app.js';
 
-const tags = ['Reports'];
+const tags = ['Professional / Reports'];
 
 const yearMonthQuerySchema = z.object({
   year: z.coerce.number().int(),
@@ -16,7 +14,6 @@ const yearMonthQuerySchema = z.object({
 export const revenueMonthly = createRoute({
   method: 'get',
   path: '/reports/revenue/monthly',
-  middleware: defineMiddleware(authMiddleware, requireRole('professional')),
   tags,
   summary: 'Monthly revenue report',
   request: {
@@ -42,7 +39,6 @@ export const revenueMonthly = createRoute({
 export const revenueQuarterly = createRoute({
   method: 'get',
   path: '/reports/revenue/quarterly',
-  middleware: defineMiddleware(authMiddleware, requireRole('professional')),
   tags,
   summary: 'Quarterly revenue report',
   request: {
@@ -71,7 +67,6 @@ export const revenueQuarterly = createRoute({
 export const revenueByMethod = createRoute({
   method: 'get',
   path: '/reports/revenue/by-method',
-  middleware: defineMiddleware(authMiddleware, requireRole('professional')),
   tags,
   summary: 'Revenue breakdown by payment method',
   request: {

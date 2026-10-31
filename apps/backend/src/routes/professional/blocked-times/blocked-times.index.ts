@@ -1,4 +1,4 @@
-import { createRouter } from '../../lib/create-app.js';
+import { createRouter } from '../../../lib/create-app.js';
 import * as routes from './blocked-times.routes.js';
 import * as handlers from './blocked-times.handlers.js';
 

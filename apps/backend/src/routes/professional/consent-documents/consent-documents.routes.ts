@@ -2,22 +2,18 @@ import { createRoute, z } from '@hono/zod-openapi';
 import * as HttpStatusCodes from 'stoker/http-status-codes';
 import { jsonContent, jsonContentRequired } from 'stoker/openapi/helpers';
 import { createMessageObjectSchema } from 'stoker/openapi/schemas';
-import { authMiddleware, requireRole } from '../../middleware/auth.js';
-import { defineMiddleware } from '../../lib/create-app.js';
 import {
   selectConsentDocumentSchema,
   insertConsentDocumentSchema,
   updateConsentDocumentSchema,
-} from '../../db/schema/consent-documents.js';
-import { idParamsSchema } from '../../lib/schemas.js';
+} from '../../../db/schema/consent-documents.js';
+import { idParamsSchema } from '../../../lib/schemas.js';
 
-const tags = ['Consent Documents'];
-const professionalMiddleware = defineMiddleware(authMiddleware, requireRole('professional'));
+const tags = ['Professional / Consent Documents'];
 
 export const list = createRoute({
   method: 'get',
   path: '/consent-documents',
-  middleware: professionalMiddleware,
   tags,
   summary: 'List own consent document templates',
   responses: {
@@ -32,7 +28,6 @@ export type ListRoute = typeof list;
 export const create = createRoute({
   method: 'post',
   path: '/consent-documents',
-  middleware: professionalMiddleware,
   tags,
   summary: 'Create a consent document template',
   request: {
@@ -47,7 +42,6 @@ export type CreateRoute = typeof create;
 export const getOne = createRoute({
   method: 'get',
   path: '/consent-documents/{id}',
-  middleware: professionalMiddleware,
   tags,
   summary: 'Get a consent document by ID',
   request: {
@@ -63,7 +57,6 @@ export type GetOneRoute = typeof getOne;
 export const update = createRoute({
   method: 'put',
   path: '/consent-documents/{id}',
-  middleware: professionalMiddleware,
   tags,
   summary: 'Update a consent document',
   request: {
@@ -80,7 +73,6 @@ export type UpdateRoute = typeof update;
 export const remove = createRoute({
   method: 'delete',
   path: '/consent-documents/{id}',
-  middleware: professionalMiddleware,
   tags,
   summary: 'Delete a consent document (fails if assigned to patients)',
   request: {

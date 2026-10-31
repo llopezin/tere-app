@@ -9,11 +9,21 @@ const envSchema = z.object({
   BETTER_AUTH_URL: z.string().default('http://localhost:3000'),
   PORT: z.coerce.number().default(3000),
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
-  FRONTEND_URL: z.string().default('http://localhost:5173'),
+  /** @deprecated use CLIENT_APP_URL. Kept as fallback so existing deploys keep working. */
+  FRONTEND_URL: z.string().optional(),
+  CLIENT_APP_URL: z.string().optional(),
+  PROFESSIONAL_APP_URL: z.string().optional(),
   GOOGLE_CLIENT_ID: z.string().optional(),
   GOOGLE_CLIENT_SECRET: z.string().optional(),
   GOOGLE_REDIRECT_URI: z.string().optional(),
   GCAL_SYNC_ENABLED: z.coerce.boolean().default(false),
 });
 
-export const env = envSchema.parse(process.env);
+const parsed = envSchema.parse(process.env);
+
+// `||` (not `??`): docker compose passes unset variables as empty strings
+export const env = {
+  ...parsed,
+  CLIENT_APP_URL: parsed.CLIENT_APP_URL || parsed.FRONTEND_URL || 'http://localhost:5173',
+  PROFESSIONAL_APP_URL: parsed.PROFESSIONAL_APP_URL || 'http://localhost:5174',
+};

@@ -1,30 +1,16 @@
-import type { AppRouteHandler } from '../../lib/types.js';
+import type { AppRouteHandler } from '../../../lib/types.js';
 import type { ListRoute, CreateRoute, UpdateRoute, RemoveRoute } from './appointment-types.routes.js';
-import { db } from '../../db/index.js';
-import { appointmentTypes } from '../../db/schema/appointment-types.js';
+import { db } from '../../../db/index.js';
+import { appointmentTypes } from '../../../db/schema/appointment-types.js';
 import { eq, and } from 'drizzle-orm';
-import { getProfileId } from '../../middleware/auth.js';
-import { AppError } from '../../middleware/error-handler.js';
+import { getProfileId } from '../../../middleware/auth.js';
+import { AppError } from '../../../middleware/error-handler.js';
 import * as HttpStatusCodes from 'stoker/http-status-codes';
 
 export const list: AppRouteHandler<ListRoute> = async (c) => {
-  const user = c.get('user');
-
-  if (user.role === 'professional') {
-    const profileId = getProfileId(c);
-    const results = await db.select().from(appointmentTypes)
-      .where(eq(appointmentTypes.professionalId, profileId));
-    return c.json({ data: results }, HttpStatusCodes.OK);
-  }
-
-  const { professional_id: professionalId } = c.req.valid('query');
-  if (!professionalId) throw new AppError(400, 'professional_id query param required');
-
+  const profileId = getProfileId(c);
   const results = await db.select().from(appointmentTypes)
-    .where(and(
-      eq(appointmentTypes.professionalId, professionalId),
-      eq(appointmentTypes.isActive, true),
-    ));
+    .where(eq(appointmentTypes.professionalId, profileId));
   return c.json({ data: results }, HttpStatusCodes.OK);
 };
 

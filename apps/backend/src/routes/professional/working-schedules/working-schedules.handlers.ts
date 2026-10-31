@@ -1,9 +1,9 @@
-import type { AppRouteHandler } from '../../lib/types.js';
+import type { AppRouteHandler } from '../../../lib/types.js';
 import type { ListRoute, BulkReplaceRoute } from './working-schedules.routes.js';
-import { db } from '../../db/index.js';
-import { workingSchedules } from '../../db/schema/working-schedules.js';
+import { db } from '../../../db/index.js';
+import { workingSchedules } from '../../../db/schema/working-schedules.js';
 import { eq } from 'drizzle-orm';
-import { getProfileId } from '../../middleware/auth.js';
+import { getProfileId } from '../../../middleware/auth.js';
 import * as HttpStatusCodes from 'stoker/http-status-codes';
 
 export const list: AppRouteHandler<ListRoute> = async (c) => {

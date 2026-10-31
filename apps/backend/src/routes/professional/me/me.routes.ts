@@ -1,16 +1,13 @@
-import { createRoute, z } from '@hono/zod-openapi';
-import { selectProfessionalSchema, updateProfessionalSchema } from '../../db/schema/professionals.js';
+import { createRoute } from '@hono/zod-openapi';
+import { selectProfessionalSchema, updateProfessionalSchema } from '../../../db/schema/professionals.js';
 import * as HttpStatusCodes from 'stoker/http-status-codes';
 import { jsonContent, jsonContentRequired } from 'stoker/openapi/helpers';
 import { createMessageObjectSchema } from 'stoker/openapi/schemas';
-import { authMiddleware, requireRole } from '../../middleware/auth.js';
-import { defineMiddleware } from '../../lib/create-app.js';
 
 export const getMe = createRoute({
   method: 'get',
-  path: '/professionals/me',
-  middleware: defineMiddleware(authMiddleware, requireRole('professional')),
-  tags: ['Professionals'],
+  path: '/me',
+  tags: ['Professional / Me'],
   summary: "Get the authenticated professional's profile",
   responses: {
     [HttpStatusCodes.OK]: jsonContent(selectProfessionalSchema, 'The professional profile'),
@@ -22,9 +19,8 @@ export const getMe = createRoute({
 
 export const updateMe = createRoute({
   method: 'put',
-  path: '/professionals/me',
-  middleware: defineMiddleware(authMiddleware, requireRole('professional')),
-  tags: ['Professionals'],
+  path: '/me',
+  tags: ['Professional / Me'],
   summary: "Update the authenticated professional's profile",
   request: {
     body: jsonContentRequired(updateProfessionalSchema, 'Professional profile fields to update'),
@@ -38,21 +34,5 @@ export const updateMe = createRoute({
   },
 });
 
-export const list = createRoute({
-  method: 'get',
-  path: '/professionals',
-  middleware: defineMiddleware(authMiddleware),
-  tags: ['Professionals'],
-  summary: 'List all professionals',
-  responses: {
-    [HttpStatusCodes.OK]: jsonContent(
-      z.object({ data: z.array(selectProfessionalSchema) }),
-      'List of professionals',
-    ),
-    [HttpStatusCodes.UNAUTHORIZED]: jsonContent(createMessageObjectSchema('Unauthorized'), 'Unauthorized'),
-  },
-});
-
-export type ListRoute = typeof list;
 export type GetMeRoute = typeof getMe;
 export type UpdateMeRoute = typeof updateMe;

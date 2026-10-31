@@ -1,14 +1,14 @@
-import type { AppRouteHandler } from '../../lib/types.js';
+import type { AppRouteHandler } from '../../../lib/types.js';
 import type {
   RevenueMonthlyRoute,
   RevenueQuarterlyRoute,
   RevenueByMethodRoute,
 } from './reports.routes.js';
-import { db } from '../../db/index.js';
-import { payments } from '../../db/schema/payments.js';
+import { db } from '../../../db/index.js';
+import { payments } from '../../../db/schema/payments.js';
 import { eq, and, sql } from 'drizzle-orm';
-import { getProfileId } from '../../middleware/auth.js';
-import { AppError } from '../../middleware/error-handler.js';
+import { getProfileId } from '../../../middleware/auth.js';
+import { AppError } from '../../../middleware/error-handler.js';
 import * as HttpStatusCodes from 'stoker/http-status-codes';
 
 export const revenueMonthly: AppRouteHandler<RevenueMonthlyRoute> = async (c) => {

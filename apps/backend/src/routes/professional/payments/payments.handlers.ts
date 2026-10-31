@@ -1,11 +1,12 @@
-import type { AppRouteHandler } from '../../lib/types.js';
+import type { AppRouteHandler } from '../../../lib/types.js';
 import type { ListRoute, CreateRoute, GetOneRoute } from './payments.routes.js';
-import { db } from '../../db/index.js';
-import { payments } from '../../db/schema/payments.js';
+import { db } from '../../../db/index.js';
+import { payments } from '../../../db/schema/payments.js';
 import { eq, and, sql } from 'drizzle-orm';
-import { getProfileId } from '../../middleware/auth.js';
-import { AppError } from '../../middleware/error-handler.js';
+import { getProfileId } from '../../../middleware/auth.js';
+import { AppError } from '../../../middleware/error-handler.js';
 import * as HttpStatusCodes from 'stoker/http-status-codes';
+import { assertPatientOfProfessional, assertAppointmentOf, assertBonoOf } from '../../../services/ownership.service.js';
 
 export const list: AppRouteHandler<ListRoute> = async (c) => {
   const profileId = getProfileId(c);
@@ -13,7 +14,10 @@ export const list: AppRouteHandler<ListRoute> = async (c) => {
   const conditions = [eq(payments.professionalId, profileId)];
   if (from) conditions.push(sql`${payments.paidAt} >= ${from}`);
   if (to) conditions.push(sql`${payments.paidAt} <= ${to}`);
-  if (patientId) conditions.push(eq(payments.patientId, patientId));
+  if (patientId) {
+    await assertPatientOfProfessional(profileId, patientId);
+    conditions.push(eq(payments.patientId, patientId));
+  }
   if (paymentMethod) conditions.push(eq(payments.paymentMethod, paymentMethod as any));
   const results = await db.select().from(payments)
     .where(and(...conditions))
@@ -26,6 +30,9 @@ export const list: AppRouteHandler<ListRoute> = async (c) => {
 export const create: AppRouteHandler<CreateRoute> = async (c) => {
   const profileId = getProfileId(c);
   const body = c.req.valid('json');
+  await assertPatientOfProfessional(profileId, body.patientId);
+  if (body.appointmentId) await assertAppointmentOf({ professionalId: profileId, patientId: body.patientId }, body.appointmentId);
+  if (body.bonoId) await assertBonoOf({ professionalId: profileId, patientId: body.patientId }, body.bonoId);
   const [created] = await db.insert(payments).values({
     professionalId: profileId,
     patientId: body.patientId,
