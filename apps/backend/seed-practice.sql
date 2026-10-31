@@ -54,6 +54,11 @@ INSERT INTO patients (id, auth_user_id, professional_id, first_name, last_name, 
 UPDATE "user" SET profile_id = 'b0000001-0001-0001-0001-000000000001' WHERE id = 'auth-pat-1';
 UPDATE "user" SET profile_id = 'b0000002-0002-0002-0002-000000000002' WHERE id = 'auth-pat-2';
 
+-- Professional ↔ patient relation (N:M). Ownership and clinical notes live here;
+-- patients.professional_id / clinical_notes above are legacy columns kept until they are dropped.
+INSERT INTO professional_patients (professional_id, patient_id, clinical_notes)
+SELECT professional_id, id, clinical_notes FROM patients WHERE professional_id IS NOT NULL;
+
 -- ============================================
 -- 4. RGPD CONSENTS
 -- ============================================
