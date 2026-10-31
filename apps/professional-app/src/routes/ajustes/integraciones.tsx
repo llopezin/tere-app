@@ -24,25 +24,24 @@ function IntegracionesPage() {
   const connectMutation = useMutation({
     mutationFn: async () => {
       // Correct RPC path: /api/v1/integrations/google-calendar/connect (POST)
-      const res = await client.integrations['google-calendar'].connect.$post();
-      
+      const res = await client.integrations["google-calendar"].connect.$post();
+
       if (!res.ok) {
         const errorData = await res.json().catch(() => ({}));
-        console.error('Connect failed:', errorData);
-        throw new Error('Failed to connect');
+        console.error("Connect failed:", errorData);
+        throw new Error("Failed to connect");
       }
-      
+
       const { authUrl } = await res.json();
-      
+
       if (!authUrl) {
-        console.error('authUrl is missing from response data');
-        throw new Error('authUrl is missing');
+        console.error("authUrl is missing from response data");
+        throw new Error("authUrl is missing");
       }
-      
+
       window.location.href = authUrl;
     },
   });
-
 
   const disconnectMutation = useMutation({
     mutationFn: async () => {

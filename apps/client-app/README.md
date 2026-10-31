@@ -61,18 +61,20 @@ const FEATURES = [
   // ...
 ] as const;
 
-{FEATURES.map((f) => <FeatureItem key={f.title} {...f} />)}
+{
+  FEATURES.map((f) => <FeatureItem key={f.title} {...f} />);
+}
 ```
 
 **Why not i18n?** Single language, ~16 screens, 1-2 developers. The overhead of key management, message extraction, and runtime lookups provides zero benefit. If a second language is ever needed, inline strings can be migrated to an i18n library at that point.
 
 ## Stack
 
-| Layer | Choice |
-|---|---|
-| Build | Vite 8 |
-| UI | React 19 + React Compiler |
-| Routing | TanStack Router (file-based, type-safe) |
-| Styling | Tailwind v4 (CSS-first config) |
-| Linting | oxlint |
-| Formatting | oxfmt |
+| Layer      | Choice                                  |
+| ---------- | --------------------------------------- |
+| Build      | Vite 8                                  |
+| UI         | React 19 + React Compiler               |
+| Routing    | TanStack Router (file-based, type-safe) |
+| Styling    | Tailwind v4 (CSS-first config)          |
+| Linting    | oxlint                                  |
+| Formatting | oxfmt                                   |

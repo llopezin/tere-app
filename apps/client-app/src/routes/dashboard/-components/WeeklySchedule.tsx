@@ -171,7 +171,10 @@ export function WeeklySchedule({
         <button
           type="button"
           disabled={weekOffset === 0}
-          onClick={() => { setUserNavigated(true); setWeekOffset((o) => o - 1); }}
+          onClick={() => {
+            setUserNavigated(true);
+            setWeekOffset((o) => o - 1);
+          }}
           className={cn(
             "size-8 rounded-md text-text-muted transition-colors",
             weekOffset === 0 ? "cursor-not-allowed opacity-40" : "hover:bg-background",
@@ -185,7 +188,10 @@ export function WeeklySchedule({
         <button
           type="button"
           disabled={isLastWeek}
-          onClick={() => { setUserNavigated(true); setWeekOffset((o) => o + 1); }}
+          onClick={() => {
+            setUserNavigated(true);
+            setWeekOffset((o) => o + 1);
+          }}
           className={cn(
             "size-8 rounded-md text-text-muted transition-colors",
             isLastWeek ? "cursor-not-allowed opacity-40" : "hover:bg-background",
@@ -236,28 +242,28 @@ export function WeeklySchedule({
                     slots.map((slot) => {
                       const isPast = new Date(slot.start_at) < new Date();
                       return (
-                      <button
-                        key={slot.start_at}
-                        type="button"
-                        disabled={isPast}
-                        onClick={() =>
-                          onSlotSelect({
-                            startAt: slot.start_at,
-                            endAt: slot.end_at,
-                          })
-                        }
-                        className={cn(
-                          "flex justify-center w-full rounded-lg border px-3 py-2 text-sm font-medium transition-colors",
-                          isPast
-                            ? "cursor-not-allowed border-border bg-surface/50 text-text-muted opacity-40"
-                            : "border-border bg-surface text-text hover:border-primary-600/40 hover:bg-background",
-                        )}
-                      >
-                        {new Date(slot.start_at).toLocaleTimeString("es-ES", {
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}
-                      </button>
+                        <button
+                          key={slot.start_at}
+                          type="button"
+                          disabled={isPast}
+                          onClick={() =>
+                            onSlotSelect({
+                              startAt: slot.start_at,
+                              endAt: slot.end_at,
+                            })
+                          }
+                          className={cn(
+                            "flex justify-center w-full rounded-lg border px-3 py-2 text-sm font-medium transition-colors",
+                            isPast
+                              ? "cursor-not-allowed border-border bg-surface/50 text-text-muted opacity-40"
+                              : "border-border bg-surface text-text hover:border-primary-600/40 hover:bg-background",
+                          )}
+                        >
+                          {new Date(slot.start_at).toLocaleTimeString("es-ES", {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
+                        </button>
                       );
                     })
                   ) : (

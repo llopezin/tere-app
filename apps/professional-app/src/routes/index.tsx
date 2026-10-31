@@ -38,28 +38,19 @@ function IndexPage() {
         <div className="flex flex-col items-center space-y-6 p-8">
           <BrandLogo />
           <div className="text-center w-full">
-            <h1 className="text-2xl font-bold text-primary-700 mb-1">
-              Hola, {session.user.name}
-            </h1>
-            <p className="text-text-secondary mb-6">
-              Panel de Control Profesional
-            </p>
-            
+            <h1 className="text-2xl font-bold text-primary-700 mb-1">Hola, {session.user.name}</h1>
+            <p className="text-text-secondary mb-6">Panel de Control Profesional</p>
+
             <div className="space-y-3">
-              <Button 
-                variant="primary" 
-                size="lg" 
-                onClick={() => navigate({ to: '/ajustes/integraciones' })}
+              <Button
+                variant="primary"
+                size="lg"
+                onClick={() => navigate({ to: "/ajustes/integraciones" })}
               >
                 Configurar Google Calendar
               </Button>
 
-              <Button 
-                variant="secondary" 
-                size="md" 
-                className="w-full"
-                onClick={handleLogout}
-              >
+              <Button variant="secondary" size="md" className="w-full" onClick={handleLogout}>
                 Cerrar sesión
               </Button>
             </div>

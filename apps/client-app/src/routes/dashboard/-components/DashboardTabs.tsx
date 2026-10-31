@@ -8,7 +8,12 @@ interface DashboardTabsProps {
   onTabChange: (tab: DashboardTab) => void;
 }
 
-const tabs: Array<{ id: DashboardTab; label: string; shortLabel: string; icon: typeof CalendarPlus }> = [
+const tabs: Array<{
+  id: DashboardTab;
+  label: string;
+  shortLabel: string;
+  icon: typeof CalendarPlus;
+}> = [
   { id: "book", label: "Reservar Cita", shortLabel: "Reservar", icon: CalendarPlus },
   { id: "appointments", label: "Mis Citas", shortLabel: "Citas", icon: ClipboardList },
 ];

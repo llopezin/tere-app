@@ -1,28 +1,40 @@
-name: Build
+name: CI
 
 on:
   pull_request:
-    branches:
-      - main
+    branches: [main]
 
 jobs:
-  build:
+  ci:
     runs-on: ubuntu-latest
     container:
       image: node:24
+
+    # Dummy values: build/lint don't need real secrets (and fork PRs don't receive them)
     env:
-      POSTGRES_USER: ${{ secrets.POSTGRES_USER }}
-      POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
-      POSTGRES_DB: ${{ secrets.POSTGRES_DB }}
-      DATABASE_URL: ${{ secrets.DATABASE_URL }}
-      NODE_ENV: ${{ secrets.NODE_ENV }}
-      BETTER_AUTH_SECRET: ${{ secrets.BETTER_AUTH_SECRET }}
-      BETTER_AUTH_URL: ${{ secrets.BETTER_AUTH_URL }}
-      VITE_API_URL: ${{ secrets.VITE_API_URL }}
-      FRONTEND_URL: ${{ secrets.FRONTEND_URL }}
+      DATABASE_URL: postgres://ci:ci@localhost:5432/ci
+      BETTER_AUTH_SECRET: ci-only-secret
+      BETTER_AUTH_URL: http://localhost:3000
+      FRONTEND_URL: http://localhost:5173
+      VITE_API_URL: http://localhost:3000
+
     steps:
       - uses: actions/checkout@v5
       - run: corepack enable
+
+      # Persist the pnpm store between runs (key = lockfile hash)
+      - run: echo "PNPM_STORE=$(pnpm store path --silent)" >> $GITHUB_ENV
+      - uses: actions/cache@v4
+        with:
+          path: ${{ env.PNPM_STORE }}
+          key: pnpm-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: pnpm-${{ runner.os }}-
+
       - run: pnpm install --frozen-lockfile
-      - run: pnpm -F backend... build
-      - run: pnpm -F client-app... run build
+
+      # 1. Lint & format: fast, no build needed, fail early
+      - run: pnpm -r --if-present lint
+      - run: pnpm -r --if-present fmt:check
+
+      # 2. Build = type check (tsc / tsc -b) + bundle, in dependency order (validators → backend → FEs)
+      - run: pnpm -F client-app... -F professional-app... build

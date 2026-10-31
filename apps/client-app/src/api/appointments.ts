@@ -18,8 +18,7 @@ async function postCreateAppointment(input: CreateAppointmentInput) {
   const res = await client.appointments.$post({ json: input });
   const data = await res.json();
   if (!res.ok) {
-    const message =
-      "message" in data ? (data as { message: string }).message : undefined;
+    const message = "message" in data ? (data as { message: string }).message : undefined;
     throw new Error(
       (message && BOOKING_ERROR_MESSAGES[message]) ?? message ?? "Error al crear la cita",
     );
