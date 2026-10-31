@@ -2,7 +2,15 @@
   "name": "fisio-app",
   "private": true,
   "packageManager": "pnpm@9.15.0",
+  "scripts": {
+    "dev:backend": "pnpm --filter @fisio-app/backend dev",
+    "dev:client": "pnpm --filter @fisio-app/client-app dev",
+    "dev:e2e": "concurrently -k -s first -n backend,client \"NODE_ENV=test pnpm --filter @fisio-app/backend dev\" \"pnpm --filter @fisio-app/client-app dev\"",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui"
+  },
   "devDependencies": {
-    "@playwright/test": "^1.59.1"
+    "@playwright/test": "^1.59.1",
+    "concurrently": "^9.2.1"
   }
 }

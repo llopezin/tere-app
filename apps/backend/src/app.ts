@@ -65,6 +65,15 @@ const api = createRouter()
 
 app.route('/api/v1', api);
 
+// Test-only routes — gated by NODE_ENV !== 'production'
+if (env.NODE_ENV !== 'production') {
+  // Lazy import to avoid loading test code in production builds
+  const { default: testRoutes } = await import('./routes/test/test.index.js');
+  const testApi = createRouter();
+  testApi.route('/', testRoutes);
+  app.route('/api/v1', testApi);
+}
+
 app.notFound(notFound);
 
 export type AppType = typeof api;
