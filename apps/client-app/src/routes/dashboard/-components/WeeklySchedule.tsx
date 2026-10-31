@@ -4,9 +4,6 @@ import { AlertCircle, ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
 import { cn } from "@fisio-app/ui";
 import { availabilityQueryOptions } from "@/api/availability";
 
-/** Max weeks to auto-skip forward looking for the first week with future slots. */
-const MAX_AUTO_SKIP_WEEKS = 12;
-
 const MONTH_NAMES = [
   "enero",
   "febrero",
@@ -58,6 +55,17 @@ function getMonday(offset: number): Date {
   return monday;
 }
 
+const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
+
+/** Week offset (relative to the current week) of the week containing `date`. */
+function getWeekOffsetOf(date: Date): number {
+  const day = date.getDay();
+  const diffToMonday = day === 0 ? -6 : 1 - day;
+  const monday = new Date(date.getFullYear(), date.getMonth(), date.getDate() + diffToMonday);
+  // Round to absorb DST hour shifts between the two Mondays.
+  return Math.round((monday.getTime() - getMonday(0).getTime()) / WEEK_MS);
+}
+
 function toISODate(d: Date): string {
   const y = d.getFullYear();
   const m = String(d.getMonth() + 1).padStart(2, "0");
@@ -85,6 +93,10 @@ export function WeeklySchedule({
 }: WeeklyScheduleProps) {
   const [weekOffset, setWeekOffset] = useState(0);
   const [userNavigated, setUserNavigated] = useState(false);
+  const [noSlotsInWindow, setNoSlotsInWindow] = useState(false);
+  // Last bookable instant, provided by the backend (single source of truth).
+  // Kept in state so it survives while the next week is loading.
+  const [bookingWindowEnd, setBookingWindowEnd] = useState<string | null>(null);
 
   const { monday, friday, weekDays } = useMemo(() => {
     const mon = getMonday(weekOffset);
@@ -101,6 +113,16 @@ export function WeeklySchedule({
   const { data, isLoading, isError } = useQuery(
     availabilityQueryOptions(professionalId, appointmentTypeId, from, to),
   );
+
+  if (data?.booking_window_end && data.booking_window_end !== bookingWindowEnd) {
+    setBookingWindowEnd(data.booking_window_end);
+  }
+
+  const maxWeekOffset = useMemo(
+    () => (bookingWindowEnd ? getWeekOffsetOf(new Date(bookingWindowEnd)) : null),
+    [bookingWindowEnd],
+  );
+  const isLastWeek = maxWeekOffset === null || weekOffset >= maxWeekOffset;
 
   const slotsByDay = useMemo(() => {
     const map = new Map<string, { start_at: string; end_at: string }[]>();
@@ -127,17 +149,18 @@ export function WeeklySchedule({
     return false;
   }, [slotsByDay]);
 
+  // Auto-skip forward to the first week with future slots, within the booking window.
   useEffect(() => {
-    if (
-      !isLoading &&
-      !isError &&
-      !userNavigated &&
-      !hasFutureSlots &&
-      weekOffset < MAX_AUTO_SKIP_WEEKS
-    ) {
+    if (isLoading || isError || userNavigated || hasFutureSlots || maxWeekOffset === null) return;
+    if (weekOffset < maxWeekOffset) {
       setWeekOffset((o) => o + 1);
+    } else {
+      // Nothing bookable in the whole window: go back to the current week.
+      setNoSlotsInWindow(true);
+      setUserNavigated(true);
+      setWeekOffset(0);
     }
-  }, [isLoading, isError, userNavigated, hasFutureSlots, weekOffset]);
+  }, [isLoading, isError, userNavigated, hasFutureSlots, weekOffset, maxWeekOffset]);
 
   return (
     <div className="flex flex-col gap-4">
@@ -161,8 +184,12 @@ export function WeeklySchedule({
 
         <button
           type="button"
+          disabled={isLastWeek}
           onClick={() => { setUserNavigated(true); setWeekOffset((o) => o + 1); }}
-          className="size-8 rounded-md text-text-muted hover:bg-background transition-colors"
+          className={cn(
+            "size-8 rounded-md text-text-muted transition-colors",
+            isLastWeek ? "cursor-not-allowed opacity-40" : "hover:bg-background",
+          )}
         >
           <ChevronRight className="mx-auto size-5" />
         </button>
@@ -182,7 +209,9 @@ export function WeeklySchedule({
         </div>
       ) : !hasFutureSlots ? (
         <p className="py-8 text-center text-sm text-text-muted">
-          No hay citas disponibles esta semana
+          {noSlotsInWindow && bookingWindowEnd
+            ? `No hay citas disponibles hasta el ${new Date(bookingWindowEnd).toLocaleDateString("es-ES", { day: "numeric", month: "long" })}`
+            : "No hay citas disponibles esta semana"}
         </p>
       ) : (
         <div className="grid grid-cols-5 gap-2 md:gap-3">
