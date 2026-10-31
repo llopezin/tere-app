@@ -21,9 +21,23 @@ const envSchema = z.object({
 
 const parsed = envSchema.parse(process.env);
 
+const isProduction = parsed.NODE_ENV === 'production';
+
+// In production an unset PROFESSIONAL_APP_URL must not turn into a trusted localhost origin:
+// professional-app is simply disabled (its BFF rejects browser requests) until it is configured.
+const professionalAppUrl = parsed.PROFESSIONAL_APP_URL || (isProduction ? undefined : 'http://localhost:5174');
+if (!professionalAppUrl) {
+  console.warn('⚠️  PROFESSIONAL_APP_URL is not set: professional-app origin is not trusted and its BFF rejects browser requests.');
+}
+
 // `||` (not `??`): docker compose passes unset variables as empty strings
 export const env = {
   ...parsed,
   CLIENT_APP_URL: parsed.CLIENT_APP_URL || parsed.FRONTEND_URL || 'http://localhost:5173',
-  PROFESSIONAL_APP_URL: parsed.PROFESSIONAL_APP_URL || 'http://localhost:5174',
+  PROFESSIONAL_APP_URL: professionalAppUrl,
 };
+
+/** Frontend origins trusted for CORS and Better Auth. */
+export const trustedFrontendOrigins = [env.CLIENT_APP_URL, env.PROFESSIONAL_APP_URL].filter(
+  (origin): origin is string => !!origin,
+);

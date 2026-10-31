@@ -82,13 +82,30 @@ export async function createInvoiceForAppointment(
   return invoice;
 }
 
+/** Escapes text interpolated into the invoice HTML (fields come from user-editable billing data). */
+function escapeHtml(value: unknown): string {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+/**
+ * The invoice page is served from the API origin, so it must never run scripts:
+ * besides escaping, handlers send INVOICE_HTML_CSP.
+ */
+export const INVOICE_HTML_CSP = "default-src 'none'; style-src 'unsafe-inline'";
+
 export function generateInvoiceHtml(invoice: typeof invoices.$inferSelect): string {
-  return `<!DOCTYPE html><html><head><title>Invoice ${invoice.invoiceNumber}</title>
+  const e = escapeHtml;
+  return `<!DOCTYPE html><html><head><title>Invoice ${e(invoice.invoiceNumber)}</title>
     <style>body{font-family:sans-serif;padding:40px}table{width:100%;border-collapse:collapse}td,th{padding:8px;border:1px solid #ddd;text-align:left}h1{color:#333}</style>
-    </head><body><h1>Invoice ${invoice.invoiceNumber}</h1>
-    <p><strong>Date:</strong> ${new Date(invoice.issuedAt).toLocaleDateString()}</p>
-    <table><tr><th>From</th><td>${invoice.profName}<br>${invoice.profTaxId || ''}<br>${invoice.profAddress || ''}</td></tr>
-    <tr><th>To</th><td>${invoice.patientName}<br>${invoice.patientTaxId || ''}<br>${invoice.patientAddress || ''}</td></tr>
-    <tr><th>Description</th><td>${invoice.description || ''}</td></tr>
-    <tr><th>Amount</th><td>€${invoice.amount}</td></tr></table></body></html>`;
+    </head><body><h1>Invoice ${e(invoice.invoiceNumber)}</h1>
+    <p><strong>Date:</strong> ${e(new Date(invoice.issuedAt).toLocaleDateString())}</p>
+    <table><tr><th>From</th><td>${e(invoice.profName)}<br>${e(invoice.profTaxId)}<br>${e(invoice.profAddress)}</td></tr>
+    <tr><th>To</th><td>${e(invoice.patientName)}<br>${e(invoice.patientTaxId)}<br>${e(invoice.patientAddress)}</td></tr>
+    <tr><th>Description</th><td>${e(invoice.description)}</td></tr>
+    <tr><th>Amount</th><td>€${e(invoice.amount)}</td></tr></table></body></html>`;
 }

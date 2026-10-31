@@ -38,19 +38,23 @@ export async function createProfessionalAccount(input: CreateProfessionalAccount
     lastName: input.lastName,
   });
 
-  await ctx.internalAdapter.linkAccount({
-    userId: created.id,
-    providerId: 'credential',
-    accountId: created.id,
-    password: await ctx.password.hash(input.password),
-  });
+  try {
+    await ctx.internalAdapter.linkAccount({
+      userId: created.id,
+      providerId: 'credential',
+      accountId: created.id,
+      password: await ctx.password.hash(input.password),
+    });
 
-  const [professional] = await db.select().from(professionals).where(eq(professionals.authUserId, created.id));
-  if (!professional) {
-    // Should not happen: the user.create.after hook creates it. Fail loudly instead of leaving a half account.
+    const [professional] = await db.select().from(professionals).where(eq(professionals.authUserId, created.id));
+    // Should not happen: the user.create.after hook creates it
+    if (!professional) throw new Error('Professional profile was not created');
+
+    return { userId: created.id, professional };
+  } catch (error) {
+    // Do not leave a user without credentials (it would also block retrying with the same email)
+    await db.delete(professionals).where(eq(professionals.authUserId, created.id));
     await db.delete(userTable).where(eq(userTable.id, created.id));
-    throw new Error('Professional profile was not created');
+    throw error;
   }
-
-  return { userId: created.id, professional };
 }

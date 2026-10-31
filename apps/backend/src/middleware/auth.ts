@@ -41,8 +41,9 @@ export function requireRole(...roles: Array<'professional' | 'patient'>) {
  * Requests without `Origin` (same-origin GETs, server-to-server, curl) pass: this is defense in depth,
  * the role guard is what actually enforces access.
  */
-export function requireOrigin(...allowed: string[]) {
-  const allowedOrigins = new Set(allowed.map(normalizeOrigin));
+export function requireOrigin(...allowed: Array<string | undefined>) {
+  // An unset origin (e.g. PROFESSIONAL_APP_URL missing in production) allows no browser origin at all
+  const allowedOrigins = new Set(allowed.filter((o): o is string => !!o).map(normalizeOrigin));
   return async (c: Context, next: Next) => {
     const origin = c.req.header('origin');
     if (origin && !allowedOrigins.has(normalizeOrigin(origin))) {

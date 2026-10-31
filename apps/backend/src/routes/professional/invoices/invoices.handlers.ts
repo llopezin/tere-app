@@ -67,7 +67,7 @@ export const getPdf: AppRouteHandler<GetPdfRoute> = async (c) => {
   const [invoice] = await db.select().from(invoices).where(and(...conditions));
   if (!invoice) throw new AppError(404, 'Invoice not found');
   if (invoice.pdfUrl) return c.redirect(invoice.pdfUrl);
-  
-  const html = invoiceService.generateInvoiceHtml(invoice);
-  return c.html(html);
+
+  c.header('Content-Security-Policy', invoiceService.INVOICE_HTML_CSP);
+  return c.html(invoiceService.generateInvoiceHtml(invoice));
 };

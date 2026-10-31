@@ -99,7 +99,7 @@ The server provides interactive API documentation powered by Scalar:
 | `PORT` | — | `3000` | Server listening port |
 | `NODE_ENV` | — | `development` | `development`, `production`, or `test` |
 | `CLIENT_APP_URL` | — | `FRONTEND_URL` or `http://localhost:5173` | client-app (patients) origin: CORS, Better Auth trusted origin, patient BFF Origin check |
-| `PROFESSIONAL_APP_URL` | — | `http://localhost:5174` | professional-app origin: CORS, trusted origin, professional BFF Origin check, Google OAuth redirect target |
+| `PROFESSIONAL_APP_URL` | — | `http://localhost:5174` (dev/test only; **unset in production = professional-app disabled**) | professional-app origin: CORS, trusted origin, professional BFF Origin check, Google OAuth redirect target |
 | `FRONTEND_URL` | — | — | **Deprecated**, fallback for `CLIENT_APP_URL` |
 
 All variables are validated at startup via Zod (`src/config/env.ts`). The server will crash with a descriptive error if any required variable is missing or invalid.
@@ -253,7 +253,9 @@ Authentication is handled by **Better Auth** with email/password login (`/api/au
 ### Roles
 
 - **`patient`** — the only role public sign-up can create. `role` has `input: false`: if a client sends it, it is replaced by the default.
-- **`professional`** — created server-side only: `pnpm create-professional` (and in the future, the admin panel). Sign-up from professional-app is rejected.
+- **`professional`** — created server-side only (and in the future, from the admin panel). Sign-up from professional-app is rejected.
+  - Dev: `pnpm --filter @fisio-app/backend create-professional -- --email ana@clinica.es --password '…' --first-name Ana --last-name García`
+  - Production image (no `tsx`): `docker compose exec backend node dist/scripts/create-professional.js --email … --password … --first-name … --last-name …`
 - Signing in to client-app with a professional account, or to professional-app with a patient account, fails with the same `Invalid email or password` error as a wrong password (no account/role enumeration).
 
 ### Session Handling

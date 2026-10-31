@@ -55,16 +55,28 @@ async function getPatientOf(professionalId: string, patientId: string) {
   return patient;
 }
 
+/**
+ * Personal data, billing data and the RGPD record are shared by every professional of a patient.
+ * Once the patient has their own account, only they can change it.
+ */
+async function assertCanEditSharedPatientData(patientId: string) {
+  const [patient] = await db.select({ authUserId: patients.authUserId }).from(patients).where(eq(patients.id, patientId));
+  if (patient?.authUserId) {
+    throw new AppError(403, 'This patient manages their own personal data');
+  }
+}
+
 export const list: AppRouteHandler<ListRoute> = async (c) => {
   const profileId = getProfileId(c);
   const { page, per_page, search } = c.req.valid('query');
   const offset = (page - 1) * per_page;
 
+  const pattern = search ? `%${search.replace(/[\\%_]/g, (ch) => `\\${ch}`)}%` : '';
   const searchCondition = search
     ? or(
-      ilike(patients.firstName, `%${search}%`),
-      ilike(patients.lastName, `%${search}%`),
-      ilike(patients.nie, `%${search}%`),
+      ilike(patients.firstName, pattern),
+      ilike(patients.lastName, pattern),
+      ilike(patients.nie, pattern),
     )
     : undefined;
 
@@ -105,11 +117,7 @@ export const update: AppRouteHandler<UpdateRoute> = async (c) => {
 
   const hasPersonalChanges = Object.values(personalData).some((v) => v !== undefined);
   if (hasPersonalChanges) {
-    // Personal data is shared between professionals. Once the patient has an account, only they can change it.
-    const [patient] = await db.select({ authUserId: patients.authUserId }).from(patients).where(eq(patients.id, id));
-    if (patient?.authUserId) {
-      throw new AppError(403, 'This patient manages their own personal data');
-    }
+    await assertCanEditSharedPatientData(id);
     await db.update(patients).set({ ...personalData, updatedAt: new Date() }).where(eq(patients.id, id));
   }
 
@@ -185,6 +193,7 @@ export const upsertBillingData: AppRouteHandler<UpsertBillingDataRoute> = async 
   const body = c.req.valid('json');
 
   await assertPatientOfProfessional(profileId, id);
+  await assertCanEditSharedPatientData(id);
 
   const [existing] = await db.select().from(patientBillingData)
     .where(eq(patientBillingData.patientId, id));
@@ -217,6 +226,7 @@ export const submitRgpdConsent: AppRouteHandler<SubmitRgpdConsentRoute> = async 
   const profileId = getProfileId(c);
   const { id } = c.req.valid('param');
   await assertPatientOfProfessional(profileId, id);
+  await assertCanEditSharedPatientData(id);
   const body = c.req.valid('json');
 
   const ip = c.req.header('x-forwarded-for') || c.req.header('x-real-ip') || 'unknown';

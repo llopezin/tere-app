@@ -40,5 +40,6 @@ export const getPdf: AppRouteHandler<GetPdfRoute> = async (c) => {
   const { id } = c.req.valid('param');
   const invoice = await getMyInvoice(patientId, id);
   if (invoice.pdfUrl) return c.redirect(invoice.pdfUrl);
+  c.header('Content-Security-Policy', invoiceService.INVOICE_HTML_CSP);
   return c.html(invoiceService.generateInvoiceHtml(invoice));
 };

@@ -4,7 +4,7 @@ import { onError, notFound } from 'stoker/middlewares';
 import createApp from './lib/create-app.js';
 import configureOpenAPI from './lib/configure-open-api.js';
 import { auth } from './lib/auth.js';
-import { env } from './config/env.js';
+import { trustedFrontendOrigins } from './config/env.js';
 
 import patientApi from './routes/patient/patient.index.js';
 import professionalApi from './routes/professional/professional.index.js';
@@ -14,7 +14,7 @@ const app = createApp();
 
 // Global middleware
 app.use('*', cors({
-  origin: [env.CLIENT_APP_URL, env.PROFESSIONAL_APP_URL],
+  origin: trustedFrontendOrigins,
   allowHeaders: ['Content-Type', 'Authorization'],
   allowMethods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   credentials: true,

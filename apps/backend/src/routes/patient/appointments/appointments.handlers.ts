@@ -34,7 +34,9 @@ export const create: AppRouteHandler<CreateRoute> = async (c) => {
   const professionalId = apptType.professionalId;
 
   // A bono can only be used by its patient, with the professional that issued it
-  if (body.bonoId) await assertBonoOf({ professionalId, patientId }, body.bonoId);
+  if (body.bonoId) {
+    await assertBonoOf({ professionalId, patientId, appointmentTypeId: body.appointmentTypeId }, body.bonoId);
+  }
 
   const startAt = new Date(body.startAt);
   const endAt = new Date(startAt.getTime() + apptType.durationMinutes * 60 * 1000);

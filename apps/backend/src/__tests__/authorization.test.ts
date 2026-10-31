@@ -18,6 +18,10 @@ import { user } from '../db/schema/auth-schema.js';
 import { professionals } from '../db/schema/professionals.js';
 import { appointments } from '../db/schema/appointments.js';
 import { professionalPatients } from '../db/schema/professional-patients.js';
+import { bonos } from '../db/schema/bonos.js';
+import { consentDocuments } from '../db/schema/consent-documents.js';
+import { patientConsents } from '../db/schema/patient-consents.js';
+import { patientBillingData } from '../db/schema/patient-billing-data.js';
 
 const P = '/api/v1/patient';
 const PRO = '/api/v1/professional';
@@ -277,5 +281,113 @@ describe('Professional BFF: only my data and my patients', () => {
   it('rejects availability for an appointment type of another professional', async () => {
     const qs = new URLSearchParams({ appointment_type_id: typeB.id, from: futureDate(1).toISOString(), to: futureDate(7).toISOString() });
     expect((await call(A, 'GET', `${PRO}/availability?${qs}`)).status).toBe(404);
+  });
+});
+
+describe('Review hardening', () => {
+  it('cannot change role or profileId through update-user', async () => {
+    const res = await call(P1, 'POST', '/api/auth/update-user', { json: { role: 'professional', profileId: A.profileId } });
+    expect(res.ok).toBe(false);
+    const [u] = await testDb.select().from(user).where(eq(user.profileId, P1.profileId));
+    expect(u.role).toBe('patient');
+  });
+
+  it('cancelling twice does not refund the bono twice', async () => {
+    const book = await call(P1, 'POST', `${P}/appointments`, {
+      json: { appointmentTypeId: typeA.id, startAt: futureDate(15).toISOString(), bonoId: bonoP1.id },
+    });
+    expect(book.status).toBe(201);
+    const { id } = await book.json();
+    expect((await call(P1, 'PATCH', `${P}/appointments/${id}/cancel`)).status).toBe(200);
+    expect((await call(P1, 'PATCH', `${P}/appointments/${id}/cancel`)).status).toBe(409);
+    const [bono] = await testDb.select().from(bonos).where(eq(bonos.id, bonoP1.id));
+    expect(bono.sessionsUsed).toBe(0);
+  });
+
+  it('only scheduled appointments can be completed or marked no-show', async () => {
+    expect((await call(A, 'PATCH', `${PRO}/appointments/${apptP1A.id}/complete`)).status).toBe(200);
+    expect((await call(A, 'PATCH', `${PRO}/appointments/${apptP1A.id}/no-show`)).status).toBe(409);
+    expect((await call(A, 'PATCH', `${PRO}/appointments/${apptP2B.id}/no-show`)).status).toBe(404);
+  });
+
+  it('a bono only pays for its own appointment type', async () => {
+    const otherTypeA = await createAppointmentType('Otro A', 30, A.profileId);
+    const res = await call(P1, 'POST', `${P}/appointments`, {
+      json: { appointmentTypeId: otherTypeA.id, startAt: futureDate(16).toISOString(), bonoId: bonoP1.id },
+    });
+    expect(res.status).toBe(404);
+    const pro = await call(A, 'POST', `${PRO}/appointments`, {
+      json: { patientId: P1.profileId, appointmentTypeId: otherTypeA.id, startAt: futureDate(16).toISOString(), bonoId: bonoP1.id },
+    });
+    expect(pro.status).toBe(404);
+  });
+
+  it('shared billing and RGPD data of a patient with an account are read-only for professionals', async () => {
+    const billing = { billingName: 'Otro nombre', addressStreet: 'x', addressPostal: '28001', addressCity: 'Madrid', addressProvince: 'Madrid' };
+    expect((await call(A, 'PUT', `${PRO}/patients/${P1.profileId}/billing-data`, { json: billing })).status).toBe(403);
+    expect(await testDb.select().from(patientBillingData).where(eq(patientBillingData.patientId, P1.profileId))).toHaveLength(0);
+    expect((await call(A, 'POST', `${PRO}/patients/${P1.profileId}/rgpd-consent`, { json: { signatureData: 'x', signed: true } })).status).toBe(403);
+
+    // Patients created by the professional (no account) remain editable
+    const created = await (await call(A, 'POST', `${PRO}/patients`, { json: { firstName: 'Sin', lastName: 'Cuenta', phone: '+34600111333' } })).json();
+    expect((await call(A, 'PUT', `${PRO}/patients/${created.id}/billing-data`, { json: billing })).status).toBeLessThan(300);
+  });
+
+  it('escapes user-controlled fields in the invoice HTML and forbids scripts', async () => {
+    await call(P1, 'PUT', `${P}/me/billing-data`, {
+      json: { billingName: '<script>alert(1)</script>', addressStreet: 'x', addressPostal: '28001', addressCity: 'Madrid', addressProvince: 'Madrid' },
+    });
+    const inv = await call(A, 'POST', `${PRO}/invoices`, { json: { appointmentId: apptP1A.id } });
+    expect(inv.status).toBe(201);
+    const { id } = await inv.json();
+
+    const pdf = await call(A, 'GET', `${PRO}/invoices/${id}/pdf`);
+    const html = await pdf.text();
+    expect(html).not.toContain('<script>');
+    expect(html).toContain('&lt;script&gt;');
+    expect(pdf.headers.get('content-security-policy')).toContain("default-src 'none'");
+
+    // and the patient sees only their own invoices
+    expect((await call(P1, 'GET', `${P}/invoices/${id}/pdf`)).status).toBe(200);
+    expect((await call(P2, 'GET', `${P}/invoices/${id}`)).status).toBe(404);
+    expect((await call(P2, 'GET', `${P}/invoices/${id}/pdf`)).status).toBe(404);
+  });
+
+  it('rejects invoices for appointments or payments that are not mine', async () => {
+    expect((await call(A, 'POST', `${PRO}/invoices`, { json: { appointmentId: apptP2B.id } })).status).toBe(404);
+    const pay = await (await call(B, 'POST', `${PRO}/payments`, { json: { patientId: P3.profileId, amount: 50, paymentMethod: 'cash' } })).json();
+    const otherPatientPay = await (await call(A, 'POST', `${PRO}/payments`, { json: { patientId: P3.profileId, amount: 50, paymentMethod: 'cash' } })).json();
+    expect((await call(A, 'POST', `${PRO}/invoices`, { json: { appointmentId: apptP1A.id, paymentId: pay.id } })).status).toBe(404);
+    // payment is mine but belongs to another patient than the appointment
+    expect((await call(A, 'POST', `${PRO}/invoices`, { json: { appointmentId: apptP1A.id, paymentId: otherPatientPay.id } })).status).toBe(404);
+  });
+
+  it("cannot deduct or list transactions of another professional's bono", async () => {
+    expect((await call(A, 'POST', `${PRO}/bonos/${bonoP2.id}/deduct`, { json: {} })).status).toBe(404);
+    expect((await call(A, 'GET', `${PRO}/bonos/${bonoP2.id}/transactions`)).status).toBe(404);
+  });
+
+  it("cannot use or modify another professional's consent documents, types or blocked times", async () => {
+    const [docB] = await testDb.insert(consentDocuments).values({ professionalId: B.profileId, title: 'Doc B', content: 'c' }).returning();
+    expect((await call(A, 'POST', `${PRO}/patients/${P3.profileId}/consents`, { json: { consentDocumentId: docB.id } })).status).toBe(404);
+    expect((await call(A, 'GET', `${PRO}/consent-documents/${docB.id}`)).status).toBe(404);
+    expect((await call(A, 'PUT', `${PRO}/consent-documents/${docB.id}`, { json: { title: 'x' } })).status).toBe(404);
+    expect((await call(A, 'DELETE', `${PRO}/consent-documents/${docB.id}`)).status).toBe(404);
+    expect((await call(A, 'PUT', `${PRO}/appointment-types/${typeB.id}`, { json: { name: 'x' } })).status).toBe(404);
+    expect((await call(A, 'DELETE', `${PRO}/appointment-types/${typeB.id}`)).status).toBe(404);
+
+    const blocked = await (await call(B, 'POST', `${PRO}/blocked-times`, {
+      json: { startAt: futureDate(20).toISOString(), endAt: futureDate(20, 12).toISOString() },
+    })).json();
+    expect((await call(A, 'DELETE', `${PRO}/blocked-times/${blocked.id}`)).status).toBe(404);
+  });
+
+  it("cannot read or sign another patient's consent", async () => {
+    const [docA] = await testDb.insert(consentDocuments).values({ professionalId: A.profileId, title: 'Doc A', content: 'c' }).returning();
+    const [consentP3] = await testDb.insert(patientConsents)
+      .values({ consentDocumentId: docA.id, patientId: P3.profileId, professionalId: A.profileId }).returning();
+    expect((await call(P1, 'GET', `${P}/consents/${consentP3.id}`)).status).toBe(404);
+    expect((await call(P1, 'POST', `${P}/consents/${consentP3.id}/sign`, { json: { signatureData: 'x' } })).status).toBe(404);
+    expect((await call(P3, 'GET', `${P}/consents/${consentP3.id}`)).status).toBe(200);
   });
 });

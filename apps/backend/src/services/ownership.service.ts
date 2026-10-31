@@ -62,8 +62,10 @@ export async function assertAppointmentTypeOf(
   return type;
 }
 
-export async function assertBonoOf(owner: Owner, bonoId: string) {
+/** `appointmentTypeId`: when booking, a bono can only pay for the appointment type it was sold for. */
+export async function assertBonoOf(owner: Owner & { appointmentTypeId?: string }, bonoId: string) {
   const conditions = [eq(bonos.id, bonoId)];
+  if (owner.appointmentTypeId) conditions.push(eq(bonos.appointmentTypeId, owner.appointmentTypeId));
   if (owner.professionalId) conditions.push(eq(bonos.professionalId, owner.professionalId));
   if (owner.patientId) conditions.push(eq(bonos.patientId, owner.patientId));
   const [bono] = await db.select().from(bonos).where(and(...conditions));

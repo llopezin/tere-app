@@ -160,7 +160,10 @@ export const callback: AppRouteHandler<CallbackRoute> = async (c) => {
 
   // Helper for redirecting back to the frontend with specific status parameters
   const redirect = (params: Record<string, string>) => {
-    const url = new URL('/ajustes/integraciones', env.PROFESSIONAL_APP_URL);
+    // Without PROFESSIONAL_APP_URL (production misconfig) fall back to the old behaviour: client-app root
+    const url = env.PROFESSIONAL_APP_URL
+      ? new URL('/ajustes/integraciones', env.PROFESSIONAL_APP_URL)
+      : new URL('/', env.CLIENT_APP_URL);
     for (const [k, v] of Object.entries(params)) url.searchParams.set(k, v);
     return c.redirect(url.toString(), HttpStatusCodes.MOVED_TEMPORARILY);
   };

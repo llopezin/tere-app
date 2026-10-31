@@ -8,7 +8,7 @@ import { db } from '../db/index.js';
 import { professionals } from '../db/schema/professionals.js';
 import { patients } from '../db/schema/patients.js';
 import * as schema from '../db/schema/auth-schema.js';
-import { env } from '../config/env.js';
+import { env, trustedFrontendOrigins } from '../config/env.js';
 import { normalizeOrigin } from '../middleware/origin.js';
 
 type NewProfessional = InferInsertModel<typeof professionals>;
@@ -19,7 +19,7 @@ const ROLE_BY_APP = { client: 'patient', professional: 'professional' } as const
 function appForOrigin(origin: string): keyof typeof ROLE_BY_APP | undefined {
   const normalized = normalizeOrigin(origin);
   if (normalized === normalizeOrigin(env.CLIENT_APP_URL)) return 'client';
-  if (normalized === normalizeOrigin(env.PROFESSIONAL_APP_URL)) return 'professional';
+  if (env.PROFESSIONAL_APP_URL && normalized === normalizeOrigin(env.PROFESSIONAL_APP_URL)) return 'professional';
   return undefined;
 }
 
@@ -36,7 +36,7 @@ export const auth = betterAuth({
   ],
   baseURL: process.env.BETTER_AUTH_URL || 'http://localhost:3000',
   secret: process.env.BETTER_AUTH_SECRET,
-  trustedOrigins: [env.CLIENT_APP_URL, env.PROFESSIONAL_APP_URL],
+  trustedOrigins: trustedFrontendOrigins,
   hooks: {
     before: createAuthMiddleware(async (ctx) => {
       const origin = ctx.headers?.get('origin');
@@ -55,6 +55,8 @@ export const auth = betterAuth({
         const found = email ? await ctx.context.internalAdapter.findUserByEmail(email) : null;
         const role = (found?.user as { role?: string } | undefined)?.role;
         if (found && role !== ROLE_BY_APP[app]) {
+          // Spend the same time as a real password check so timing does not reveal the account
+          await ctx.context.password.hash(typeof ctx.body?.password === 'string' ? ctx.body.password : 'dummy-password');
           throw new APIError('UNAUTHORIZED', { message: 'Invalid email or password', code: 'INVALID_EMAIL_OR_PASSWORD' });
         }
       }

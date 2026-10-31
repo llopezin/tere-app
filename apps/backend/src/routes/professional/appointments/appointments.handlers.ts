@@ -22,6 +22,7 @@ import {
   assertPatientOfProfessional,
   assertAppointmentTypeOf,
   assertBonoOf,
+  assertAppointmentOf,
 } from '../../../services/ownership.service.js';
 
 /**
@@ -34,7 +35,9 @@ async function validateBookingRefs(
 ) {
   await assertPatientOfProfessional(professionalId, body.patientId);
   const apptType = await assertAppointmentTypeOf(professionalId, body.appointmentTypeId);
-  if (body.bonoId) await assertBonoOf({ professionalId, patientId: body.patientId }, body.bonoId);
+  if (body.bonoId) {
+    await assertBonoOf({ professionalId, patientId: body.patientId, appointmentTypeId: body.appointmentTypeId }, body.bonoId);
+  }
   return apptType;
 }
 
@@ -228,9 +231,12 @@ export const complete: AppRouteHandler<CompleteRoute> = async (c) => {
   const { id } = c.req.valid('param');
   const [updated] = await db.update(appointments)
     .set({ status: 'completed', updatedAt: new Date() })
-    .where(and(eq(appointments.id, id), eq(appointments.professionalId, profileId)))
+    .where(and(eq(appointments.id, id), eq(appointments.professionalId, profileId), eq(appointments.status, 'scheduled')))
     .returning();
-  if (!updated) throw new AppError(404, 'Appointment not found');
+  if (!updated) {
+    await assertAppointmentOf({ professionalId: profileId }, id); // 404 if not ours
+    throw new AppError(409, 'Only scheduled appointments can change status');
+  }
   return c.json(updated, HttpStatusCodes.OK);
 };
 
@@ -239,8 +245,11 @@ export const noShow: AppRouteHandler<NoShowRoute> = async (c) => {
   const { id } = c.req.valid('param');
   const [updated] = await db.update(appointments)
     .set({ status: 'no_show', updatedAt: new Date() })
-    .where(and(eq(appointments.id, id), eq(appointments.professionalId, profileId)))
+    .where(and(eq(appointments.id, id), eq(appointments.professionalId, profileId), eq(appointments.status, 'scheduled')))
     .returning();
-  if (!updated) throw new AppError(404, 'Appointment not found');
+  if (!updated) {
+    await assertAppointmentOf({ professionalId: profileId }, id); // 404 if not ours
+    throw new AppError(409, 'Only scheduled appointments can change status');
+  }
   return c.json(updated, HttpStatusCodes.OK);
 };
