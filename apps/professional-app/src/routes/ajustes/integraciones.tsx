@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { client } from "../../lib/client";
+import { ApiError } from "../../lib/api-error";
 import { Button } from "@fisio-app/ui";
 
 export const Route = createFileRoute("/ajustes/integraciones")({
@@ -15,7 +16,7 @@ function IntegracionesPage() {
     queryFn: async () => {
       // Correct RPC path: /api/v1/integrations/google-calendar/status
       const res = await client.integrations["google-calendar"].status.$get();
-      if (!res.ok) throw new Error("Failed to fetch status");
+      if (!res.ok) throw new ApiError(res.status, "Failed to fetch status");
       return res.json();
     },
   });
@@ -23,25 +24,24 @@ function IntegracionesPage() {
   const connectMutation = useMutation({
     mutationFn: async () => {
       // Correct RPC path: /api/v1/integrations/google-calendar/connect (POST)
-      const res = await client.integrations['google-calendar'].connect.$post();
-      
+      const res = await client.integrations["google-calendar"].connect.$post();
+
       if (!res.ok) {
         const errorData = await res.json().catch(() => ({}));
-        console.error('Connect failed:', errorData);
-        throw new Error('Failed to connect');
+        console.error("Connect failed:", errorData);
+        throw new Error("Failed to connect");
       }
-      
+
       const { authUrl } = await res.json();
-      
+
       if (!authUrl) {
-        console.error('authUrl is missing from response data');
-        throw new Error('authUrl is missing');
+        console.error("authUrl is missing from response data");
+        throw new Error("authUrl is missing");
       }
-      
+
       window.location.href = authUrl;
     },
   });
-
 
   const disconnectMutation = useMutation({
     mutationFn: async () => {

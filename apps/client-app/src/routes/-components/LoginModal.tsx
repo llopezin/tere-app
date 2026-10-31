@@ -32,7 +32,7 @@ export function LoginModal({ open, onOpenChange, onSwitchToSignup }: LoginModalP
       return;
     }
 
-    router.navigate({ to: "/patient/dashboard" });
+    router.navigate({ to: "/dashboard" });
   }
 
   return (

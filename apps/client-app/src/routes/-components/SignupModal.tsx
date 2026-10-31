@@ -57,7 +57,7 @@ export function SignupModal({ open, onOpenChange, onSwitchToLogin }: SignupModal
     }
 
     setLoading(false);
-    router.navigate({ to: "/patient/dashboard" });
+    router.navigate({ to: "/dashboard" });
   }
 
   return (

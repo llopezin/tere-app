@@ -15,9 +15,7 @@ export function AuthCard() {
       <Card className="flex flex-col gap-5">
         <div className="text-center">
           <h2 className="text-lg font-bold text-text">Accede a tu cuenta</h2>
-          <p className="mt-1 text-sm text-text-secondary">
-            Inicia sesión o crea una cuenta nueva
-          </p>
+          <p className="mt-1 text-sm text-text-secondary">Inicia sesión o crea una cuenta nueva</p>
         </div>
 
         <Button size="lg" onClick={() => setActiveModal("login")}>
@@ -26,19 +24,14 @@ export function AuthCard() {
 
         <Divider label="o" />
 
-        <Button
-          variant="secondary"
-          size="lg"
-          onClick={() => setActiveModal("signup")}
-        >
+        <Button variant="secondary" size="lg" onClick={() => setActiveModal("signup")}>
           Crear Cuenta Nueva
         </Button>
 
         <div className="text-center">
           <p className="text-sm font-semibold text-text">¿Primera vez aquí?</p>
           <p className="mt-0.5 text-sm text-text-secondary">
-            Crea tu cuenta en menos de 2 minutos y comienza a gestionar tus
-            citas
+            Crea tu cuenta en menos de 2 minutos y comienza a gestionar tus citas
           </p>
         </div>
 

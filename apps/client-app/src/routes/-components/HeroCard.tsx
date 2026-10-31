@@ -1,7 +1,7 @@
 import { Card } from "@fisio-app/ui";
 import { InfoBanner } from "@fisio-app/ui";
 import { BrandLogo } from "@fisio-app/ui";
-import { FeatureItem } from "@/routes/patient/-components/FeatureItem";
+import { FeatureItem } from "./FeatureItem";
 
 const FEATURES = [
   {
@@ -41,18 +41,14 @@ export function HeroCard() {
             className="animate-slide-up"
             style={{ animationDelay: `${i * 50 + 200}ms` }}
           >
-            <FeatureItem
-              title={feature.title}
-              description={feature.description}
-            />
+            <FeatureItem title={feature.title} description={feature.description} />
           </div>
         ))}
       </div>
 
       <InfoBanner className="w-full text-left">
-        <span className="font-semibold text-primary-700">Importante:</span>{" "}
-        Cumplimos con el RGPD. Tus datos están protegidos y solo se usan para tu
-        atención médica.
+        <span className="font-semibold text-primary-700">Importante:</span> Cumplimos con el RGPD.
+        Tus datos están protegidos y solo se usan para tu atención médica.
       </InfoBanner>
     </Card>
   );

@@ -12,9 +12,7 @@ async function postCreateAppointment(input: CreateAppointmentInput) {
   const data = await res.json();
   if (!res.ok) {
     const message =
-      "message" in data
-        ? (data as { message: string }).message
-        : "Error al crear la cita";
+      "message" in data ? (data as { message: string }).message : "Error al crear la cita";
     throw new Error(message);
   }
   return data;
