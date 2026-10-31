@@ -1,8 +1,11 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
+import { AlertCircle, ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
 import { cn } from "@fisio-app/ui";
 import { availabilityQueryOptions } from "@/api/availability";
+
+/** Max weeks to auto-skip forward looking for the first week with future slots. */
+const MAX_AUTO_SKIP_WEEKS = 12;
 
 const MONTH_NAMES = [
   "enero",
@@ -81,6 +84,7 @@ export function WeeklySchedule({
   onSlotSelect,
 }: WeeklyScheduleProps) {
   const [weekOffset, setWeekOffset] = useState(0);
+  const [userNavigated, setUserNavigated] = useState(false);
 
   const { monday, friday, weekDays } = useMemo(() => {
     const mon = getMonday(weekOffset);
@@ -94,7 +98,7 @@ export function WeeklySchedule({
   const from = toISODate(monday);
   const to = toISODate(friday);
 
-  const { data, isLoading } = useQuery(
+  const { data, isLoading, isError } = useQuery(
     availabilityQueryOptions(professionalId, appointmentTypeId, from, to),
   );
 
@@ -115,12 +119,25 @@ export function WeeklySchedule({
     return map;
   }, [data, weekDays]);
 
-  const hasAnySlots = useMemo(() => {
+  const hasFutureSlots = useMemo(() => {
+    const now = new Date();
     for (const slots of slotsByDay.values()) {
-      if (slots.length > 0) return true;
+      if (slots.some((s) => new Date(s.start_at) >= now)) return true;
     }
     return false;
   }, [slotsByDay]);
+
+  useEffect(() => {
+    if (
+      !isLoading &&
+      !isError &&
+      !userNavigated &&
+      !hasFutureSlots &&
+      weekOffset < MAX_AUTO_SKIP_WEEKS
+    ) {
+      setWeekOffset((o) => o + 1);
+    }
+  }, [isLoading, isError, userNavigated, hasFutureSlots, weekOffset]);
 
   return (
     <div className="flex flex-col gap-4">
@@ -131,7 +148,10 @@ export function WeeklySchedule({
         <button
           type="button"
           disabled={weekOffset === 0}
-          onClick={() => setWeekOffset((o) => o - 1)}
+          onClick={() => {
+            setUserNavigated(true);
+            setWeekOffset((o) => o - 1);
+          }}
           className={cn(
             "size-8 rounded-md text-text-muted transition-colors",
             weekOffset === 0 ? "cursor-not-allowed opacity-40" : "hover:bg-background",
@@ -144,7 +164,10 @@ export function WeeklySchedule({
 
         <button
           type="button"
-          onClick={() => setWeekOffset((o) => o + 1)}
+          onClick={() => {
+            setUserNavigated(true);
+            setWeekOffset((o) => o + 1);
+          }}
           className="size-8 rounded-md text-text-muted hover:bg-background transition-colors"
         >
           <ChevronRight className="mx-auto size-5" />
@@ -156,7 +179,14 @@ export function WeeklySchedule({
         <div className="flex items-center justify-center py-12">
           <Loader2 className="size-6 animate-spin text-text-muted" />
         </div>
-      ) : !hasAnySlots ? (
+      ) : isError ? (
+        <div role="alert" className="flex flex-col items-center gap-2 py-8 text-center">
+          <AlertCircle className="size-6 text-danger" />
+          <p className="text-sm text-text-muted">
+            No se pudo cargar la disponibilidad. Inténtalo de nuevo más tarde.
+          </p>
+        </div>
+      ) : !hasFutureSlots ? (
         <p className="py-8 text-center text-sm text-text-muted">
           No hay citas disponibles esta semana
         </p>
@@ -180,24 +210,33 @@ export function WeeklySchedule({
                 {/* Slots */}
                 <div className="flex w-full flex-col gap-1.5">
                   {slots.length > 0 ? (
-                    slots.map((slot) => (
-                      <button
-                        key={slot.start_at}
-                        type="button"
-                        onClick={() =>
-                          onSlotSelect({
-                            startAt: slot.start_at,
-                            endAt: slot.end_at,
-                          })
-                        }
-                        className="flex justify-center w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm font-medium text-text transition-colors hover:border-primary-600/40 hover:bg-background"
-                      >
-                        {new Date(slot.start_at).toLocaleTimeString("es-ES", {
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}
-                      </button>
-                    ))
+                    slots.map((slot) => {
+                      const isPast = new Date(slot.start_at) < new Date();
+                      return (
+                        <button
+                          key={slot.start_at}
+                          type="button"
+                          disabled={isPast}
+                          onClick={() =>
+                            onSlotSelect({
+                              startAt: slot.start_at,
+                              endAt: slot.end_at,
+                            })
+                          }
+                          className={cn(
+                            "flex justify-center w-full rounded-lg border px-3 py-2 text-sm font-medium transition-colors",
+                            isPast
+                              ? "cursor-not-allowed border-border bg-surface/50 text-text-muted opacity-40"
+                              : "border-border bg-surface text-text hover:border-primary-600/40 hover:bg-background",
+                          )}
+                        >
+                          {new Date(slot.start_at).toLocaleTimeString("es-ES", {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
+                        </button>
+                      );
+                    })
                   ) : (
                     <span className="py-2 text-xs text-text-muted text-center">Sin citas</span>
                   )}
