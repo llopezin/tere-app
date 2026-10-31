@@ -27,6 +27,18 @@ export const patients = pgTable('patients', {
 
 export const selectPatientSchema = createSelectSchema(patients);
 
+/**
+ * Legacy columns: ownership and clinical notes moved to `professional_patients` (N:M).
+ * `professionalId` and `clinicalNotes` are kept until a follow-up migration drops them; do not read them.
+ */
+const legacyColumns = { professionalId: true, clinicalNotes: true } as const;
+
+/** Patient as seen by a professional. `clinicalNotes` comes from `professional_patients`. */
+export const selectPatientForProfessionalSchema = selectPatientSchema.omit({ professionalId: true });
+
+/** Patient as seen by themselves: never includes clinical notes. */
+export const selectOwnPatientSchema = selectPatientSchema.omit(legacyColumns);
+
 export const insertPatientSchema = createInsertSchema(patients, {
   firstName: schema => schema.min(1),
   lastName: schema => schema.min(1),
@@ -42,3 +54,6 @@ export const insertPatientSchema = createInsertSchema(patients, {
 });
 
 export const updatePatientSchema = insertPatientSchema.partial();
+
+/** What a patient can change about themselves (clinical notes belong to the professional). */
+export const updateOwnPatientSchema = updatePatientSchema.omit({ clinicalNotes: true });

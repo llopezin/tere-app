@@ -11,11 +11,14 @@ function IndexPage() {
   const navigate = useNavigate();
   const { data: session, isPending } = useSession();
 
+  // Only professionals use this app (the API rejects other roles anyway)
+  const isProfessional = session?.user.role === "professional";
+
   useEffect(() => {
-    if (!isPending && !session) {
+    if (!isPending && !isProfessional) {
       navigate({ to: "/login" });
     }
-  }, [session, isPending, navigate]);
+  }, [isProfessional, isPending, navigate]);
 
   const handleLogout = async () => {
     await signOut();
@@ -30,7 +33,7 @@ function IndexPage() {
     );
   }
 
-  if (!session) return null;
+  if (!session || !isProfessional) return null;
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-primary-50 to-primary-100 p-4">

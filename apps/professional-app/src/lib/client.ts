@@ -1,8 +1,9 @@
-import type { AppType } from "@fisio-app/backend";
+import type { ProfessionalAppType } from "@fisio-app/backend";
 import { hc } from "hono/client";
+import { API_URL } from "@/lib/api-url";
 
-// Hardcoded for now to avoid 'undefined' URL issues when VITE_API_URL is not set
-export const client = hc<AppType>("http://localhost:3000/api/v1", {
+// Professional BFF: professional-app only talks to /api/v1/professional/* (role professional, this app's origin)
+export const client = hc<ProfessionalAppType>(`${API_URL}/api/v1/professional`, {
   init: {
     credentials: "include",
   },

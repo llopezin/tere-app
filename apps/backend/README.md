@@ -98,6 +98,9 @@ The server provides interactive API documentation powered by Scalar:
 | `BETTER_AUTH_URL` | — | `http://localhost:3000` | Base URL of the backend (used by Better Auth for callbacks) |
 | `PORT` | — | `3000` | Server listening port |
 | `NODE_ENV` | — | `development` | `development`, `production`, or `test` |
+| `CLIENT_APP_URL` | — | `FRONTEND_URL` or `http://localhost:5173` | client-app (patients) origin: CORS, Better Auth trusted origin, patient BFF Origin check |
+| `PROFESSIONAL_APP_URL` | — | `http://localhost:5174` (dev/test only; **unset in production = professional-app disabled**) | professional-app origin: CORS, trusted origin, professional BFF Origin check, Google OAuth redirect target |
+| `FRONTEND_URL` | — | — | **Deprecated**, fallback for `CLIENT_APP_URL` |
 
 All variables are validated at startup via Zod (`src/config/env.ts`). The server will crash with a descriptive error if any required variable is missing or invalid.
 
@@ -116,59 +119,38 @@ All variables are validated at startup via Zod (`src/config/env.ts`). The server
 | `pnpm db:studio` | Open Drizzle Studio (visual DB browser) |
 | `pnpm test` | Run tests once (Vitest) |
 | `pnpm test:watch` | Run tests in watch mode |
+| `pnpm create-professional -- --email … --password … --first-name … --last-name …` | Create a professional account (public sign-up only creates patients) |
 
 ---
 
 ## Project Structure
 
 ```
-packages/backend/
+apps/backend/
 ├── src/
-│   ├── index.ts                     # Server entry — middleware + route mounting
-│   ├── config/
-│   │   └── env.ts                   # Zod env validation
-│   ├── db/
-│   │   ├── index.ts                 # Drizzle ORM instance
-│   │   └── schema/
-│   │       ├── index.ts             # Re-exports all tables
-│   │       ├── auth-schema.ts       # user, session, account, verification
-│   │       ├── professionals.ts     # Professional profiles
-│   │       ├── patients.ts          # Patient records
-│   │       ├── patient-billing-data.ts
-│   │       ├── rgpd-consents.ts     # GDPR consent signatures
-│   │       ├── appointment-types.ts # Service catalog
-│   │       ├── appointments.ts      # Bookings
-│   │       ├── working-schedules.ts # Weekly availability
-│   │       ├── blocked-times.ts     # Time-off / unavailability
-│   │       ├── bonos.ts             # Session packages
-│   │       ├── bono-transactions.ts # Bono audit log
-│   │       ├── payments.ts          # Payment records
-│   │       └── invoices.ts          # Tax invoices
-│   ├── lib/
-│   │   ├── auth.ts                  # Better Auth configuration + hooks
-│   │   └── validators.ts           # Zod schemas for all endpoints
+│   ├── app.ts                       # Middleware + BFF mounting, exports PatientAppType / ProfessionalAppType
+│   ├── index.ts                     # Server entry
+│   ├── config/env.ts                # Zod env validation
+│   ├── db/schema/                   # Drizzle tables (professional-patients.ts = N:M patient ↔ professional)
+│   ├── lib/auth.ts                  # Better Auth config: role lock, cross-app sign-in guard, profile hooks
 │   ├── middleware/
-│   │   ├── auth.ts                  # authMiddleware, requireRole, getProfileId
-│   │   └── error-handler.ts        # Global error handler + AppError class
+│   │   ├── auth.ts                  # authMiddleware, requireRole, requireOrigin, getProfileId
+│   │   └── error-handler.ts         # AppError
+│   ├── services/
+│   │   ├── ownership.service.ts     # assert*Of helpers: every foreign id goes through them
+│   │   ├── professional-account.service.ts
+│   │   └── ...                      # appointment, availability, invoice, google-calendar
+│   ├── scripts/create-professional.ts
 │   └── routes/
-│       ├── auth.ts                  # Better Auth passthrough
-│       ├── professionals.ts         # Professional profile CRUD
-│       ├── patients.ts              # Patient management (professional-facing)
-│       ├── patient-profile.ts       # Patient self-service
-│       ├── appointment-types.ts     # Service types CRUD
-│       ├── working-schedules.ts     # Schedule management
-│       ├── blocked-times.ts         # Time blocking
-│       ├── availability.ts          # Slot calculation
-│       ├── appointments.ts          # Booking management
-│       ├── bonos.ts                 # Session packages
-│       ├── payments.ts              # Payment recording
-│       ├── reports.ts               # Revenue analytics
-│       ├── invoices.ts              # Invoice generation
-│       └── google-calendar.ts       # Google Calendar integration (stub)
-├── drizzle.config.ts                # Drizzle Kit config
-├── tsconfig.json                    # TypeScript config (ES2022, strict)
-├── package.json
-└── .env.example
+│       ├── patient/                 # /api/v1/patient/*      → client-app only (role patient)
+│       │   ├── patient.index.ts     # guard: requireOrigin(CLIENT_APP_URL) + auth + requireRole('patient')
+│       │   └── me/ booking/ appointments/ bonos/ invoices/
+│       ├── professional/            # /api/v1/professional/* → professional-app only (role professional)
+│       │   ├── professional.index.ts
+│       │   └── me/ patients/ appointment-types/ working-schedules/ blocked-times/ availability/
+│       │       appointments/ bonos/ payments/ reports/ invoices/ consent-documents/ integrations/
+│       └── public/                  # /api/v1/health, Google OAuth callback
+└── drizzle/                         # SQL migrations
 ```
 
 ---
@@ -259,185 +241,84 @@ These can be imported into tools like Postman, Insomnia, or used for client code
 
 ## Authentication
 
-Authentication is handled by **Better Auth** with email/password login.
-
-### Endpoints (handled by Better Auth)
+Authentication is handled by **Better Auth** with email/password login (`/api/auth/*`, shared by both apps).
 
 | Method | Path | Description |
 |--------|------|-------------|
-| POST | `/api/auth/sign-up/email` | Register a new user |
-| POST | `/api/auth/sign-in/email` | Log in |
+| POST | `/api/auth/sign-up/email` | Register a **patient** (only from client-app) |
+| POST | `/api/auth/sign-in/email` | Log in (each app only accepts its own role) |
 | POST | `/api/auth/sign-out` | Log out |
 | GET | `/api/auth/get-session` | Get current session |
-| POST | `/api/auth/forget-password` | Request password reset |
-| POST | `/api/auth/reset-password` | Reset password with token |
 
 ### Roles
 
-- **`professional`** — Manages patients, appointments, payments, invoices. A professional profile is auto-created on signup.
-- **`patient`** (default) — Can view own appointments, billing data, and sign GDPR consent.
-
-### Signup Example
-
-```bash
-curl -X POST http://localhost:3000/api/auth/sign-up/email \
-  -H "Content-Type: application/json" \
-  -d '{
-    "name": "Laura García",
-    "email": "laura@example.com",
-    "password": "securepassword123",
-    "role": "professional"
-  }'
-```
+- **`patient`** — the only role public sign-up can create. `role` has `input: false`: if a client sends it, it is replaced by the default.
+- **`professional`** — created server-side only (and in the future, from the admin panel). Sign-up from professional-app is rejected.
+  - Dev: `pnpm --filter @fisio-app/backend create-professional -- --email ana@clinica.es --password '…' --first-name Ana --last-name García`
+  - Production image (no `tsx`): `docker compose exec backend node dist/scripts/create-professional.js --email … --password … --first-name … --last-name …`
+- Signing in to client-app with a professional account, or to professional-app with a patient account, fails with the same `Invalid email or password` error as a wrong password (no account/role enumeration).
 
 ### Session Handling
 
-- Sessions last **7 days** and refresh every **24 hours**
-- Cookie-based with **5-minute server-side cache** for performance
-- Use the returned session cookie for authenticated requests
-
-### Middleware
-
-| Function | Usage |
-|----------|-------|
-| `authMiddleware` | Validates session, sets `user` and `session` on Hono context |
-| `requireRole('professional')` | Restricts to specific role(s) |
-| `getProfileId(c)` | Extracts professional UUID; throws 403 if not set |
+- Sessions last **7 days** and refresh every **24 hours**, cookie-based with a 5-minute cookie cache.
 
 ---
 
-## API Endpoints
+## API Endpoints (BFF)
 
-All business endpoints are under `/api/v1` and require authentication.
+The API is split in one **Backend For Frontend** per app. Each BFF router applies, once, for all its routes:
 
-### Health Check
+1. `requireOrigin(<app url>)` — a browser request from another app's origin gets **403** (requests without `Origin` pass; this is defense in depth).
+2. `authMiddleware` — **401** without session.
+3. `requireRole(...)` — **403** for the other role.
 
-```
-GET /api/v1/health → { "status": "ok", "timestamp": "..." }
-```
+Inside the handlers, every query is scoped to the authenticated profile (`getProfileId`) and every foreign id in params/query/body is validated with `services/ownership.service.ts` (**404** when it isn't yours, so ids can't be probed).
 
-### Professionals
+Interactive docs: `/api/v1/docs` (tags `Patient / …`, `Professional / …`, `Public / …`).
 
-| Method | Path | Role | Description |
-|--------|------|------|-------------|
-| GET | `/api/v1/professionals/me` | professional | Get own profile |
-| PUT | `/api/v1/professionals/me` | professional | Update profile |
-
-### Patients (Professional-facing)
-
-| Method | Path | Role | Description |
-|--------|------|------|-------------|
-| GET | `/api/v1/patients` | professional | List patients (search, pagination) |
-| POST | `/api/v1/patients` | professional | Create patient |
-| GET | `/api/v1/patients/:id` | professional | Get patient details |
-| PUT | `/api/v1/patients/:id` | professional | Update patient |
-| GET | `/api/v1/patients/:id/appointments` | professional | Patient's appointments |
-| GET | `/api/v1/patients/:id/bonos` | professional | Patient's bonos |
-| GET | `/api/v1/patients/:id/payments` | professional | Patient's payments |
-| GET | `/api/v1/patients/:id/billing-data` | professional | Billing data |
-| PUT | `/api/v1/patients/:id/billing-data` | professional | Upsert billing data |
-| GET | `/api/v1/patients/:id/rgpd-consent` | professional | GDPR consent status |
-| POST | `/api/v1/patients/:id/rgpd-consent` | patient | Sign GDPR consent |
-| GET | `/api/v1/patients/:id/contact-link` | professional | Generate contact link |
-
-### Patient Profile (Patient-facing)
-
-| Method | Path | Role | Description |
-|--------|------|------|-------------|
-| GET | `/api/v1/patient/me` | patient | Own profile |
-| PUT | `/api/v1/patient/me` | patient | Update own data |
-| GET | `/api/v1/patient/me/appointments` | patient | Own appointments |
-| GET | `/api/v1/patient/me/billing-data` | patient | Own billing data |
-| PUT | `/api/v1/patient/me/billing-data` | patient | Update billing data |
-
-### Appointment Types
-
-| Method | Path | Role | Description |
-|--------|------|------|-------------|
-| GET | `/api/v1/appointment-types` | any | List types (professional: own; patient: filtered) |
-| POST | `/api/v1/appointment-types` | professional | Create type |
-| PUT | `/api/v1/appointment-types/:id` | professional | Update type |
-| DELETE | `/api/v1/appointment-types/:id` | professional | Deactivate type |
-
-### Working Schedules
-
-| Method | Path | Role | Description |
-|--------|------|------|-------------|
-| GET | `/api/v1/working-schedules` | professional | List weekly slots |
-| PUT | `/api/v1/working-schedules` | professional | Bulk replace all slots |
-
-### Blocked Times
-
-| Method | Path | Role | Description |
-|--------|------|------|-------------|
-| GET | `/api/v1/blocked-times` | professional | List (date range filter) |
-| POST | `/api/v1/blocked-times` | professional | Create time block |
-| DELETE | `/api/v1/blocked-times/:id` | professional | Remove block |
-
-### Availability
-
-| Method | Path | Role | Description |
-|--------|------|------|-------------|
-| GET | `/api/v1/availability` | any | Compute free slots for a professional + appointment type |
-
-Query params: `professional_id`, `appointment_type_id`, `from`, `to`
-
-### Appointments
-
-| Method | Path | Role | Description |
-|--------|------|------|-------------|
-| GET | `/api/v1/appointments` | professional | List with filters |
-| POST | `/api/v1/appointments` | professional | Create single appointment |
-| POST | `/api/v1/appointments/batch` | professional | Create multiple |
-| POST | `/api/v1/appointments/recurring` | professional | Create recurring series |
-| GET | `/api/v1/appointments/:id` | any | Get details |
-| PUT | `/api/v1/appointments/:id` | professional | Update |
-| PATCH | `/api/v1/appointments/:id/cancel` | any | Cancel (refunds bono) |
-| PATCH | `/api/v1/appointments/:id/complete` | professional | Mark completed |
-| PATCH | `/api/v1/appointments/:id/no-show` | professional | Mark no-show |
-
-### Bonos (Session Packages)
-
-| Method | Path | Role | Description |
-|--------|------|------|-------------|
-| GET | `/api/v1/bonos` | professional | List (filter by patient, status) |
-| POST | `/api/v1/bonos` | professional | Create package |
-| GET | `/api/v1/bonos/:id` | professional | Details + sessions remaining |
-| GET | `/api/v1/bonos/:id/transactions` | professional | Deduction audit log |
-| POST | `/api/v1/bonos/:id/deduct` | professional | Manual deduction |
-
-### Payments
-
-| Method | Path | Role | Description |
-|--------|------|------|-------------|
-| GET | `/api/v1/payments` | professional | List with filters |
-| POST | `/api/v1/payments` | professional | Record payment |
-| GET | `/api/v1/payments/:id` | professional | Payment details |
-
-### Reports (Professional only)
+### Public — `/api/v1`
 
 | Method | Path | Description |
 |--------|------|-------------|
-| GET | `/api/v1/reports/revenue/monthly` | Monthly revenue total & count |
-| GET | `/api/v1/reports/revenue/quarterly` | Quarterly breakdown by month |
-| GET | `/api/v1/reports/revenue/by-method` | Revenue by payment method |
+| GET | `/health` | Health check |
+| GET | `/integrations/google-calendar/callback` | Google OAuth callback (URL registered in Google Cloud Console). Redirects to `PROFESSIONAL_APP_URL/ajustes/integraciones?gcal=…` |
 
-### Invoices
+### Patient BFF — `/api/v1/patient` (client-app)
 
-| Method | Path | Role | Description |
-|--------|------|------|-------------|
-| GET | `/api/v1/invoices` | any | List (professional: issued; patient: received) |
-| POST | `/api/v1/invoices` | professional | Generate from appointment |
-| GET | `/api/v1/invoices/:id` | any | Invoice details |
-| GET | `/api/v1/invoices/:id/pdf` | any | Download PDF |
+| Method | Path | Scope |
+|--------|------|-------|
+| GET, PUT | `/me` | own profile (never clinical notes) |
+| GET, PUT | `/me/billing-data` | own |
+| GET, POST | `/me/rgpd-consent` | own |
+| GET | `/consents`, `/consents/:consentId` · POST `/consents/:consentId/sign` | own |
+| GET | `/professionals` | public fields only (`id`, names, `businessName`) |
+| GET | `/professionals/:professionalId/appointment-types` | active types of that professional |
+| GET | `/availability?professional_id&appointment_type_id&from&to` | type must be an active one of that professional |
+| GET, POST | `/appointments` | own; `patientId` always comes from the session; booking links the patient to the professional |
+| GET | `/appointments/:id` · PATCH `/appointments/:id/cancel` | own |
+| GET | `/bonos/:id` | own |
+| GET | `/invoices`, `/invoices/:id`, `/invoices/:id/pdf` | own (patients cannot create invoices) |
 
-### Google Calendar (Stub)
+### Professional BFF — `/api/v1/professional` (professional-app)
 
-| Method | Path | Description |
-|--------|------|-------------|
-| POST | `/api/v1/integrations/google-calendar/connect` | Initiate OAuth |
-| DELETE | `/api/v1/integrations/google-calendar/disconnect` | Revoke |
-| POST | `/api/v1/integrations/google-calendar/sync` | Sync appointments |
+| Module | Endpoints | Scope / validation |
+|--------|-----------|--------------------|
+| me | GET, PUT `/me` | own profile |
+| patients | GET, POST `/patients` · GET, PUT `/patients/:id` | patients linked in `professional_patients`; `clinicalNotes` are per professional; personal data of patients with an account is read-only (403) |
+| patients | GET `/patients/:id/{appointments,bonos,payments,consents}` | linked patient + only this professional's records |
+| patients | GET, PUT `/patients/:id/billing-data` · GET, POST `/patients/:id/rgpd-consent` · GET `/patients/:id/contact-link` · POST `/patients/:id/consents` | linked patient (+ own consent document) |
+| appointment-types | CRUD `/appointment-types` | own |
+| working-schedules | GET, PUT `/working-schedules` | own |
+| blocked-times | GET, POST, DELETE `/blocked-times` | own |
+| availability | GET `/availability?appointment_type_id&from&to` | own agenda + own type |
+| appointments | GET, POST `/appointments` · POST `/appointments/batch`, `/appointments/recurring` | own; `patientId`, `appointmentTypeId`, `bonoId` must be own |
+| appointments | GET, PUT `/appointments/:id` · PATCH `/:id/cancel`, `/:id/complete`, `/:id/no-show` | own (+ own type on update) |
+| bonos | GET, POST `/bonos` · GET `/bonos/:id`, `/bonos/:id/transactions` · POST `/bonos/:id/deduct` | own; patient and type must be own |
+| payments | GET, POST `/payments` · GET `/payments/:id` | own; patient, appointment and bono must be own |
+| invoices | GET, POST `/invoices` · GET `/invoices/:id`, `/invoices/:id/pdf` | own; appointment and payment must be own |
+| reports | GET `/reports/revenue/{monthly,quarterly,by-method}` | own |
+| consent-documents | CRUD `/consent-documents` | own |
+| integrations | GET `/integrations/google-calendar/status` · POST `.../connect`, `.../disconnect` | own |
 
 ---
 
@@ -445,8 +326,10 @@ Query params: `professional_id`, `appointment_type_id`, `from`, `to`
 
 ### Multi-tenancy
 
-- Each **professional** only sees and manages their own patients, appointments, payments, and invoices.
+- Patients and professionals are **N:M** (`professional_patients`). A patient becomes "of" a professional when the professional creates them or when the patient books with that professional.
+- Each **professional** only sees their linked patients and only their own appointments, bonos, payments, invoices and clinical notes about them.
 - Each **patient** only sees their own data.
+- `patients.professional_id` and `patients.clinical_notes` are legacy columns (migrated to `professional_patients`), pending removal.
 
 ### Appointment Booking Flow
 
@@ -481,9 +364,10 @@ Query params: `professional_id`, `appointment_type_id`, `from`, `to`
 
 ### Adding a new route
 
-1. Create the route file in `src/routes/your-route.ts`
-2. Add Zod validation schemas in `src/lib/validators.ts`
-3. Mount the route in `src/index.ts`
+1. Create `routes/<patient|professional>/<module>/<module>.{routes,handlers,index}.ts` (no per-route auth middleware: the BFF router applies it)
+2. Scope queries with `getProfileId(c)` and validate foreign ids with `services/ownership.service.ts`
+3. Mount the module in `routes/<bff>/<bff>.index.ts`
+4. Add cases to `src/__tests__/authorization.test.ts`
 
 ### Adding a new table
 
@@ -493,7 +377,7 @@ Query params: `professional_id`, `appointment_type_id`, `from`, `to`
 
 ### CORS
 
-The frontend origin is configured in `src/index.ts`. Currently set to `http://localhost:5173`.
+Allowed origins are `CLIENT_APP_URL` and `PROFESSIONAL_APP_URL` (`src/app.ts`, `src/lib/auth.ts`).
 
 ### Error Handling
 

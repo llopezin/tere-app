@@ -3,7 +3,7 @@ import { client } from "@/lib/client";
 import { ApiError } from "@/lib/api-error";
 
 async function fetchPatientAppointments() {
-  const res = await client.patient.me.appointments.$get({
+  const res = await client.appointments.$get({
     query: { per_page: 100 },
   });
 

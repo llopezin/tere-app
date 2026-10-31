@@ -15,7 +15,8 @@ jobs:
       DATABASE_URL: postgres://ci:ci@localhost:5432/ci
       BETTER_AUTH_SECRET: ci-only-secret
       BETTER_AUTH_URL: http://localhost:3000
-      FRONTEND_URL: http://localhost:5173
+      CLIENT_APP_URL: http://localhost:5173
+      PROFESSIONAL_APP_URL: http://localhost:5174
       VITE_API_URL: http://localhost:3000
 
     steps:

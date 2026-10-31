@@ -35,6 +35,7 @@ async function cleanupDatabase() {
   await testDb.execute(sql`TRUNCATE TABLE appointment_types CASCADE`);
   await testDb.execute(sql`TRUNCATE TABLE rgpd_consents CASCADE`);
   await testDb.execute(sql`TRUNCATE TABLE patient_billing_data CASCADE`);
+  await testDb.execute(sql`TRUNCATE TABLE professional_patients CASCADE`);
   await testDb.execute(sql`TRUNCATE TABLE patients CASCADE`);
   await testDb.execute(sql`TRUNCATE TABLE professionals CASCADE`);
   await testDb.execute(sql`TRUNCATE TABLE account CASCADE`);

@@ -1,6 +1,7 @@
 import type { Context, Next } from 'hono';
 import { auth, type Session } from '../lib/auth.js';
 import { AppError } from './error-handler.js';
+import { normalizeOrigin } from './origin.js';
 
 type AuthUser = Session['user'];
 type AuthSession = Session['session'];
@@ -29,6 +30,24 @@ export function requireRole(...roles: Array<'professional' | 'patient'>) {
     const user = c.get('user');
     if (!user || !roles.includes(user.role as 'professional' | 'patient')) {
       return c.json({ error: 'Insufficient permissions' }, 403);
+    }
+    await next();
+  };
+}
+
+/**
+ * Restricts a BFF to the frontend it serves.
+ * Browsers always send `Origin` on cross-origin requests, so a request coming from another app is rejected.
+ * Requests without `Origin` (same-origin GETs, server-to-server, curl) pass: this is defense in depth,
+ * the role guard is what actually enforces access.
+ */
+export function requireOrigin(...allowed: Array<string | undefined>) {
+  // An unset origin (e.g. PROFESSIONAL_APP_URL missing in production) allows no browser origin at all
+  const allowedOrigins = new Set(allowed.filter((o): o is string => !!o).map(normalizeOrigin));
+  return async (c: Context, next: Next) => {
+    const origin = c.req.header('origin');
+    if (origin && !allowedOrigins.has(normalizeOrigin(origin))) {
+      return c.json({ error: 'Origin not allowed' }, 403);
     }
     await next();
   };

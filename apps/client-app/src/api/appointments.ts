@@ -1,8 +1,8 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { client } from "@/lib/client";
 
+// The patient is taken from the session: the API does not accept a patientId
 interface CreateAppointmentInput {
-  patientId: string;
   appointmentTypeId: string;
   startAt: string;
 }

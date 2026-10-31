@@ -259,10 +259,12 @@ export async function cancelAppointment(
   }
 
   const result = await db.transaction(async (tx) => {
+    // Only scheduled appointments can be cancelled: a repeated cancel must not refund the bono again
     const [updated] = await tx.update(appointments)
       .set({ status: 'cancelled', updatedAt: new Date() })
-      .where(eq(appointments.id, appointmentId))
+      .where(and(eq(appointments.id, appointmentId), eq(appointments.status, 'scheduled')))
       .returning();
+    if (!updated) throw new AppError(409, 'Only scheduled appointments can be cancelled');
 
     if (appointment.bonoId && appointment.useBonoSession) {
       await refundBonoSession(tx, appointment.bonoId, appointmentId);
