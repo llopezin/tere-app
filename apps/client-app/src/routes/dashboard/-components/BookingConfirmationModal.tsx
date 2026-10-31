@@ -110,19 +110,19 @@ export function BookingConfirmationModal({
       }));
     }
   };
-useEffect(() => {
-  if (open && profile && !profileLoaded.current) {
-    profileLoaded.current = true;
-    setFirstName(profile.firstName ?? "");
-    setLastName(profile.lastName ?? "");
-    setNie(profile.nie ?? "");
-    setPhone(profile.phone ?? "");
-    setEmail(profile.email ?? "");
-    if (profile.contactMethod) {
-      setContactMethod(profile.contactMethod);
+  useEffect(() => {
+    if (open && profile && !profileLoaded.current) {
+      profileLoaded.current = true;
+      setFirstName(profile.firstName ?? "");
+      setLastName(profile.lastName ?? "");
+      setNie(profile.nie ?? "");
+      setPhone(profile.phone ?? "");
+      setEmail(profile.email ?? "");
+      if (profile.contactMethod) {
+        setContactMethod(profile.contactMethod);
+      }
     }
-  }
-}, [profile, open]);
+  }, [profile, open]);
   // Reset animation state when modal closes
   useEffect(() => {
     if (!open) {

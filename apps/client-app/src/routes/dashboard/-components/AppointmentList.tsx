@@ -12,21 +12,15 @@ import type { AppointmentCardData } from "./AppointmentCard";
 type SubTab = "upcoming" | "history";
 
 function differenceInMinutes(start: string, end: string) {
-  return Math.round(
-    (new Date(end).getTime() - new Date(start).getTime()) / 60_000,
-  );
+  return Math.round((new Date(end).getTime() - new Date(start).getTime()) / 60_000);
 }
 
 export function AppointmentList() {
   const [subTab, setSubTab] = useState<SubTab>("upcoming");
 
-  const { data: professionalsData } = useSuspenseQuery(
-    professionalsQueryOptions(),
-  );
+  const { data: professionalsData } = useSuspenseQuery(professionalsQueryOptions());
 
-  const { data: appointmentsData, isLoading } = useQuery(
-    patientAppointmentsQueryOptions(),
-  );
+  const { data: appointmentsData, isLoading } = useQuery(patientAppointmentsQueryOptions());
 
   // Build lookup maps for resolving IDs → names
   const professionalMap = useMemo(() => {
@@ -71,13 +65,8 @@ export function AppointmentList() {
     }));
   }, [appointmentsData, professionalMap, typeMap]);
 
-  const upcoming = cards.filter(
-    (c) => c.status === "scheduled" && new Date(c.startAt) >= now,
-  );
-  const history = cards.filter(
-    (c) =>
-      c.status !== "scheduled" || new Date(c.startAt) < now,
-  );
+  const upcoming = cards.filter((c) => c.status === "scheduled" && new Date(c.startAt) >= now);
+  const history = cards.filter((c) => c.status !== "scheduled" || new Date(c.startAt) < now);
 
   const activeList = subTab === "upcoming" ? upcoming : history;
 
@@ -100,9 +89,7 @@ export function AppointmentList() {
         >
           <CalendarClock className="size-4" />
           Próximas Citas
-          {!isLoading && (
-            <span className="ml-1 text-xs">({upcoming.length})</span>
-          )}
+          {!isLoading && <span className="ml-1 text-xs">({upcoming.length})</span>}
         </button>
         <button
           onClick={() => setSubTab("history")}
@@ -114,23 +101,17 @@ export function AppointmentList() {
         >
           <History className="size-4" />
           Historial
-          {!isLoading && (
-            <span className="ml-1 text-xs">({history.length})</span>
-          )}
+          {!isLoading && <span className="ml-1 text-xs">({history.length})</span>}
         </button>
       </div>
 
       {/* List */}
       <div className="mt-4 flex flex-col gap-3">
         {isLoading ? (
-          <div className="py-8 text-center text-sm text-text-secondary">
-            Cargando citas...
-          </div>
+          <div className="py-8 text-center text-sm text-text-secondary">Cargando citas...</div>
         ) : activeList.length === 0 ? (
           <div className="py-8 text-center text-sm text-text-secondary">
-            {subTab === "upcoming"
-              ? "No tienes citas programadas"
-              : "No hay citas en tu historial"}
+            {subTab === "upcoming" ? "No tienes citas programadas" : "No hay citas en tu historial"}
           </div>
         ) : (
           activeList.map((appointment) => (
