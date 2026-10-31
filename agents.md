@@ -14,6 +14,6 @@ For now we are not caching any request, so don't use any caching to query option
 ## Key Files & Context
 
 - `docs/PRD.md`: Feature list and business rules.
-- `docs/FRONTEND_AUTH_GUIDE.md`: Authentication integration details.
+- `docs/frontend/FRONTEND_AUTH_GUIDE.md`: Authentication integration details.
 - `files/*.png`: UI/UX reference.
-- `docs/TECH_STACK.md`: Details on stack.
+- `docs/architecture/TECH_STACK.md`: Details on stack.
