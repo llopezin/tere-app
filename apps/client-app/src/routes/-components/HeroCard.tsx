@@ -1,7 +1,7 @@
 import { Card } from "@fisio-app/ui";
 import { InfoBanner } from "@fisio-app/ui";
 import { BrandLogo } from "@fisio-app/ui";
-import { FeatureItem } from "@/routes/patient/-components/FeatureItem";
+import { FeatureItem } from "./FeatureItem";
 
 const FEATURES = [
   {

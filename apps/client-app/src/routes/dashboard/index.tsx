@@ -7,11 +7,11 @@ import { BookingForm } from "./-components/BookingForm";
 import { AppointmentList } from "./-components/AppointmentList";
 import { professionalsQueryOptions } from "@/api/professionals";
 
-export const Route = createFileRoute("/patient/dashboard/")({
+export const Route = createFileRoute("/dashboard/")({
   beforeLoad: async () => {
     const session = await authClient.getSession();
     if (!session.data?.session) {
-      throw redirect({ to: "/patient/welcome" });
+      throw redirect({ to: "/" });
     }
   },
   loader: ({ context: { queryClient } }) =>
