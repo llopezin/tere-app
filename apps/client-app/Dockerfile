@@ -8,41 +8,31 @@ RUN corepack enable
 
 WORKDIR /app
 
-# Copy manifests first so layer is cached until deps change.
-# Root manifest + lockfile + every workspace package.json.
+# Download every package in the lockfile into the pnpm store.
+# This layer only depends on the lockfile, so it stays cached while deps don't change
+# (editing a package.json script no longer forces a re-download).
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .node-version ./
+RUN pnpm fetch
 
+# Workspace manifests needed to link @fisio-app/client-app and its workspace deps
 COPY apps/client-app/package.json ./apps/client-app/package.json
 COPY apps/backend/package.json     ./apps/backend/package.json
 COPY packages/validators/package.json ./packages/validators/package.json
 COPY packages/ui/package.json      ./packages/ui/package.json
 
-# Install deps for @fisio-app/client-app and all workspace deps it needs
-RUN pnpm install --frozen-lockfile
+# Only links from the store, no network
+RUN pnpm install --frozen-lockfile --offline
 
 
 # ─── Stage 2: build the Vite SPA ────────────────────────────────────────────
-FROM node:24-alpine AS build
-
-RUN corepack enable
-
-WORKDIR /app
-
-# Reuse the installed node_modules from deps stage
-COPY --from=deps /app/node_modules ./node_modules
-COPY --from=deps /app/apps/client-app/node_modules ./apps/client-app/node_modules
-COPY --from=deps /app/apps/backend/node_modules ./apps/backend/node_modules
-COPY --from=deps /app/packages/validators/node_modules ./packages/validators/node_modules
-COPY --from=deps /app/packages/ui/node_modules ./packages/ui/node_modules
+FROM deps AS build
 
 # Copy source for each workspace package needed at build time
+# (per package, not `COPY . .`, so changes elsewhere don't bust this layer)
 COPY packages/validators/ ./packages/validators/
 COPY packages/ui/         ./packages/ui/
 COPY apps/backend/        ./apps/backend/
 COPY apps/client-app/     ./apps/client-app/
-
-# Root files needed by pnpm/tooling
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 
 ARG VITE_API_URL
 RUN pnpm -F @fisio-app/client-app... run build
