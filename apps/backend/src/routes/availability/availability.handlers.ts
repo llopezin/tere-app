@@ -3,7 +3,7 @@ import type { GetAvailabilityRoute } from './availability.routes.js';
 import { AppError } from '../../middleware/error-handler.js';
 import * as HttpStatusCodes from 'stoker/http-status-codes';
 import * as availabilityService from '../../services/availability.service.js';
-import { getBookingWindowEnd, getClinicToday, isBookingLimited } from '../../lib/booking-window.js';
+import { getBookingWindowEnd, getClinicToday, isBookingLimited, toClinicDate } from '../../lib/booking-window.js';
 
 export const getAvailability: AppRouteHandler<GetAvailabilityRoute> = async (c) => {
   const { professional_id: professionalId, appointment_type_id: appointmentTypeId, from, to } = c.req.valid('query');
@@ -14,7 +14,7 @@ export const getAvailability: AppRouteHandler<GetAvailabilityRoute> = async (c) 
   // Patients can only see slots inside the booking window (today → windowEnd);
   // professionals are not limited. If the clipped range is empty the service returns no slots.
   const windowEnd = isBookingLimited(c.get('user')) ? getBookingWindowEnd() : null;
-  const bookingWindowEnd = windowEnd?.toISOString() ?? null;
+  const bookingWindowLastDay = windowEnd ? toClinicDate(windowEnd) : null;
 
   if (windowEnd) {
     const today = getClinicToday();
@@ -28,7 +28,7 @@ export const getAvailability: AppRouteHandler<GetAvailabilityRoute> = async (c) 
     if (windowEnd) {
       slots = slots.filter((s) => new Date(s.start_at) <= windowEnd);
     }
-    return c.json({ slots, booking_window_end: bookingWindowEnd }, HttpStatusCodes.OK);
+    return c.json({ slots, booking_window_last_day: bookingWindowLastDay }, HttpStatusCodes.OK);
   } catch (error) {
     if (error instanceof Error && error.message === 'Appointment type not found') {
       throw new AppError(404, error.message);

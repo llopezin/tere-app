@@ -38,8 +38,9 @@ export const getAvailability = createRoute({
           start_at: z.string(),
           end_at: z.string(),
         })),
-        booking_window_end: z.string().nullable().openapi({
-          description: 'Last bookable instant for patients (ISO). Null for professionals, who are not limited.',
+        booking_window_last_day: z.string().nullable().openapi({
+          description:
+            'Last bookable day for the caller (YYYY-MM-DD, clinic time). Null for professionals, who are not limited.',
         }),
       }),
       'Available appointment slots',

@@ -6,7 +6,7 @@ import { AppError } from '../middleware/error-handler.js';
  * Professionals are not limited.
  *
  * This is the single source of truth: the frontend reads the computed limit
- * from `GET /availability` (`booking_window_end`).
+ * from `GET /availability` (`booking_window_last_day`).
  */
 export const BOOKING_WINDOW_MONTHS = 3;
 export const CLINIC_TIME_ZONE = 'Europe/Madrid';
@@ -56,10 +56,15 @@ function zonedMidnightToUtc(year: number, month: number, day: number, timeZone: 
   return new Date(guess);
 }
 
-/** Today's date in clinic time, as `YYYY-MM-DD` (same format as the availability query). */
-export function getClinicToday(now: Date = new Date()): string {
-  const { year, month, day } = getZonedParts(now, CLINIC_TIME_ZONE);
+/** Calendar date of `date` in clinic time, as `YYYY-MM-DD` (same format as the availability query). */
+export function toClinicDate(date: Date): string {
+  const { year, month, day } = getZonedParts(date, CLINIC_TIME_ZONE);
   return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+}
+
+/** Today's date in clinic time, as `YYYY-MM-DD`. */
+export function getClinicToday(now: Date = new Date()): string {
+  return toClinicDate(now);
 }
 
 /**

@@ -229,7 +229,7 @@ Custom auth endpoints implemented in Hono. JWT-based with bcrypt password hashin
     { "start_at": "2026-03-24T09:00:00Z", "end_at": "2026-03-24T10:00:00Z" },
     { "start_at": "2026-03-24T10:00:00Z", "end_at": "2026-03-24T11:00:00Z" }
   ],
-  "booking_window_end": "2026-06-24T21:59:59.999Z"
+  "booking_window_last_day": "2026-06-24"
 }
 ```
 
@@ -239,7 +239,7 @@ Custom auth endpoints implemented in Hono. JWT-based with bcrypt password hashin
 3. Subtract slots that overlap with existing `appointments` (status ≠ cancelled).
 4. Subtract slots that overlap with `blocked_times`.
 5. **Patients only:** clip the range to the booking window (now → end of day of today + 3 months, Europe/Madrid) and drop slots starting after it.
-6. Return remaining available slots plus `booking_window_end` (last bookable instant for patients; `null` for professionals). The client app uses it to limit week navigation, so the limit lives only in the backend.
+6. Return remaining available slots plus `booking_window_last_day` (last bookable day for patients as `YYYY-MM-DD` in clinic time; `null` for professionals). The client app uses it to limit week navigation, so the limit and the time-zone logic live only in the backend.
 
 ---
 

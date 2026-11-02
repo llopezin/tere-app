@@ -57,6 +57,12 @@ function getMonday(offset: number): Date {
 
 const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
 
+/** Local calendar date from a `YYYY-MM-DD` string (no time-zone conversion). */
+function parseCalendarDate(ymd: string): Date {
+  const [y, m, d] = ymd.split("-").map(Number);
+  return new Date(y, m - 1, d);
+}
+
 /** Week offset (relative to the current week) of the week containing `date`. */
 function getWeekOffsetOf(date: Date): number {
   const day = date.getDay();
@@ -94,9 +100,9 @@ export function WeeklySchedule({
   const [weekOffset, setWeekOffset] = useState(0);
   const [userNavigated, setUserNavigated] = useState(false);
   const [noSlotsInWindow, setNoSlotsInWindow] = useState(false);
-  // Last bookable instant, provided by the backend (single source of truth).
+  // Last bookable day (YYYY-MM-DD, clinic time), provided by the backend (single source of truth).
   // Kept in state so it survives while the next week is loading.
-  const [bookingWindowEnd, setBookingWindowEnd] = useState<string | null>(null);
+  const [bookingWindowLastDay, setBookingWindowLastDay] = useState<string | null>(null);
 
   const { monday, friday, weekDays } = useMemo(() => {
     const mon = getMonday(weekOffset);
@@ -114,13 +120,13 @@ export function WeeklySchedule({
     availabilityQueryOptions(professionalId, appointmentTypeId, from, to),
   );
 
-  if (data?.booking_window_end && data.booking_window_end !== bookingWindowEnd) {
-    setBookingWindowEnd(data.booking_window_end);
+  if (data?.booking_window_last_day && data.booking_window_last_day !== bookingWindowLastDay) {
+    setBookingWindowLastDay(data.booking_window_last_day);
   }
 
   const maxWeekOffset = useMemo(
-    () => (bookingWindowEnd ? getWeekOffsetOf(new Date(bookingWindowEnd)) : null),
-    [bookingWindowEnd],
+    () => (bookingWindowLastDay ? getWeekOffsetOf(parseCalendarDate(bookingWindowLastDay)) : null),
+    [bookingWindowLastDay],
   );
   const isLastWeek = maxWeekOffset === null || weekOffset >= maxWeekOffset;
 
@@ -215,8 +221,8 @@ export function WeeklySchedule({
         </div>
       ) : !hasFutureSlots ? (
         <p className="py-8 text-center text-sm text-text-muted">
-          {noSlotsInWindow && bookingWindowEnd
-            ? `No hay citas disponibles hasta el ${new Date(bookingWindowEnd).toLocaleDateString("es-ES", { day: "numeric", month: "long" })}`
+          {noSlotsInWindow && bookingWindowLastDay
+            ? `No hay citas disponibles hasta el ${parseCalendarDate(bookingWindowLastDay).toLocaleDateString("es-ES", { day: "numeric", month: "long" })}`
             : "No hay citas disponibles esta semana"}
         </p>
       ) : (
