@@ -88,9 +88,9 @@ export function getBookingWindowEnd(now: Date = new Date()): Date {
 /** Throws a 400 if a patient tries to book in the past or beyond the booking window. */
 export function assertPatientCanBookAt(startAt: Date, now: Date = new Date()): void {
   if (startAt.getTime() < now.getTime()) {
-    throw new AppError(400, 'Cannot book an appointment in the past');
+    throw new AppError(400, 'Cannot book an appointment in the past', 'BOOKING_IN_PAST');
   }
   if (startAt.getTime() > getBookingWindowEnd(now).getTime()) {
-    throw new AppError(400, 'Appointment is outside the booking window');
+    throw new AppError(400, 'Appointment is outside the booking window', 'BOOKING_OUTSIDE_WINDOW');
   }
 }

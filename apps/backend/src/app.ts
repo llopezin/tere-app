@@ -1,6 +1,7 @@
 import { cors } from 'hono/cors';
 import { logger } from 'hono/logger';
-import { onError, notFound } from 'stoker/middlewares';
+import { notFound } from 'stoker/middlewares';
+import { onError } from './middleware/error-handler.js';
 import createApp, { createRouter } from './lib/create-app.js';
 import configureOpenAPI from './lib/configure-open-api.js';
 import { auth } from './lib/auth.js';
@@ -68,5 +69,6 @@ app.route('/api/v1', api);
 app.notFound(notFound);
 
 export type AppType = typeof api;
+export type { ApiErrorCode } from './middleware/error-handler.js';
 
 export default app;

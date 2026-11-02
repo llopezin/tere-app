@@ -53,8 +53,11 @@ export const create = createRoute({
   responses: {
     [HttpStatusCodes.CREATED]: jsonContent(selectAppointmentSchema, 'The created appointment'),
     [HttpStatusCodes.BAD_REQUEST]: jsonContent(
-      createMessageObjectSchema('Appointment is outside the booking window'),
-      'Patient booking in the past or beyond the booking window',
+      z.object({
+        message: z.string(),
+        code: z.enum(['BOOKING_IN_PAST', 'BOOKING_OUTSIDE_WINDOW']),
+      }),
+      'Patient booking in the past (BOOKING_IN_PAST) or beyond the booking window (BOOKING_OUTSIDE_WINDOW)',
     ),
     [HttpStatusCodes.UNAUTHORIZED]: jsonContent(createMessageObjectSchema('Unauthorized'), 'Unauthorized'),
     [HttpStatusCodes.FORBIDDEN]: jsonContent(createMessageObjectSchema('RGPD consent required'), 'RGPD consent required'),
