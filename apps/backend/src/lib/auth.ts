@@ -74,8 +74,6 @@ export const auth = betterAuth({
         const found = email ? await ctx.context.internalAdapter.findUserByEmail(email) : null;
         const role = (found?.user as { role?: string } | undefined)?.role;
         if (found && role !== ROLE_BY_APP[app]) {
-          // Spend the same time as a real password check so timing does not reveal the account
-          await ctx.context.password.hash(typeof ctx.body?.password === 'string' ? ctx.body.password : 'dummy-password');
           throw new APIError('UNAUTHORIZED', { message: 'Invalid email or password', code: 'INVALID_EMAIL_OR_PASSWORD' });
         }
       }
