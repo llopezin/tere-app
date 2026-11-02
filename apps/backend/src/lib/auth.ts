@@ -1,7 +1,7 @@
 import { betterAuth } from 'better-auth';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 import { openAPI } from 'better-auth/plugins';
-import { APIError, createAuthMiddleware } from 'better-auth/api';
+import { APIError } from 'better-auth/api';
 import { eq } from 'drizzle-orm';
 import { DEFAULT_ROLE, ROLES, isRole, type Role } from './roles.js';
 import type { InferInsertModel } from 'drizzle-orm';
@@ -50,10 +50,10 @@ function appForOrigin(origin: string | null | undefined): FrontendApp | undefine
   return undefined;
 }
 
-async function findRoleByEmail(email: string): Promise<Role | undefined> {
+async function findRoleByUserId(userId: string): Promise<Role | undefined> {
   const [account] = await db.select({ role: schema.user.role })
     .from(schema.user)
-    .where(eq(schema.user.email, email.toLowerCase()));
+    .where(eq(schema.user.id, userId));
   return account?.role;
 }
 
@@ -70,22 +70,6 @@ export const auth = betterAuth({
   baseURL: process.env.BETTER_AUTH_URL || 'http://localhost:3000',
   secret: process.env.BETTER_AUTH_SECRET,
   trustedOrigins: trustedFrontendOrigins,
-  hooks: {
-    // Each app only accepts its own role. Same error as a wrong password, so this does not
-    // reveal whether an email exists or which role it has.
-    before: createAuthMiddleware(async (ctx) => {
-      if (ctx.path !== '/sign-in/email') return;
-
-      const app = appForOrigin(ctx.headers?.get('origin'));
-      const email = ctx.body?.email;
-      if (!app || typeof email !== 'string') return;
-
-      const role = await findRoleByEmail(email);
-      if (role && role !== ROLE_BY_APP[app]) {
-        throw new APIError('UNAUTHORIZED', { message: 'Invalid email or password', code: 'INVALID_EMAIL_OR_PASSWORD' });
-      }
-    }),
-  },
   emailAndPassword: {
     enabled: true,
     autoSignIn: false // We dynamically sign in after creation to guarantee profile entry is created and already linked to profile ID
@@ -131,6 +115,21 @@ export const auth = betterAuth({
     },
   },
   databaseHooks: {
+    session: {
+      create: {
+        // Every sign-in method ends up creating a session: each app only gets sessions for its own role.
+        // Same error as a wrong password, so it does not reveal that the account exists with another role.
+        before: async (session, ctx) => {
+          const app = appForOrigin(ctx?.headers?.get('origin'));
+          if (!app) return;
+
+          const role = await findRoleByUserId(session.userId);
+          if (role !== ROLE_BY_APP[app]) {
+            throw new APIError('UNAUTHORIZED', { message: 'Invalid email or password', code: 'INVALID_EMAIL_OR_PASSWORD' });
+          }
+        },
+      },
+    },
     user: {
       create: {
         after: async (user) => {
