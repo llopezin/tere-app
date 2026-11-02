@@ -222,6 +222,8 @@ Custom auth endpoints implemented in Hono. JWT-based with bcrypt password hashin
 &to=2026-03-30
 ```
 
+`from`/`to` must be `YYYY-MM-DD`, with `from <= to` and a range of at most 31 days; otherwise `422`.
+
 **Response:**
 ```json
 {
@@ -248,7 +250,7 @@ Custom auth endpoints implemented in Hono. JWT-based with bcrypt password hashin
 | Method | Path | Description | Role | Impl |
 |--------|------|-------------|------|------|
 | `GET` | `/appointments` | List appointments. Supports `?from=&to=&status=&patient_id=` | Professional | Drizzle query |
-| `POST` | `/appointments` | Create single appointment. Patients get `400` if `start_at` is in the past or beyond the booking window | Professional, Patient | Hono handler |
+| `POST` | `/appointments` | Create single appointment. Patients get `400` with `code: BOOKING_IN_PAST` or `BOOKING_OUTSIDE_WINDOW` if `start_at` is in the past or beyond the booking window | Professional, Patient | Hono handler |
 | `POST` | `/appointments/batch` | Create multiple appointments for same patient (multi-slot) | Professional | Hono handler |
 | `POST` | `/appointments/recurring` | Create recurring appointment series | Professional | Hono handler |
 | `GET` | `/appointments/:id` | Get appointment details (includes patient, type, payment info) | Professional, Patient (own) | Drizzle query |
