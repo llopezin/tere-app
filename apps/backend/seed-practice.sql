@@ -29,6 +29,15 @@ INSERT INTO "user" (id, name, email, email_verified, role, profile_id) VALUES
   ('auth-pat-1', 'María López',    'maria.lopez@gmail.com',    true, 'patient', NULL),
   ('auth-pat-2', 'Pedro Martínez', 'pedro.martinez@gmail.com', true, 'patient', NULL);
 
+-- Email + password credentials (Better Auth "credential" accounts). DEV ONLY.
+-- Every seeded user signs in with the password: fisio-dev-1234
+-- Hash generated with Better Auth's own hasher: `hashPassword('fisio-dev-1234')` from 'better-auth/crypto'.
+INSERT INTO account (id, account_id, provider_id, user_id, password, updated_at)
+SELECT 'acc-' || id, id, 'credential', id,
+  'c74ab0f351fa11f46fa1edd2c0114156:f37155628fa5d10f314d830fad1263a3fde49d0ee9d4b5d1171e34b7549e468837b3ce696476307965b29afbc0f2177173c824277c31342ed98db261168fe8e7',
+  now()
+FROM "user";
+
 -- ============================================
 -- 2. PROFESSIONALS
 -- ============================================
@@ -43,16 +52,24 @@ UPDATE "user" SET profile_id = 'a1111111-1111-1111-1111-111111111111' WHERE id =
 -- 3. PATIENTS
 -- ============================================
 
-INSERT INTO patients (id, auth_user_id, professional_id, first_name, last_name, nie, phone, email, date_of_birth, contact_method, clinical_notes, address_city, address_province) VALUES
-  ('b0000001-0001-0001-0001-000000000001', 'auth-pat-1', 'a1111111-1111-1111-1111-111111111111', 'María',  'López',     'X1234567A', '+34 611 111 001', 'maria.lopez@gmail.com',    '1985-03-15', 'whatsapp', 'Lumbar pain, sedentary job',       'Madrid',              'Madrid'),
-  ('b0000002-0002-0002-0002-000000000002', 'auth-pat-2', 'a1111111-1111-1111-1111-111111111111', 'Pedro',  'Martínez',  'Y2345678B', '+34 611 111 002', 'pedro.martinez@gmail.com', '1990-07-22', 'email',    'Knee rehabilitation post-surgery', 'Madrid',              'Madrid'),
-  ('b0000003-0003-0003-0003-000000000003', NULL,         'a1111111-1111-1111-1111-111111111111', 'Elena',  'Sánchez',   'Z3456789C', '+34 611 111 003', 'elena.s@yahoo.com',        '1978-11-08', 'sms',      'Cervical tension, stress-related', 'Madrid',              'Madrid'),
-  ('b0000004-0004-0004-0004-000000000004', NULL,         'a1111111-1111-1111-1111-111111111111', 'Javier', 'Hernández', NULL,        '+34 611 111 004', NULL,                        '2001-01-30', 'whatsapp', 'Sports injury — shoulder',         'Alcalá de Henares',   'Madrid'),
-  ('b0000005-0005-0005-0005-000000000005', NULL,         'a1111111-1111-1111-1111-111111111111', 'Carmen', 'Díaz',      'W4567890D', '+34 611 111 005', 'carmen.diaz@gmail.com',    '1965-06-12', 'whatsapp', 'Arthritis, mobility exercises',    'Madrid',              'Madrid');
+INSERT INTO patients (id, auth_user_id, first_name, last_name, nie, phone, email, date_of_birth, contact_method, address_city, address_province) VALUES
+  ('b0000001-0001-0001-0001-000000000001', 'auth-pat-1', 'María',  'López',     'X1234567A', '+34 611 111 001', 'maria.lopez@gmail.com',    '1985-03-15', 'whatsapp', 'Madrid',              'Madrid'),
+  ('b0000002-0002-0002-0002-000000000002', 'auth-pat-2', 'Pedro',  'Martínez',  'Y2345678B', '+34 611 111 002', 'pedro.martinez@gmail.com', '1990-07-22', 'email',    'Madrid',              'Madrid'),
+  ('b0000003-0003-0003-0003-000000000003', NULL,         'Elena',  'Sánchez',   'Z3456789C', '+34 611 111 003', 'elena.s@yahoo.com',        '1978-11-08', 'sms',      'Madrid',              'Madrid'),
+  ('b0000004-0004-0004-0004-000000000004', NULL,         'Javier', 'Hernández', NULL,        '+34 611 111 004', NULL,                        '2001-01-30', 'whatsapp', 'Alcalá de Henares',   'Madrid'),
+  ('b0000005-0005-0005-0005-000000000005', NULL,         'Carmen', 'Díaz',      'W4567890D', '+34 611 111 005', 'carmen.diaz@gmail.com',    '1965-06-12', 'whatsapp', 'Madrid',              'Madrid');
 
 -- Update patient profile links
 UPDATE "user" SET profile_id = 'b0000001-0001-0001-0001-000000000001' WHERE id = 'auth-pat-1';
 UPDATE "user" SET profile_id = 'b0000002-0002-0002-0002-000000000002' WHERE id = 'auth-pat-2';
+
+-- Professional ↔ patient relation (N:M). Ownership and each professional's clinical notes live here.
+INSERT INTO professional_patients (professional_id, patient_id, clinical_notes) VALUES
+  ('a1111111-1111-1111-1111-111111111111', 'b0000001-0001-0001-0001-000000000001', 'Lumbar pain, sedentary job'),
+  ('a1111111-1111-1111-1111-111111111111', 'b0000002-0002-0002-0002-000000000002', 'Knee rehabilitation post-surgery'),
+  ('a1111111-1111-1111-1111-111111111111', 'b0000003-0003-0003-0003-000000000003', 'Cervical tension, stress-related'),
+  ('a1111111-1111-1111-1111-111111111111', 'b0000004-0004-0004-0004-000000000004', 'Sports injury — shoulder'),
+  ('a1111111-1111-1111-1111-111111111111', 'b0000005-0005-0005-0005-000000000005', 'Arthritis, mobility exercises');
 
 -- ============================================
 -- 4. RGPD CONSENTS

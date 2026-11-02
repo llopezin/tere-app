@@ -7,7 +7,7 @@ import { AuthCard } from "./-components/AuthCard";
 export const Route = createFileRoute("/")({
   beforeLoad: async () => {
     const session = await authClient.getSession();
-    if (session.data?.session) {
+    if (session.data?.session && session.data.user.role === "patient") {
       throw redirect({ to: "/dashboard" });
     }
   },

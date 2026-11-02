@@ -42,7 +42,6 @@ export function SignupModal({ open, onOpenChange, onSwitchToLogin }: SignupModal
       name: `${firstName} ${lastName}`.trim(),
       email,
       password,
-      role: "patient",
       firstName,
       lastName,
       phone,

@@ -1,65 +1,48 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { client } from "../../lib/client";
-import { ApiError } from "../../lib/api-error";
+import { useQuery } from "@tanstack/react-query";
+import {
+  googleCalendarStatusQueryOptions,
+  useConnectGoogleCalendar,
+  useDisconnectGoogleCalendar,
+} from "@/api/google-calendar";
 import { Button } from "@fisio-app/ui";
 
+interface IntegracionesSearch {
+  gcal?: "connected" | "error";
+  reason?: string;
+}
+
 export const Route = createFileRoute("/ajustes/integraciones")({
+  // The Google OAuth callback redirects here with ?gcal=connected|error&reason=...
+  validateSearch: (search: Record<string, unknown>): IntegracionesSearch => ({
+    gcal: search.gcal === "connected" || search.gcal === "error" ? search.gcal : undefined,
+    reason: typeof search.reason === "string" ? search.reason : undefined,
+  }),
   component: IntegracionesPage,
 });
 
 function IntegracionesPage() {
-  const queryClient = useQueryClient();
-
-  const { data: status, isLoading } = useQuery({
-    queryKey: ["gcal-status"],
-    queryFn: async () => {
-      // Correct RPC path: /api/v1/integrations/google-calendar/status
-      const res = await client.integrations["google-calendar"].status.$get();
-      if (!res.ok) throw new ApiError(res.status, "Failed to fetch status");
-      return res.json();
-    },
-  });
-
-  const connectMutation = useMutation({
-    mutationFn: async () => {
-      // Correct RPC path: /api/v1/integrations/google-calendar/connect (POST)
-      const res = await client.integrations["google-calendar"].connect.$post();
-
-      if (!res.ok) {
-        const errorData = await res.json().catch(() => ({}));
-        console.error("Connect failed:", errorData);
-        throw new Error("Failed to connect");
-      }
-
-      const { authUrl } = await res.json();
-
-      if (!authUrl) {
-        console.error("authUrl is missing from response data");
-        throw new Error("authUrl is missing");
-      }
-
-      window.location.href = authUrl;
-    },
-  });
-
-  const disconnectMutation = useMutation({
-    mutationFn: async () => {
-      // Correct RPC path: /api/v1/integrations/google-calendar/disconnect (POST)
-      const res = await client.integrations["google-calendar"].disconnect.$post();
-      if (!res.ok) throw new Error("Failed to disconnect");
-      return res.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["gcal-status"] });
-    },
-  });
+  const { gcal, reason } = Route.useSearch();
+  const { data: status, isLoading } = useQuery(googleCalendarStatusQueryOptions());
+  const connectMutation = useConnectGoogleCalendar();
+  const disconnectMutation = useDisconnectGoogleCalendar();
 
   if (isLoading) return <div className="p-8">Cargando...</div>;
 
   return (
     <div className="p-8 max-w-2xl mx-auto">
       <h1 className="text-2xl font-bold mb-6">Integraciones</h1>
+
+      {gcal === "connected" && (
+        <p role="status" className="mb-4 rounded-md bg-green-50 p-3 text-sm text-green-700">
+          Google Calendar conectado correctamente.
+        </p>
+      )}
+      {gcal === "error" && (
+        <p role="alert" className="mb-4 rounded-md bg-danger/10 p-3 text-sm text-danger">
+          No se pudo conectar Google Calendar{reason ? ` (${reason})` : ""}.
+        </p>
+      )}
 
       <div className="border rounded-lg p-6 bg-white shadow-sm">
         <div className="flex items-center justify-between">

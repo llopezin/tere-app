@@ -12,6 +12,9 @@ export default defineConfig({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  // client-app uses 5173
+  server: { port: 5174, strictPort: true },
+  preview: { port: 5174, strictPort: true },
   plugins: [
     tanstackRouter({
       routesDirectory: "./src/routes",

@@ -2,7 +2,6 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { client } from "@/lib/client";
 
 interface CreateAppointmentInput {
-  patientId: string;
   appointmentTypeId: string;
   startAt: string;
 }
