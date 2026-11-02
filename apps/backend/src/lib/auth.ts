@@ -71,9 +71,10 @@ export const auth = betterAuth({
       // reveal whether an email exists or which role it has.
       if (ctx.path === '/sign-in/email' && app) {
         const email = typeof ctx.body?.email === 'string' ? ctx.body.email.toLowerCase() : undefined;
-        const found = email ? await ctx.context.internalAdapter.findUserByEmail(email) : null;
-        const role = (found?.user as { role?: string } | undefined)?.role;
-        if (found && role !== ROLE_BY_APP[app]) {
+        const [account] = email
+          ? await db.select({ role: schema.user.role }).from(schema.user).where(eq(schema.user.email, email))
+          : [];
+        if (account && account.role !== ROLE_BY_APP[app]) {
           throw new APIError('UNAUTHORIZED', { message: 'Invalid email or password', code: 'INVALID_EMAIL_OR_PASSWORD' });
         }
       }
