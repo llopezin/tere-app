@@ -19,18 +19,30 @@ export function isBookingLimited(user: { role?: string | null }): boolean {
   return user.role !== 'professional';
 }
 
+const formatters = new Map<string, Intl.DateTimeFormat>();
+
+/** Cached formatter per time zone (creating Intl.DateTimeFormat is relatively expensive). */
+function getFormatter(timeZone: string): Intl.DateTimeFormat {
+  let formatter = formatters.get(timeZone);
+  if (!formatter) {
+    formatter = new Intl.DateTimeFormat('en-US', {
+      timeZone,
+      hourCycle: 'h23',
+      year: 'numeric',
+      month: 'numeric',
+      day: 'numeric',
+      hour: 'numeric',
+      minute: 'numeric',
+      second: 'numeric',
+    });
+    formatters.set(timeZone, formatter);
+  }
+  return formatter;
+}
+
 /** Wall-clock date parts of `date` in `timeZone`. */
 function getZonedParts(date: Date, timeZone: string) {
-  const parts = new Intl.DateTimeFormat('en-US', {
-    timeZone,
-    hourCycle: 'h23',
-    year: 'numeric',
-    month: 'numeric',
-    day: 'numeric',
-    hour: 'numeric',
-    minute: 'numeric',
-    second: 'numeric',
-  }).formatToParts(date);
+  const parts = getFormatter(timeZone).formatToParts(date);
   const get = (type: Intl.DateTimeFormatPartTypes) =>
     Number(parts.find((p) => p.type === type)?.value);
   return {
