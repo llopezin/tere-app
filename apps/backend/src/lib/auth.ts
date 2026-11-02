@@ -67,12 +67,6 @@ export const auth = betterAuth({
       const origin = ctx.headers?.get('origin');
       const app = origin ? appForOrigin(origin) : undefined;
 
-      // Public sign-up only creates patients, and only from client-app.
-      // Professionals are created server-side (scripts/create-professional.ts, future admin-panel).
-      if (ctx.path === '/sign-up/email' && app === 'professional') {
-        throw new APIError('FORBIDDEN', { message: 'Sign up is not available in this application' });
-      }
-
       // Each app only accepts its own role. Same error as a wrong password, so this does not
       // reveal whether an email exists or which role it has.
       if (ctx.path === '/sign-in/email' && app) {
@@ -93,7 +87,8 @@ export const auth = betterAuth({
   },
   user: {
     additionalFields: {
-      // Never settable by the client: public sign-up always creates a patient
+      // Never settable by the client: this is what guarantees public sign-up always creates a patient.
+      // Professionals are created server-side (scripts/create-professional.ts, future admin panel).
       role: {
         type: 'string',
         required: true,

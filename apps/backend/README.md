@@ -253,7 +253,7 @@ Authentication is handled by **Better Auth** with email/password login (`/api/au
 ### Roles
 
 - **`patient`** — the only role public sign-up can create. `role` has `input: false`: if a client sends it, it is replaced by the default.
-- **`professional`** — created server-side only (and in the future, from the admin panel). Sign-up from professional-app is rejected.
+- **`professional`** — created server-side only (and in the future, from the admin panel). professional-app has no sign-up page, and a sign-up request from any origin still creates a patient.
   - Dev: `pnpm --filter @fisio-app/backend create-professional -- --email ana@clinica.es --password '…' --first-name Ana --last-name García`
   - Production image (no `tsx`): `docker compose exec backend node dist/scripts/create-professional.js --email … --password … --first-name … --last-name …`
 - Signing in to client-app with a professional account, or to professional-app with a patient account, fails with the same `Invalid email or password` error as a wrong password (no account/role enumeration).

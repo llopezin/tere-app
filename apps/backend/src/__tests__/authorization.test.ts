@@ -78,9 +78,14 @@ describe('Registration and login', () => {
     expect(pros).toHaveLength(0);
   });
 
-  it('rejects sign-up from professional-app', async () => {
-    const res = await signUpPatient(`x-${crypto.randomUUID()}@test.com`, {}, PROFESSIONAL_ORIGIN);
-    expect(res.status).toBe(403);
+  it('sign-up from professional-app still only creates a patient', async () => {
+    const email = `x-${crypto.randomUUID()}@test.com`;
+    await signUpPatient(email, { role: 'professional' }, PROFESSIONAL_ORIGIN);
+
+    const [created] = await testDb.select().from(user).where(eq(user.email, email));
+    expect(created.role).toBe('patient');
+    const pros = await testDb.select().from(professionals).where(eq(professionals.email, email));
+    expect(pros).toHaveLength(0);
   });
 
   it('rejects each role on the other app with the generic credentials error', async () => {
