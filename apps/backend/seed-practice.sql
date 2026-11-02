@@ -29,6 +29,15 @@ INSERT INTO "user" (id, name, email, email_verified, role, profile_id) VALUES
   ('auth-pat-1', 'María López',    'maria.lopez@gmail.com',    true, 'patient', NULL),
   ('auth-pat-2', 'Pedro Martínez', 'pedro.martinez@gmail.com', true, 'patient', NULL);
 
+-- Email + password credentials (Better Auth "credential" accounts). DEV ONLY.
+-- Every seeded user signs in with the password: fisio-dev-1234
+-- Hash generated with Better Auth's own hasher: `hashPassword('fisio-dev-1234')` from 'better-auth/crypto'.
+INSERT INTO account (id, account_id, provider_id, user_id, password, updated_at)
+SELECT 'acc-' || id, id, 'credential', id,
+  'c74ab0f351fa11f46fa1edd2c0114156:f37155628fa5d10f314d830fad1263a3fde49d0ee9d4b5d1171e34b7549e468837b3ce696476307965b29afbc0f2177173c824277c31342ed98db261168fe8e7',
+  now()
+FROM "user";
+
 -- ============================================
 -- 2. PROFESSIONALS
 -- ============================================
