@@ -48,6 +48,12 @@ function zonedMidnightToUtc(year: number, month: number, day: number, timeZone: 
   return new Date(guess);
 }
 
+/** Today's date in clinic time, as `YYYY-MM-DD` (same format as the availability query). */
+export function getClinicToday(now: Date = new Date()): string {
+  const { year, month, day } = getZonedParts(now, CLINIC_TIME_ZONE);
+  return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+}
+
 /**
  * Last bookable instant: end of day (23:59:59.999, clinic time) of today + N months.
  * The day is clamped to the target month's length (e.g. 30 Nov → 28/29 Feb).

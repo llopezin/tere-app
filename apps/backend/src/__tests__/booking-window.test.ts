@@ -1,5 +1,5 @@
 import { describe, test, expect } from 'vitest';
-import { getBookingWindowEnd, assertPatientCanBookAt } from '../lib/booking-window.js';
+import { getBookingWindowEnd, getClinicToday, assertPatientCanBookAt } from '../lib/booking-window.js';
 
 describe('getBookingWindowEnd', () => {
   test('is the end of day (Madrid) of today + 3 months, in winter (CET, UTC+1)', () => {
@@ -26,6 +26,16 @@ describe('getBookingWindowEnd', () => {
     // 23:30 UTC on 31 Dec 2026 is already 1 Jan 2027 00:30 in Madrid
     const now = new Date('2026-12-31T23:30:00Z');
     expect(getBookingWindowEnd(now).toISOString()).toBe('2027-04-01T21:59:59.999Z');
+  });
+});
+
+describe('getClinicToday', () => {
+  test('returns the Madrid date as YYYY-MM-DD', () => {
+    expect(getClinicToday(new Date('2026-11-02T10:00:00Z'))).toBe('2026-11-02');
+  });
+
+  test('uses the Madrid date, not the UTC date, near midnight', () => {
+    expect(getClinicToday(new Date('2026-12-31T23:30:00Z'))).toBe('2027-01-01');
   });
 });
 

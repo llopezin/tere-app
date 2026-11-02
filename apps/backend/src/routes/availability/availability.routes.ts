@@ -5,6 +5,23 @@ import { createMessageObjectSchema } from 'stoker/openapi/schemas';
 import { authMiddleware } from '../../middleware/auth.js';
 import { defineMiddleware } from '../../lib/create-app.js';
 
+/** Max days per availability request (the client asks for one week at a time). */
+const MAX_RANGE_DAYS = 31;
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+const availabilityQuerySchema = z
+  .object({
+    professional_id: z.string().uuid(),
+    appointment_type_id: z.string().uuid(),
+    from: z.string().date(),
+    to: z.string().date(),
+  })
+  .refine((q) => q.from <= q.to, { message: '`from` must be before or equal to `to`', path: ['to'] })
+  .refine((q) => (Date.parse(q.to) - Date.parse(q.from)) / DAY_MS < MAX_RANGE_DAYS, {
+    message: `Range cannot exceed ${MAX_RANGE_DAYS} days`,
+    path: ['to'],
+  });
+
 export const getAvailability = createRoute({
   method: 'get',
   path: '/availability',
@@ -12,12 +29,7 @@ export const getAvailability = createRoute({
   tags: ['Availability'],
   summary: 'Compute available appointment slots for a professional',
   request: {
-    query: z.object({
-      professional_id: z.string().uuid(),
-      appointment_type_id: z.string().uuid(),
-      from: z.string(),
-      to: z.string(),
-    }),
+    query: availabilityQuerySchema,
   },
   responses: {
     [HttpStatusCodes.OK]: jsonContent(
@@ -32,6 +44,7 @@ export const getAvailability = createRoute({
       }),
       'Available appointment slots',
     ),
+    [HttpStatusCodes.UNPROCESSABLE_ENTITY]: jsonContent(createMessageObjectSchema('Validation error'), 'Invalid date range'),
     [HttpStatusCodes.NOT_FOUND]: jsonContent(createMessageObjectSchema('Appointment type not found'), 'Appointment type not found'),
     [HttpStatusCodes.UNAUTHORIZED]: jsonContent(createMessageObjectSchema('Unauthorized'), 'Unauthorized'),
   },
