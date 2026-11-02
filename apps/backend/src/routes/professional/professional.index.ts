@@ -1,5 +1,6 @@
 import { createRouter } from '../../lib/create-app.js';
 import { env } from '../../config/env.js';
+import { ROLES } from '../../lib/roles.js';
 import { authMiddleware, requireOrigin, requireRole } from '../../middleware/auth.js';
 import me from './me/me.index.js';
 import patients from './patients/patients.index.js';
@@ -22,7 +23,7 @@ import integrations from './integrations/integrations.index.js';
  * (patients, appointment types, bonos, payments...) with services/ownership.service.
  */
 const router = createRouter();
-router.use('*', requireOrigin(env.PROFESSIONAL_APP_URL), authMiddleware, requireRole('professional'));
+router.use('*', requireOrigin(env.PROFESSIONAL_APP_URL), authMiddleware, requireRole(ROLES.professional));
 
 const professionalApi = router
   .route('/', me)

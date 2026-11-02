@@ -258,6 +258,12 @@ Authentication is handled by **Better Auth** with email/password login (`/api/au
   - Production image (no `tsx`): `docker compose exec backend node dist/scripts/create-professional.js --email … --password … --first-name … --last-name …`
 - Signing in to client-app with a professional account, or to professional-app with a patient account, fails with the same `Invalid email or password` error as a wrong password (no account/role enumeration).
 
+Roles are defined once in [`src/lib/roles.ts`](src/lib/roles.ts) (`ROLES`, type `Role`, `isRole`). They are backend-only: each frontend only knows its own role. To add a role:
+
+1. Add it to `ROLES`.
+2. Fix the TypeScript errors this creates. `createProfileByRole` in `src/lib/auth.ts` is a `Record<Role, …>`, so it will ask which profile (if any) the new role gets on sign-up.
+3. Decide which BFF accepts it: `requireRole(ROLES.x)` in `routes/<bff>/<bff>.index.ts`, or a new BFF with its own `requireOrigin`.
+
 ### Session Handling
 
 - Sessions last **7 days** and refresh every **24 hours**, cookie-based with a 5-minute cookie cache.

@@ -3,6 +3,7 @@ import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 import { openAPI } from 'better-auth/plugins';
 import { APIError, createAuthMiddleware } from 'better-auth/api';
 import { eq } from 'drizzle-orm';
+import { DEFAULT_ROLE, ROLES, isRole, type Role } from './roles.js';
 import type { InferInsertModel } from 'drizzle-orm';
 import { db } from '../db/index.js';
 import { professionals } from '../db/schema/professionals.js';
@@ -14,15 +15,40 @@ import { normalizeOrigin } from '../middleware/origin.js';
 type NewProfessional = InferInsertModel<typeof professionals>;
 type NewPatient = InferInsertModel<typeof patients>;
 
-const ROLE_BY_APP = { client: 'patient', professional: 'professional' } as const;
+type FrontendApp = 'client' | 'professional';
 
-function appForOrigin(origin: string): keyof typeof ROLE_BY_APP | undefined {
+/** The only role each frontend accepts on sign-in. */
+const ROLE_BY_APP: Record<FrontendApp, Role> = { client: ROLES.patient, professional: ROLES.professional };
+
+interface NewUserProfileInput {
+  user: { id: string; email: string; phone?: string };
+  firstName: string;
+  lastName: string;
+}
+
+/**
+ * Profile row created for each role on sign-up; returns its id (stored in `user.profileId`),
+ * or null for roles without a profile. Typed as Record<Role, …> so adding a role forces handling it here.
+ */
+const createProfileByRole: Record<Role, (input: NewUserProfileInput) => Promise<string | null>> = {
+  [ROLES.professional]: async ({ user, firstName, lastName }) => {
+    const profValues: NewProfessional = { authUserId: user.id, firstName, lastName, email: user.email };
+    const [prof] = await db.insert(professionals).values(profValues).returning({ id: professionals.id });
+    return prof.id;
+  },
+  [ROLES.patient]: async ({ user, firstName, lastName }) => {
+    const patValues: NewPatient = { authUserId: user.id, firstName, lastName, email: user.email, phone: user.phone || '' };
+    const [patient] = await db.insert(patients).values(patValues).returning({ id: patients.id });
+    return patient.id;
+  },
+};
+
+function appForOrigin(origin: string): FrontendApp | undefined {
   const normalized = normalizeOrigin(origin);
   if (normalized === normalizeOrigin(env.CLIENT_APP_URL)) return 'client';
   if (env.PROFESSIONAL_APP_URL && normalized === normalizeOrigin(env.PROFESSIONAL_APP_URL)) return 'professional';
   return undefined;
 }
-
 
 export const auth = betterAuth({
   database: drizzleAdapter(db, {
@@ -72,7 +98,7 @@ export const auth = betterAuth({
       role: {
         type: 'string',
         required: true,
-        defaultValue: 'patient',
+        defaultValue: DEFAULT_ROLE,
         input: false,
       },
       profileId: {
@@ -114,33 +140,17 @@ export const auth = betterAuth({
           const firstName = fName || user.name.split(' ')[0] || user.name;
           const lastName = lName || user.name.split(' ').slice(1).join(' ') || '';
 
-          if (user.role === 'professional') {
-            const profValues: NewProfessional = {
-              authUserId: user.id,
-              firstName,
-              lastName,
-              email: user.email,
-            };
-            const [prof] = await db.insert(professionals).values(profValues).returning();
+          if (!isRole(user.role)) throw new Error(`Unknown role: ${user.role}`);
+          const profileId = await createProfileByRole[user.role]({
+            user: user as typeof user & { phone?: string },
+            firstName,
+            lastName,
+          });
+          if (!profileId) return;
 
-            await db.update(schema.user)
-              .set({ profileId: prof.id })
-              .where(eq(schema.user.id, user.id));
-          } else if (user.role === 'patient') {
-            const phone = (user as any).phone as string | undefined;
-            const patValues: NewPatient = {
-              authUserId: user.id,
-              firstName,
-              lastName,
-              email: user.email,
-              phone: phone || '',
-            };
-            const [patient] = await db.insert(patients).values(patValues).returning();
-
-            await db.update(schema.user)
-              .set({ profileId: patient.id })
-              .where(eq(schema.user.id, user.id));
-          }
+          await db.update(schema.user)
+            .set({ profileId })
+            .where(eq(schema.user.id, user.id));
         },
       },
     },

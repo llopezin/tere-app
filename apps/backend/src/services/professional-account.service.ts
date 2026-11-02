@@ -1,4 +1,5 @@
 import { eq } from 'drizzle-orm';
+import { ROLES } from '../lib/roles.js';
 import { auth } from '../lib/auth.js';
 import { db } from '../db/index.js';
 import { professionals } from '../db/schema/professionals.js';
@@ -33,7 +34,7 @@ export async function createProfessionalAccount(input: CreateProfessionalAccount
     email,
     name: `${input.firstName} ${input.lastName}`.trim(),
     emailVerified: false,
-    role: 'professional',
+    role: ROLES.professional,
     firstName: input.firstName,
     lastName: input.lastName,
   });

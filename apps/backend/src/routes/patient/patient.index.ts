@@ -1,5 +1,6 @@
 import { createRouter } from '../../lib/create-app.js';
 import { env } from '../../config/env.js';
+import { ROLES } from '../../lib/roles.js';
 import { authMiddleware, requireOrigin, requireRole } from '../../middleware/auth.js';
 import me from './me/me.index.js';
 import booking from './booking/booking.index.js';
@@ -13,7 +14,7 @@ import invoices from './invoices/invoices.index.js';
  * Handlers scope every query to the authenticated patient (`getProfileId`).
  */
 const router = createRouter();
-router.use('*', requireOrigin(env.CLIENT_APP_URL), authMiddleware, requireRole('patient'));
+router.use('*', requireOrigin(env.CLIENT_APP_URL), authMiddleware, requireRole(ROLES.patient));
 
 const patientApi = router
   .route('/', me)

@@ -1,4 +1,5 @@
 import type { Context, Next } from 'hono';
+import { isRole, type Role } from '../lib/roles.js';
 import { auth, type Session } from '../lib/auth.js';
 import { AppError } from './error-handler.js';
 import { normalizeOrigin } from './origin.js';
@@ -25,10 +26,10 @@ export async function authMiddleware(c: Context, next: Next) {
   await next();
 }
 
-export function requireRole(...roles: Array<'professional' | 'patient'>) {
+export function requireRole(...roles: Role[]) {
   return async (c: Context, next: Next) => {
     const user = c.get('user');
-    if (!user || !roles.includes(user.role as 'professional' | 'patient')) {
+    if (!user || !isRole(user.role) || !roles.includes(user.role)) {
       return c.json({ error: 'Insufficient permissions' }, 403);
     }
     await next();
