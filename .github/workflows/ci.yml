@@ -6,19 +6,12 @@ on:
 
 jobs:
   ci:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     container:
       image: node:24
 
-    # Dummy values: build/lint don't need real secrets (and fork PRs don't receive them)
-    env:
-      DATABASE_URL: postgres://ci:ci@localhost:5432/ci
-      BETTER_AUTH_SECRET: ci-only-secret
-      BETTER_AUTH_URL: http://localhost:3000
-      CLIENT_APP_URL: http://localhost:5173
-      PROFESSIONAL_APP_URL: http://localhost:5174
-      VITE_API_URL: http://localhost:3000
-
+    # No env needed: lint, format and build never read secrets or connect to a DB.
+    # Add an env block with test-only values when backend tests are wired in.
     steps:
       - uses: actions/checkout@v5
       - run: corepack enable
