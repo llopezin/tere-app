@@ -57,9 +57,6 @@ function getMonday(offset: number): Date {
 
 const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
 
-/** Auto-skip cap when the backend reports no booking limit (e.g. professionals). */
-const MAX_AUTO_SKIP_WEEKS_UNLIMITED = 12;
-
 /** Local calendar date from a `YYYY-MM-DD` string (no time-zone conversion). */
 function parseCalendarDate(ymd: string): Date {
   const [y, m, d] = ymd.split("-").map(Number);
@@ -104,10 +101,8 @@ export function WeeklySchedule({
   const [userNavigated, setUserNavigated] = useState(false);
   const [noSlotsInWindow, setNoSlotsInWindow] = useState(false);
   // Last bookable day (YYYY-MM-DD, clinic time), provided by the backend (single source of truth).
-  // undefined = not known yet, null = no limit. Kept in state so it survives while the next week loads.
-  const [bookingWindowLastDay, setBookingWindowLastDay] = useState<string | null | undefined>(
-    undefined,
-  );
+  // undefined = not known yet. Kept in state so it survives while the next week loads.
+  const [bookingWindowLastDay, setBookingWindowLastDay] = useState<string>();
 
   const { monday, friday, weekDays } = useMemo(() => {
     const mon = getMonday(weekOffset);
@@ -129,20 +124,16 @@ export function WeeklySchedule({
     setBookingWindowLastDay(data.booking_window_last_day);
   }
 
-  // Last navigable week: undefined = unknown yet, null = unlimited.
-  const maxWeekOffset = useMemo(() => {
-    if (bookingWindowLastDay === undefined || bookingWindowLastDay === null) {
-      return bookingWindowLastDay;
-    }
-    return getWeekOffsetOf(parseCalendarDate(bookingWindowLastDay));
-  }, [bookingWindowLastDay]);
+  // Last navigable week (undefined while unknown).
+  const maxWeekOffset = useMemo(
+    () =>
+      bookingWindowLastDay ? getWeekOffsetOf(parseCalendarDate(bookingWindowLastDay)) : undefined,
+    [bookingWindowLastDay],
+  );
 
   // While the limit is unknown, only block forward navigation during the first load
   // (if that request fails, the backend still enforces the window).
-  const isLastWeek =
-    maxWeekOffset === undefined ? isLoading : maxWeekOffset !== null && weekOffset >= maxWeekOffset;
-  const autoSkipLimit =
-    maxWeekOffset === undefined ? undefined : (maxWeekOffset ?? MAX_AUTO_SKIP_WEEKS_UNLIMITED);
+  const isLastWeek = maxWeekOffset === undefined ? isLoading : weekOffset >= maxWeekOffset;
 
   const slotsByDay = useMemo(() => {
     const map = new Map<string, { start_at: string; end_at: string }[]>();
@@ -171,10 +162,10 @@ export function WeeklySchedule({
 
   // Auto-skip forward to the first week with future slots, within the booking window.
   useEffect(() => {
-    if (isLoading || isError || userNavigated || hasFutureSlots || autoSkipLimit === undefined) {
+    if (isLoading || isError || userNavigated || hasFutureSlots || maxWeekOffset === undefined) {
       return;
     }
-    if (weekOffset < autoSkipLimit) {
+    if (weekOffset < maxWeekOffset) {
       setWeekOffset((o) => o + 1);
     } else {
       // Nothing bookable in the whole window: go back to the current week.
@@ -182,7 +173,7 @@ export function WeeklySchedule({
       setUserNavigated(true);
       setWeekOffset(0);
     }
-  }, [isLoading, isError, userNavigated, hasFutureSlots, weekOffset, autoSkipLimit]);
+  }, [isLoading, isError, userNavigated, hasFutureSlots, weekOffset, maxWeekOffset]);
 
   return (
     <div className="flex flex-col gap-4">
@@ -239,11 +230,9 @@ export function WeeklySchedule({
         </div>
       ) : !hasFutureSlots ? (
         <p className="py-8 text-center text-sm text-text-muted">
-          {!noSlotsInWindow
-            ? "No hay citas disponibles esta semana"
-            : bookingWindowLastDay
-              ? `No hay citas disponibles hasta el ${parseCalendarDate(bookingWindowLastDay).toLocaleDateString("es-ES", { day: "numeric", month: "long" })}`
-              : "No hay citas disponibles en las próximas semanas"}
+          {noSlotsInWindow && bookingWindowLastDay
+            ? `No hay citas disponibles hasta el ${parseCalendarDate(bookingWindowLastDay).toLocaleDateString("es-ES", { day: "numeric", month: "long" })}`
+            : "No hay citas disponibles esta semana"}
         </p>
       ) : (
         <div className="grid grid-cols-5 gap-2 md:gap-3">

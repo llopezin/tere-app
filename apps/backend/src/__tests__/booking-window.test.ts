@@ -1,5 +1,5 @@
 import { describe, test, expect } from 'vitest';
-import { getBookingWindowEnd, getClinicToday, toClinicDate, assertPatientCanBookAt, isBookingLimited } from '../lib/booking-window.js';
+import { getBookingWindowEnd, getClinicToday, toClinicDate, assertPatientCanBookAt } from '../lib/booking-window.js';
 
 describe('getBookingWindowEnd', () => {
   test('is the end of day (Madrid) of today + 3 months, in winter (CET, UTC+1)', () => {
@@ -69,11 +69,3 @@ describe('assertPatientCanBookAt', () => {
   });
 });
 
-describe('isBookingLimited', () => {
-  test('exempts only professionals (fails closed)', () => {
-    expect(isBookingLimited({ role: 'professional' })).toBe(false);
-    expect(isBookingLimited({ role: 'patient' })).toBe(true);
-    expect(isBookingLimited({ role: 'foo' })).toBe(true);
-    expect(isBookingLimited({ role: null })).toBe(true);
-  });
-});

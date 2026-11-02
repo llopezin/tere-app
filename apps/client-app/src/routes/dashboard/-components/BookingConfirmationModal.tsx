@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { Mail, MessageCircle, Phone, CheckCircle2 } from "lucide-react";
 import { Modal } from "@fisio-app/ui";
 import { Input } from "@fisio-app/ui";
@@ -8,8 +8,7 @@ import { Button } from "@fisio-app/ui";
 import { Checkbox } from "@fisio-app/ui";
 import { patientProfileQueryOptions } from "@/api/patient-profile";
 import { useCreateAppointment } from "@/api/appointments";
-import { rgpdConsentQueryOptions } from "@/api/rgpd-consent";
-import { client } from "@/lib/client";
+import { rgpdConsentQueryOptions, useAcceptRgpdConsent } from "@/api/rgpd-consent";
 import { phoneSchema, nieSchema } from "@fisio-app/validators";
 import { cn } from "@fisio-app/ui";
 
@@ -60,8 +59,8 @@ export function BookingConfirmationModal({
 }: BookingConfirmationModalProps) {
   const { data: profile } = useQuery(patientProfileQueryOptions());
   const { data: rgpdConsent } = useQuery(rgpdConsentQueryOptions());
-  const queryClient = useQueryClient();
   const createAppointment = useCreateAppointment();
+  const acceptRgpdConsent = useAcceptRgpdConsent();
   const profileLoaded = useRef(false);
 
   const alreadySigned = rgpdConsent?.signed === true;
@@ -170,15 +169,10 @@ export function BookingConfirmationModal({
 
     try {
       if (!alreadySigned) {
-        const rgpdRes = await client.patient.me["rgpd-consent"].$post();
-        if (!rgpdRes.ok) throw new Error("Error al registrar el consentimiento RGPD");
-        await queryClient.invalidateQueries({
-          queryKey: rgpdConsentQueryOptions().queryKey,
-        });
+        await acceptRgpdConsent.mutateAsync();
       }
 
       await createAppointment.mutateAsync({
-        patientId: profile.id,
         appointmentTypeId,
         startAt: slot.startAt,
       });

@@ -10,7 +10,7 @@ import { professionalsQueryOptions } from "@/api/professionals";
 export const Route = createFileRoute("/dashboard/")({
   beforeLoad: async () => {
     const session = await authClient.getSession();
-    if (!session.data?.session) {
+    if (!session.data?.session || session.data.user.role !== "patient") {
       throw redirect({ to: "/" });
     }
   },

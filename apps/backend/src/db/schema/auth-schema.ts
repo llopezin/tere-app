@@ -1,5 +1,6 @@
 import { relations } from "drizzle-orm";
 import { pgTable, text, timestamp, boolean, index } from "drizzle-orm/pg-core";
+import { DEFAULT_ROLE, type Role } from "../../lib/roles.js";
 
 export const user = pgTable("user", {
   id: text("id").primaryKey(),
@@ -12,7 +13,7 @@ export const user = pgTable("user", {
     .defaultNow()
     .$onUpdate(() => /* @__PURE__ */ new Date())
     .notNull(),
-  role: text("role").default("patient").notNull(),
+  role: text("role").$type<Role>().default(DEFAULT_ROLE).notNull(),
   profileId: text("profile_id"),
   firstName: text("first_name"),
   lastName: text("last_name"),

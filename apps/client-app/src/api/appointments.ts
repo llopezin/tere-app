@@ -18,7 +18,6 @@ function getErrorMessage(body: unknown): string {
 }
 
 interface CreateAppointmentInput {
-  patientId: string;
   appointmentTypeId: string;
   startAt: string;
 }

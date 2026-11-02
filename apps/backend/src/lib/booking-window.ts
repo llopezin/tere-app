@@ -3,21 +3,13 @@ import { AppError } from '../middleware/error-handler.js';
 /**
  * Patients can only book appointments from now until the end of the day
  * `BOOKING_WINDOW_MONTHS` calendar months ahead, in the clinic's time zone.
- * Professionals are not limited.
+ * Applied in the patient BFF only (`routes/patient/*`), so professionals are not limited.
  *
- * This is the single source of truth: the frontend reads the computed limit
- * from `GET /availability` (`booking_window_last_day`).
+ * This is the single source of truth: client-app reads the computed limit
+ * from `GET /patient/availability` (`booking_window_last_day`).
  */
 export const BOOKING_WINDOW_MONTHS = 3;
 export const CLINIC_TIME_ZONE = 'Europe/Madrid';
-
-/**
- * Whether the booking window applies to this user. Fails closed: only professionals
- * are exempt, so an unexpected role is limited like a patient.
- */
-export function isBookingLimited(user: { role?: string | null }): boolean {
-  return user.role !== 'professional';
-}
 
 const formatters = new Map<string, Intl.DateTimeFormat>();
 
