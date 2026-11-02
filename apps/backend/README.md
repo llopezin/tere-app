@@ -328,8 +328,7 @@ Interactive docs: `/api/v1/docs` (tags `Patient / …`, `Professional / …`, `P
 
 - Patients and professionals are **N:M** (`professional_patients`). A patient becomes "of" a professional when the professional creates them or when the patient books with that professional.
 - Each **professional** only sees their linked patients and only their own appointments, bonos, payments, invoices and clinical notes about them.
-- Each **patient** only sees their own data.
-- `patients.professional_id` and `patients.clinical_notes` are legacy columns (migrated to `professional_patients`), pending removal.
+- Each **patient** only sees their own data. Clinical notes live in `professional_patients` (one per professional) and are never exposed to the patient.
 
 ### Appointment Booking Flow
 

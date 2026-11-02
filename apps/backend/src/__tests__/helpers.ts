@@ -45,7 +45,6 @@ export async function createPatient(professionalId: string, data: Partial<typeof
   
   const [patient] = await testDb.insert(patients).values({
     authUserId: userId,
-    professionalId,
     firstName: 'Test',
     lastName: 'Patient',
     email,

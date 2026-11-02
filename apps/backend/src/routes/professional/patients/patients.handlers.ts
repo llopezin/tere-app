@@ -31,11 +31,9 @@ import { getProfileId } from '../../../middleware/auth.js';
 import { AppError } from '../../../middleware/error-handler.js';
 import * as HttpStatusCodes from 'stoker/http-status-codes';
 
-const { professionalId: _professionalId, clinicalNotes: _clinicalNotes, ...patientColumns } = getTableColumns(patients);
-
 /** Patient row as seen by a professional: shared personal data + this professional's clinical notes. */
 const patientForProfessional = {
-  ...patientColumns,
+  ...getTableColumns(patients),
   clinicalNotes: professionalPatients.clinicalNotes,
 };
 

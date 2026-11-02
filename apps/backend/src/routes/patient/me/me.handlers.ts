@@ -16,17 +16,14 @@ import { patientBillingData } from '../../../db/schema/patient-billing-data.js';
 import { patientConsents } from '../../../db/schema/patient-consents.js';
 import { consentDocuments } from '../../../db/schema/consent-documents.js';
 import { rgpdConsents } from '../../../db/schema/rgpd-consents.js';
-import { eq, and, getTableColumns } from 'drizzle-orm';
+import { eq, and } from 'drizzle-orm';
 import { getProfileId } from '../../../middleware/auth.js';
 import { AppError } from '../../../middleware/error-handler.js';
 import * as HttpStatusCodes from 'stoker/http-status-codes';
 
-// Legacy columns (ownership + clinical notes) are never exposed to the patient
-const { professionalId: _professionalId, clinicalNotes: _clinicalNotes, ...ownPatientColumns } = getTableColumns(patients);
-
 export const getMe: AppRouteHandler<GetMeRoute> = async (c) => {
   const profileId = getProfileId(c);
-  const [patient] = await db.select(ownPatientColumns).from(patients).where(eq(patients.id, profileId));
+  const [patient] = await db.select().from(patients).where(eq(patients.id, profileId));
   if (!patient) throw new AppError(404, 'Patient profile not found');
   return c.json(patient, HttpStatusCodes.OK);
 };
@@ -38,7 +35,7 @@ export const updateMe: AppRouteHandler<UpdateMeRoute> = async (c) => {
   const [updated] = await db.update(patients)
     .set({ ...body, updatedAt: new Date() })
     .where(eq(patients.id, profileId))
-    .returning(ownPatientColumns);
+    .returning();
   if (!updated) throw new AppError(404, 'Patient profile not found');
   return c.json(updated, HttpStatusCodes.OK);
 };
