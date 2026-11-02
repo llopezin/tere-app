@@ -11,6 +11,14 @@ import { AppError } from '../middleware/error-handler.js';
 export const BOOKING_WINDOW_MONTHS = 3;
 export const CLINIC_TIME_ZONE = 'Europe/Madrid';
 
+/**
+ * Whether the booking window applies to this user. Fails closed: only professionals
+ * are exempt, so an unexpected role is limited like a patient.
+ */
+export function isBookingLimited(user: { role?: string | null }): boolean {
+  return user.role !== 'professional';
+}
+
 /** Wall-clock date parts of `date` in `timeZone`. */
 function getZonedParts(date: Date, timeZone: string) {
   const parts = new Intl.DateTimeFormat('en-US', {
