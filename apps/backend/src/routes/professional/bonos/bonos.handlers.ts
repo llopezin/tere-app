@@ -11,9 +11,9 @@ import { bonos } from '../../../db/schema/bonos.js';
 import { bonoTransactions } from '../../../db/schema/bono-transactions.js';
 import { eq, and } from 'drizzle-orm';
 import { getProfileId } from '../../../middleware/auth.js';
-import { AppError } from '../../../middleware/error-handler.js';
 import * as HttpStatusCodes from 'stoker/http-status-codes';
-import { assertPatientOfProfessional, assertAppointmentTypeOf } from '../../../services/ownership.service.js';
+import { assertPatientOfProfessional, assertAppointmentTypeOf, assertBonoOf } from '../../../services/ownership.service.js';
+import * as appointmentService from '../../../services/appointment.service.js';
 
 export const list: AppRouteHandler<ListRoute> = async (c) => {
   const profileId = getProfileId(c);
@@ -23,7 +23,7 @@ export const list: AppRouteHandler<ListRoute> = async (c) => {
     await assertPatientOfProfessional(profileId, patientId);
     conditions.push(eq(bonos.patientId, patientId));
   }
-  if (status) conditions.push(eq(bonos.status, status as any));
+  if (status) conditions.push(eq(bonos.status, status));
   const results = await db.select().from(bonos).where(and(...conditions));
   return c.json({ data: results }, HttpStatusCodes.OK);
 };
@@ -47,18 +47,14 @@ export const create: AppRouteHandler<CreateRoute> = async (c) => {
 export const getOne: AppRouteHandler<GetOneRoute> = async (c) => {
   const profileId = getProfileId(c);
   const { id } = c.req.valid('param');
-  const [bono] = await db.select().from(bonos)
-    .where(and(eq(bonos.id, id), eq(bonos.professionalId, profileId)));
-  if (!bono) throw new AppError(404, 'Bono not found');
+  const bono = await assertBonoOf({ professionalId: profileId }, id);
   return c.json({ ...bono, sessions_remaining: bono.totalSessions - bono.sessionsUsed }, HttpStatusCodes.OK);
 };
 
 export const listTransactions: AppRouteHandler<ListTransactionsRoute> = async (c) => {
   const profileId = getProfileId(c);
   const { id } = c.req.valid('param');
-  const [bono] = await db.select().from(bonos)
-    .where(and(eq(bonos.id, id), eq(bonos.professionalId, profileId)));
-  if (!bono) throw new AppError(404, 'Bono not found');
+  await assertBonoOf({ professionalId: profileId }, id);
   const results = await db.select().from(bonoTransactions)
     .where(eq(bonoTransactions.bonoId, id))
     .orderBy(bonoTransactions.createdAt);
@@ -68,21 +64,7 @@ export const listTransactions: AppRouteHandler<ListTransactionsRoute> = async (c
 export const deduct: AppRouteHandler<DeductRoute> = async (c) => {
   const profileId = getProfileId(c);
   const { id } = c.req.valid('param');
-  c.req.valid('json');
-  const result = await db.transaction(async (tx) => {
-    const [bono] = await tx.select().from(bonos)
-      .where(and(eq(bonos.id, id), eq(bonos.professionalId, profileId)));
-    if (!bono) throw new AppError(404, 'Bono not found');
-    if (bono.status === 'exhausted') throw new AppError(400, 'Bono is exhausted');
-    if (bono.sessionsUsed >= bono.totalSessions) throw new AppError(400, 'No remaining sessions');
-    const newUsed = bono.sessionsUsed + 1;
-    const [updated] = await tx.update(bonos).set({
-      sessionsUsed: newUsed,
-      status: newUsed >= bono.totalSessions ? 'exhausted' : 'active',
-      updatedAt: new Date(),
-    }).where(eq(bonos.id, id)).returning();
-    await tx.insert(bonoTransactions).values({ bonoId: id, type: 'manual_deduction' });
-    return updated;
-  });
-  return c.json(result, HttpStatusCodes.OK);
+  await assertBonoOf({ professionalId: profileId }, id);
+  const bono = await db.transaction((tx) => appointmentService.deductBonoSession(tx, id));
+  return c.json(bono, HttpStatusCodes.OK);
 };

@@ -263,23 +263,13 @@ export const getContactLink: AppRouteHandler<GetContactLinkRoute> = async (c) =>
   const patient = await getPatientOf(profileId, id);
 
   const method = patient.contactMethod ?? 'whatsapp';
+  const linkByMethod: Record<typeof method, string> = {
+    whatsapp: `https://wa.me/${patient.phone.replace(/[^0-9]/g, '')}`,
+    sms: `sms:${patient.phone}`,
+    email: `mailto:${patient.email ?? ''}`,
+  };
 
-  let link: string;
-  switch (method) {
-    case 'whatsapp':
-      link = `https://wa.me/${patient.phone.replace(/[^0-9]/g, '')}`;
-      break;
-    case 'sms':
-      link = `sms:${patient.phone}`;
-      break;
-    case 'email':
-      link = `mailto:${patient.email || ''}`;
-      break;
-    default:
-      link = `https://wa.me/${patient.phone.replace(/[^0-9]/g, '')}`;
-  }
-
-  return c.json({ method, link }, HttpStatusCodes.OK);
+  return c.json({ method, link: linkByMethod[method] }, HttpStatusCodes.OK);
 };
 
 export const assignConsent: AppRouteHandler<AssignConsentRoute> = async (c) => {
@@ -288,10 +278,8 @@ export const assignConsent: AppRouteHandler<AssignConsentRoute> = async (c) => {
   const body = c.req.valid('json');
 
   await assertPatientOfProfessional(profileId, id);
-
   await assertConsentDocumentOf(profileId, body.consentDocumentId);
 
-  // Check if already assigned
   const [existing] = await db.select({ id: patientConsents.id }).from(patientConsents)
     .where(and(
       eq(patientConsents.consentDocumentId, body.consentDocumentId),
@@ -319,15 +307,7 @@ export const getConsents: AppRouteHandler<GetConsentsRoute> = async (c) => {
   if (status) conditions.push(eq(patientConsents.status, status));
 
   const results = await db.select({
-    id: patientConsents.id,
-    consentDocumentId: patientConsents.consentDocumentId,
-    patientId: patientConsents.patientId,
-    professionalId: patientConsents.professionalId,
-    status: patientConsents.status,
-    signatureData: patientConsents.signatureData,
-    signedAt: patientConsents.signedAt,
-    ipAddress: patientConsents.ipAddress,
-    createdAt: patientConsents.createdAt,
+    ...getTableColumns(patientConsents),
     document: {
       title: consentDocuments.title,
       description: consentDocuments.description,

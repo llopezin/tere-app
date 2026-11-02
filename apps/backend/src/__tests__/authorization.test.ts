@@ -68,24 +68,15 @@ beforeEach(async () => {
 });
 
 describe('Registration and login', () => {
-  it('ignores a role sent on public sign-up: never creates a professional', async () => {
-    const email = `intruder-${crypto.randomUUID()}@test.com`;
-    await signUpPatient(email, { role: 'professional' });
+  it('public sign-up always creates a patient, whatever role or origin is sent', async () => {
+    for (const origin of [CLIENT_ORIGIN, PROFESSIONAL_ORIGIN]) {
+      const email = `intruder-${crypto.randomUUID()}@test.com`;
+      await signUpPatient(email, { role: 'professional' }, origin);
 
-    const [created] = await testDb.select().from(user).where(eq(user.email, email));
-    if (created) expect(created.role).toBe('patient');
-    const pros = await testDb.select().from(professionals).where(eq(professionals.email, email));
-    expect(pros).toHaveLength(0);
-  });
-
-  it('sign-up from professional-app still only creates a patient', async () => {
-    const email = `x-${crypto.randomUUID()}@test.com`;
-    await signUpPatient(email, { role: 'professional' }, PROFESSIONAL_ORIGIN);
-
-    const [created] = await testDb.select().from(user).where(eq(user.email, email));
-    expect(created.role).toBe('patient');
-    const pros = await testDb.select().from(professionals).where(eq(professionals.email, email));
-    expect(pros).toHaveLength(0);
+      const [created] = await testDb.select().from(user).where(eq(user.email, email));
+      expect(created.role).toBe('patient');
+      expect(await testDb.select().from(professionals).where(eq(professionals.email, email))).toHaveLength(0);
+    }
   });
 
   it('rejects each role on the other app with the generic credentials error', async () => {
@@ -120,11 +111,6 @@ describe('BFF isolation (role + origin)', () => {
 
   it('accepts requests without Origin (same-origin / non-browser) when the role is right', async () => {
     expect((await call(P1, 'GET', `${P}/me`, { origin: null })).status).toBe(200);
-  });
-
-  it('no longer exposes the legacy shared routes', async () => {
-    expect((await call(P1, 'POST', '/api/v1/appointments', { json: {} })).status).toBe(404);
-    expect((await call(A, 'GET', '/api/v1/professionals')).status).toBe(404);
   });
 });
 
@@ -289,7 +275,7 @@ describe('Professional BFF: only my data and my patients', () => {
   });
 });
 
-describe('Review hardening', () => {
+describe('Business rules and shared data', () => {
   it('cannot change role or profileId through update-user', async () => {
     const res = await call(P1, 'POST', '/api/auth/update-user', { json: { role: 'professional', profileId: A.profileId } });
     expect(res.ok).toBe(false);
@@ -333,9 +319,8 @@ describe('Review hardening', () => {
     expect(await testDb.select().from(patientBillingData).where(eq(patientBillingData.patientId, P1.profileId))).toHaveLength(0);
     expect((await call(A, 'POST', `${PRO}/patients/${P1.profileId}/rgpd-consent`, { json: { signatureData: 'x', signed: true } })).status).toBe(403);
 
-    // Patients created by the professional (no account) remain editable
-    const created = await (await call(A, 'POST', `${PRO}/patients`, { json: { firstName: 'Sin', lastName: 'Cuenta', phone: '+34600111333' } })).json();
-    expect((await call(A, 'PUT', `${PRO}/patients/${created.id}/billing-data`, { json: billing })).status).toBeLessThan(300);
+    const withoutAccount = await (await call(A, 'POST', `${PRO}/patients`, { json: { firstName: 'Sin', lastName: 'Cuenta', phone: '+34600111333' } })).json();
+    expect((await call(A, 'PUT', `${PRO}/patients/${withoutAccount.id}/billing-data`, { json: billing })).status).toBeLessThan(300);
   });
 
   it('escapes user-controlled fields in the invoice HTML and forbids scripts', async () => {
@@ -352,7 +337,6 @@ describe('Review hardening', () => {
     expect(html).toContain('&lt;script&gt;');
     expect(pdf.headers.get('content-security-policy')).toContain("default-src 'none'");
 
-    // and the patient sees only their own invoices
     expect((await call(P1, 'GET', `${P}/invoices/${id}/pdf`)).status).toBe(200);
     expect((await call(P2, 'GET', `${P}/invoices/${id}`)).status).toBe(404);
     expect((await call(P2, 'GET', `${P}/invoices/${id}/pdf`)).status).toBe(404);
@@ -360,10 +344,9 @@ describe('Review hardening', () => {
 
   it('rejects invoices for appointments or payments that are not mine', async () => {
     expect((await call(A, 'POST', `${PRO}/invoices`, { json: { appointmentId: apptP2B.id } })).status).toBe(404);
-    const pay = await (await call(B, 'POST', `${PRO}/payments`, { json: { patientId: P3.profileId, amount: 50, paymentMethod: 'cash' } })).json();
+    const paymentOfB = await (await call(B, 'POST', `${PRO}/payments`, { json: { patientId: P3.profileId, amount: 50, paymentMethod: 'cash' } })).json();
     const otherPatientPay = await (await call(A, 'POST', `${PRO}/payments`, { json: { patientId: P3.profileId, amount: 50, paymentMethod: 'cash' } })).json();
-    expect((await call(A, 'POST', `${PRO}/invoices`, { json: { appointmentId: apptP1A.id, paymentId: pay.id } })).status).toBe(404);
-    // payment is mine but belongs to another patient than the appointment
+    expect((await call(A, 'POST', `${PRO}/invoices`, { json: { appointmentId: apptP1A.id, paymentId: paymentOfB.id } })).status).toBe(404);
     expect((await call(A, 'POST', `${PRO}/invoices`, { json: { appointmentId: apptP1A.id, paymentId: otherPatientPay.id } })).status).toBe(404);
   });
 

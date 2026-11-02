@@ -18,8 +18,6 @@ const envSchema = z.object({
   BETTER_AUTH_URL: z.string().default('http://localhost:3000'),
   PORT: z.coerce.number().default(3000),
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
-  /** @deprecated use CLIENT_APP_URL. Kept as fallback so existing deploys keep working. */
-  FRONTEND_URL: originSchema,
   CLIENT_APP_URL: originSchema,
   PROFESSIONAL_APP_URL: originSchema,
   GOOGLE_CLIENT_ID: z.string().optional(),
@@ -41,11 +39,10 @@ if (!professionalAppUrl) {
 
 export const env = {
   ...parsed,
-  CLIENT_APP_URL: parsed.CLIENT_APP_URL ?? parsed.FRONTEND_URL ?? 'http://localhost:5173',
+  CLIENT_APP_URL: parsed.CLIENT_APP_URL ?? 'http://localhost:5173',
   PROFESSIONAL_APP_URL: professionalAppUrl,
 };
 
-/** Frontend origins trusted for CORS and Better Auth. */
 export const trustedFrontendOrigins = [env.CLIENT_APP_URL, env.PROFESSIONAL_APP_URL].filter(
   (origin): origin is string => !!origin,
 );

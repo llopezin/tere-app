@@ -1,5 +1,6 @@
 import { createRoute, z } from '@hono/zod-openapi';
 import {
+  appointments,
   selectAppointmentSchema,
   insertAppointmentSchema,
   updateAppointmentSchema,
@@ -23,7 +24,7 @@ export const list = createRoute({
     query: paginationSchema.extend({
       from: z.string().optional(),
       to: z.string().optional(),
-      status: z.string().optional(),
+      status: z.enum(appointments.status.enumValues).optional(),
       patient_id: z.string().uuid().optional(),
     }),
   },

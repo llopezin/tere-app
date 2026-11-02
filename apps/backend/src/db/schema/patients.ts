@@ -29,9 +29,6 @@ export const patients = pgTable('patients', {
 
 export const selectPatientSchema = createSelectSchema(patients);
 
-/** Patient as seen by themselves: never includes clinical notes. */
-export const selectOwnPatientSchema = selectPatientSchema;
-
 /** Patient as seen by a professional: shared personal data + that professional's clinical notes (from `professional_patients`). */
 export const selectPatientForProfessionalSchema = selectPatientSchema.extend({
   clinicalNotes: z.string().nullable(),

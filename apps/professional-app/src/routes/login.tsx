@@ -26,7 +26,6 @@ function LoginPage() {
       });
 
       if (authError) {
-        // Patient accounts are rejected here with the same error as a wrong password
         setError(
           authError.code === "INVALID_EMAIL_OR_PASSWORD"
             ? "Email o contraseña incorrectos"

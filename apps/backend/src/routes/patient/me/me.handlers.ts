@@ -16,7 +16,7 @@ import { patientBillingData } from '../../../db/schema/patient-billing-data.js';
 import { patientConsents } from '../../../db/schema/patient-consents.js';
 import { consentDocuments } from '../../../db/schema/consent-documents.js';
 import { rgpdConsents } from '../../../db/schema/rgpd-consents.js';
-import { eq, and } from 'drizzle-orm';
+import { eq, and, getTableColumns } from 'drizzle-orm';
 import { getProfileId } from '../../../middleware/auth.js';
 import { AppError } from '../../../middleware/error-handler.js';
 import * as HttpStatusCodes from 'stoker/http-status-codes';
@@ -76,15 +76,7 @@ export const getMyConsents: AppRouteHandler<GetMyConsentsRoute> = async (c) => {
   if (status) conditions.push(eq(patientConsents.status, status));
 
   const results = await db.select({
-    id: patientConsents.id,
-    consentDocumentId: patientConsents.consentDocumentId,
-    patientId: patientConsents.patientId,
-    professionalId: patientConsents.professionalId,
-    status: patientConsents.status,
-    signatureData: patientConsents.signatureData,
-    signedAt: patientConsents.signedAt,
-    ipAddress: patientConsents.ipAddress,
-    createdAt: patientConsents.createdAt,
+    ...getTableColumns(patientConsents),
     document: {
       title: consentDocuments.title,
       description: consentDocuments.description,
@@ -103,15 +95,7 @@ export const getMyConsent: AppRouteHandler<GetMyConsentRoute> = async (c) => {
   const { consentId } = c.req.valid('param');
 
   const [result] = await db.select({
-    id: patientConsents.id,
-    consentDocumentId: patientConsents.consentDocumentId,
-    patientId: patientConsents.patientId,
-    professionalId: patientConsents.professionalId,
-    status: patientConsents.status,
-    signatureData: patientConsents.signatureData,
-    signedAt: patientConsents.signedAt,
-    ipAddress: patientConsents.ipAddress,
-    createdAt: patientConsents.createdAt,
+    ...getTableColumns(patientConsents),
     document: {
       title: consentDocuments.title,
       description: consentDocuments.description,

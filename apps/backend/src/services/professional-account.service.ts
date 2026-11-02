@@ -12,11 +12,7 @@ export interface CreateProfessionalAccountInput {
   lastName: string;
 }
 
-/**
- * Creates a professional login + profile. This is the only way to get the `professional` role:
- * public sign-up cannot set it (`role.input = false`). Used by scripts/create-professional.ts
- * and, in the future, by the admin panel.
- */
+/** The only way to get the `professional` role: public sign-up cannot set it (`role.input = false`). */
 export async function createProfessionalAccount(input: CreateProfessionalAccountInput) {
   const ctx = await auth.$context;
   const email = input.email.trim().toLowerCase();
@@ -48,7 +44,6 @@ export async function createProfessionalAccount(input: CreateProfessionalAccount
     });
 
     const [professional] = await db.select().from(professionals).where(eq(professionals.authUserId, created.id));
-    // Should not happen: the user.create.after hook creates it
     if (!professional) throw new Error('Professional profile was not created');
 
     return { userId: created.id, professional };

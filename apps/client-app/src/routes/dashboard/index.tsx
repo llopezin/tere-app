@@ -10,7 +10,6 @@ import { professionalsQueryOptions } from "@/api/professionals";
 export const Route = createFileRoute("/dashboard/")({
   beforeLoad: async () => {
     const session = await authClient.getSession();
-    // Only patients use client-app (the API rejects other roles anyway)
     if (!session.data?.session || session.data.user.role !== "patient") {
       throw redirect({ to: "/" });
     }

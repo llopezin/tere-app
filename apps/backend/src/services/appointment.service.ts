@@ -72,14 +72,10 @@ export async function checkOverlap(
 }
 
 /**
- * Deducts a session from a bono within a transaction
+ * Deducts a session from a bono within a transaction. Without `appointmentId` it is a manual deduction.
  * @throws {AppError} 404 if bono not found, 400 if bono exhausted
  */
-export async function deductBonoSession(
-  tx: Transaction,
-  bonoId: string,
-  appointmentId: string
-): Promise<void> {
+export async function deductBonoSession(tx: Transaction, bonoId: string, appointmentId?: string) {
   const [bono] = await tx.select().from(bonos).where(eq(bonos.id, bonoId));
   if (!bono) throw new AppError(404, 'Bono not found');
   if (bono.status === 'exhausted') throw new AppError(400, 'Bono is exhausted');
@@ -88,17 +84,18 @@ export async function deductBonoSession(
   }
 
   const newUsed = bono.sessionsUsed + 1;
-  await tx.update(bonos).set({
+  const [updated] = await tx.update(bonos).set({
     sessionsUsed: newUsed,
     status: newUsed >= bono.totalSessions ? 'exhausted' : 'active',
     updatedAt: new Date(),
-  }).where(eq(bonos.id, bonoId));
+  }).where(eq(bonos.id, bonoId)).returning();
 
   await tx.insert(bonoTransactions).values({
     bonoId,
     appointmentId,
-    type: 'deduction',
+    type: appointmentId ? 'deduction' : 'manual_deduction',
   });
+  return updated;
 }
 
 /**

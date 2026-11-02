@@ -41,7 +41,17 @@ async function validateBookingRefs(
   return apptType;
 }
 
-// --- Handlers ---
+/** complete / no-show: only a scheduled appointment can change to a final status. */
+async function setFinalStatus(professionalId: string, id: string, status: 'completed' | 'no_show') {
+  const [updated] = await db.update(appointments)
+    .set({ status, updatedAt: new Date() })
+    .where(and(eq(appointments.id, id), eq(appointments.professionalId, professionalId), eq(appointments.status, 'scheduled')))
+    .returning();
+  if (updated) return updated;
+
+  await assertAppointmentOf({ professionalId }, id);
+  throw new AppError(409, 'Only scheduled appointments can change status');
+}
 
 export const list: AppRouteHandler<ListRoute> = async (c) => {
   const profileId = getProfileId(c);
@@ -49,7 +59,7 @@ export const list: AppRouteHandler<ListRoute> = async (c) => {
   const conditions = [eq(appointments.professionalId, profileId)];
   if (from) conditions.push(sql`${appointments.startAt} >= ${from}`);
   if (to) conditions.push(sql`${appointments.startAt} <= ${to}`);
-  if (status) conditions.push(eq(appointments.status, status as any));
+  if (status) conditions.push(eq(appointments.status, status));
   if (patientId) {
     await assertPatientOfProfessional(profileId, patientId);
     conditions.push(eq(appointments.patientId, patientId));
@@ -100,21 +110,13 @@ export const batch: AppRouteHandler<BatchRoute> = async (c) => {
   await appointmentService.verifyRgpdConsent(body.patientId);
 
   const durationMs = apptType.durationMinutes * 60 * 1000;
-
-  // Check all slots for overlaps
-  for (const slot of body.slots) {
-    const s = new Date(slot.startAt);
-    const e = new Date(s.getTime() + durationMs);
-    await appointmentService.checkOverlap(profileId, s, e);
-  }
-
   const slots = body.slots.map((slot) => {
     const startAt = new Date(slot.startAt);
-    return {
-      startAt,
-      endAt: new Date(startAt.getTime() + durationMs),
-    };
+    return { startAt, endAt: new Date(startAt.getTime() + durationMs) };
   });
+  for (const slot of slots) {
+    await appointmentService.checkOverlap(profileId, slot.startAt, slot.endAt);
+  }
 
   const results = await appointmentService.createBatchAppointments(profileId, slots, {
     patientId: body.patientId,
@@ -167,10 +169,7 @@ export const recurring: AppRouteHandler<RecurringRoute> = async (c) => {
 export const getOne: AppRouteHandler<GetOneRoute> = async (c) => {
   const profileId = getProfileId(c);
   const { id } = c.req.valid('param');
-  const [appt] = await db.select().from(appointments)
-    .where(and(eq(appointments.id, id), eq(appointments.professionalId, profileId)));
-  if (!appt) throw new AppError(404, 'Appointment not found');
-  return c.json(appt, HttpStatusCodes.OK);
+  return c.json(await assertAppointmentOf({ professionalId: profileId }, id), HttpStatusCodes.OK);
 };
 
 export const update: AppRouteHandler<UpdateRoute> = async (c) => {
@@ -178,18 +177,13 @@ export const update: AppRouteHandler<UpdateRoute> = async (c) => {
   const { id } = c.req.valid('param');
   const body = c.req.valid('json');
 
-  const [existing] = await db.select().from(appointments)
-    .where(and(eq(appointments.id, id), eq(appointments.professionalId, profileId)));
-  if (!existing) throw new AppError(404, 'Appointment not found');
+  const existing = await assertAppointmentOf({ professionalId: profileId }, id);
+  const newType = body.appointmentTypeId ? await assertAppointmentTypeOf(profileId, body.appointmentTypeId) : undefined;
 
-  const updateData: Record<string, any> = { updatedAt: new Date() };
-
-  if (body.appointmentTypeId) await assertAppointmentTypeOf(profileId, body.appointmentTypeId);
+  const updateData: Partial<typeof appointments.$inferInsert> = { updatedAt: new Date() };
 
   if (body.startAt) {
-    const apptTypeId = body.appointmentTypeId || existing.appointmentTypeId;
-    const apptType = await assertAppointmentTypeOf(profileId, apptTypeId);
-
+    const apptType = newType ?? await assertAppointmentTypeOf(profileId, existing.appointmentTypeId);
     const startAt = new Date(body.startAt);
     const endAt = new Date(startAt.getTime() + apptType.durationMinutes * 60 * 1000);
     await appointmentService.checkOverlap(profileId, startAt, endAt, id);
@@ -217,11 +211,7 @@ export const update: AppRouteHandler<UpdateRoute> = async (c) => {
 export const cancel: AppRouteHandler<CancelRoute> = async (c) => {
   const profileId = getProfileId(c);
   const { id } = c.req.valid('param');
-
-  const [appt] = await db.select().from(appointments)
-    .where(and(eq(appointments.id, id), eq(appointments.professionalId, profileId)));
-  if (!appt) throw new AppError(404, 'Appointment not found');
-
+  const appt = await assertAppointmentOf({ professionalId: profileId }, id);
   const result = await appointmentService.cancelAppointment(id, appt);
   return c.json(result, HttpStatusCodes.OK);
 };
@@ -229,27 +219,11 @@ export const cancel: AppRouteHandler<CancelRoute> = async (c) => {
 export const complete: AppRouteHandler<CompleteRoute> = async (c) => {
   const profileId = getProfileId(c);
   const { id } = c.req.valid('param');
-  const [updated] = await db.update(appointments)
-    .set({ status: 'completed', updatedAt: new Date() })
-    .where(and(eq(appointments.id, id), eq(appointments.professionalId, profileId), eq(appointments.status, 'scheduled')))
-    .returning();
-  if (!updated) {
-    await assertAppointmentOf({ professionalId: profileId }, id); // 404 if not ours
-    throw new AppError(409, 'Only scheduled appointments can change status');
-  }
-  return c.json(updated, HttpStatusCodes.OK);
+  return c.json(await setFinalStatus(profileId, id, 'completed'), HttpStatusCodes.OK);
 };
 
 export const noShow: AppRouteHandler<NoShowRoute> = async (c) => {
   const profileId = getProfileId(c);
   const { id } = c.req.valid('param');
-  const [updated] = await db.update(appointments)
-    .set({ status: 'no_show', updatedAt: new Date() })
-    .where(and(eq(appointments.id, id), eq(appointments.professionalId, profileId), eq(appointments.status, 'scheduled')))
-    .returning();
-  if (!updated) {
-    await assertAppointmentOf({ professionalId: profileId }, id); // 404 if not ours
-    throw new AppError(409, 'Only scheduled appointments can change status');
-  }
-  return c.json(updated, HttpStatusCodes.OK);
+  return c.json(await setFinalStatus(profileId, id, 'no_show'), HttpStatusCodes.OK);
 };

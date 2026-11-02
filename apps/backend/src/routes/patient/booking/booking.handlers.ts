@@ -29,7 +29,6 @@ export const listAppointmentTypes: AppRouteHandler<ListAppointmentTypesRoute> = 
 export const getAvailability: AppRouteHandler<GetAvailabilityRoute> = async (c) => {
   const { professional_id: professionalId, appointment_type_id: appointmentTypeId, from, to } = c.req.valid('query');
 
-  // The appointment type must be an active one of that professional (it drives duration and price)
   await assertAppointmentTypeOf(professionalId, appointmentTypeId, { activeOnly: true });
 
   const slots = await availabilityService.generateAvailableSlots(professionalId, appointmentTypeId, new Date(from), new Date(to));

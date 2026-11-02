@@ -98,9 +98,8 @@ The server provides interactive API documentation powered by Scalar:
 | `BETTER_AUTH_URL` | — | `http://localhost:3000` | Base URL of the backend (used by Better Auth for callbacks) |
 | `PORT` | — | `3000` | Server listening port |
 | `NODE_ENV` | — | `development` | `development`, `production`, or `test` |
-| `CLIENT_APP_URL` | — | `FRONTEND_URL` or `http://localhost:5173` | client-app (patients) origin: CORS, Better Auth trusted origin, patient BFF Origin check |
+| `CLIENT_APP_URL` | — | `http://localhost:5173` | client-app (patients) origin: CORS, Better Auth trusted origin, patient BFF Origin check |
 | `PROFESSIONAL_APP_URL` | — | `http://localhost:5174` (dev/test only; **unset in production = professional-app disabled**) | professional-app origin: CORS, trusted origin, professional BFF Origin check, Google OAuth redirect target |
-| `FRONTEND_URL` | — | — | **Deprecated**, fallback for `CLIENT_APP_URL` |
 
 All variables are validated at startup via Zod (`src/config/env.ts`). The server will crash with a descriptive error if any required variable is missing or invalid.
 

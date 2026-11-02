@@ -11,7 +11,6 @@ function IndexPage() {
   const navigate = useNavigate();
   const { data: session, isPending } = useSession();
 
-  // Only professionals use this app (the API rejects other roles anyway)
   const isProfessional = session?.user.role === "professional";
 
   useEffect(() => {

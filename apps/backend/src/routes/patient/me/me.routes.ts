@@ -1,7 +1,7 @@
 import { createRoute, z } from '@hono/zod-openapi';
 import * as HttpStatusCodes from 'stoker/http-status-codes';
 import { jsonContent, jsonContentRequired } from 'stoker/openapi/helpers';
-import { selectOwnPatientSchema, updateOwnPatientSchema } from '../../../db/schema/patients.js';
+import { selectPatientSchema, updateOwnPatientSchema } from '../../../db/schema/patients.js';
 import { selectPatientBillingDataSchema, upsertBillingDataSchema } from '../../../db/schema/patient-billing-data.js';
 import { selectPatientConsentSchema, signConsentSchema } from '../../../db/schema/patient-consents.js';
 import { selectConsentDocumentSchema } from '../../../db/schema/consent-documents.js';
@@ -15,7 +15,7 @@ export const getMe = createRoute({
   tags,
   summary: 'Get the authenticated patient profile',
   responses: {
-    [HttpStatusCodes.OK]: jsonContent(selectOwnPatientSchema, 'The patient profile'),
+    [HttpStatusCodes.OK]: jsonContent(selectPatientSchema, 'The patient profile'),
     [HttpStatusCodes.NOT_FOUND]: jsonContent(z.object({ error: z.string() }), 'Patient profile not found'),
   },
 });
@@ -30,7 +30,7 @@ export const updateMe = createRoute({
     body: jsonContentRequired(updateOwnPatientSchema, 'Patient profile fields to update'),
   },
   responses: {
-    [HttpStatusCodes.OK]: jsonContent(selectOwnPatientSchema, 'The updated patient profile'),
+    [HttpStatusCodes.OK]: jsonContent(selectPatientSchema, 'The updated patient profile'),
     [HttpStatusCodes.NOT_FOUND]: jsonContent(z.object({ error: z.string() }), 'Patient profile not found'),
   },
 });

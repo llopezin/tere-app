@@ -27,13 +27,11 @@ export const create: AppRouteHandler<CreateRoute> = async (c) => {
   const patientId = getProfileId(c);
   const body = c.req.valid('json');
 
-  // The professional is the owner of the (active) appointment type
   const [apptType] = await db.select().from(appointmentTypes)
     .where(and(eq(appointmentTypes.id, body.appointmentTypeId), eq(appointmentTypes.isActive, true)));
   if (!apptType) throw new AppError(404, 'Appointment type not found');
   const professionalId = apptType.professionalId;
 
-  // A bono can only be used by its patient, with the professional that issued it
   if (body.bonoId) {
     await assertBonoOf({ professionalId, patientId, appointmentTypeId: body.appointmentTypeId }, body.bonoId);
   }

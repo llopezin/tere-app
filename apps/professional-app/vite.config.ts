@@ -12,7 +12,7 @@ export default defineConfig({
       "@": path.resolve(__dirname, "./src"),
     },
   },
-  // client-app uses 5173; the backend allows each app's origin separately (PROFESSIONAL_APP_URL)
+  // client-app uses 5173
   server: { port: 5174, strictPort: true },
   preview: { port: 5174, strictPort: true },
   plugins: [

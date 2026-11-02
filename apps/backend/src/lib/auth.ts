@@ -42,7 +42,9 @@ const createProfileByRole: Record<Role, (input: NewUserProfileInput) => Promise<
   },
 };
 
-/** Env origins are already canonical (config/env.ts) and browsers send `Origin` in that same form. */
+/** Additional user fields reach the hooks untyped. */
+const asString = (value: unknown) => (typeof value === 'string' ? value : undefined);
+
 function appForOrigin(origin: string | null | undefined): FrontendApp | undefined {
   if (!origin) return undefined;
   if (origin === env.CLIENT_APP_URL) return 'client';
@@ -133,16 +135,11 @@ export const auth = betterAuth({
     user: {
       create: {
         after: async (user) => {
-          const fName = (user as any).firstName as string | undefined;
-          const lName = (user as any).lastName as string | undefined;
-          const firstName = fName || user.name.split(' ')[0] || user.name;
-          const lastName = lName || user.name.split(' ').slice(1).join(' ') || '';
-
           if (!isRole(user.role)) throw new Error(`Unknown role: ${user.role}`);
           const profileId = await createProfileByRole[user.role]({
-            user: user as typeof user & { phone?: string },
-            firstName,
-            lastName,
+            user: { id: user.id, email: user.email, phone: asString(user.phone) },
+            firstName: asString(user.firstName) ?? '',
+            lastName: asString(user.lastName) ?? '',
           });
           if (!profileId) return;
 

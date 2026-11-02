@@ -1,5 +1,5 @@
 import { createRoute, z } from '@hono/zod-openapi';
-import { selectPaymentSchema, insertPaymentSchema } from '../../../db/schema/payments.js';
+import { payments, selectPaymentSchema, insertPaymentSchema } from '../../../db/schema/payments.js';
 import { paginationSchema, idParamsSchema } from '../../../lib/schemas.js';
 import * as HttpStatusCodes from 'stoker/http-status-codes';
 import { jsonContent, jsonContentRequired } from 'stoker/openapi/helpers';
@@ -18,7 +18,7 @@ export const list = createRoute({
       from: z.string().optional(),
       to: z.string().optional(),
       patient_id: z.string().uuid().optional(),
-      payment_method: z.string().optional(),
+      payment_method: z.enum(payments.paymentMethod.enumValues).optional(),
     }),
   },
   responses: {

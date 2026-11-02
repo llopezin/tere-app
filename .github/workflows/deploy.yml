@@ -49,7 +49,6 @@ jobs:
           DATABASE_URL: postgres://build:build@db:5432/build
           BETTER_AUTH_SECRET: build
           BETTER_AUTH_URL: http://localhost
-          FRONTEND_URL: http://localhost
           CLIENT_APP_URL: http://localhost
           PROFESSIONAL_APP_URL: http://localhost
           # Deliberately NOT setting NODE_ENV=production: pnpm install skips devDependencies

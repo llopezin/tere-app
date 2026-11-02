@@ -11,7 +11,7 @@ export const ROLES = {
 
 export type Role = (typeof ROLES)[keyof typeof ROLES];
 
-export const ALL_ROLES: readonly Role[] = Object.values(ROLES);
+const ALL_ROLES: readonly Role[] = Object.values(ROLES);
 
 /** Role given to every public sign-up. */
 export const DEFAULT_ROLE: Role = ROLES.patient;

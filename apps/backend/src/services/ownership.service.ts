@@ -25,17 +25,11 @@ interface Owner {
   patientId?: string;
 }
 
-export async function isPatientOfProfessional(professionalId: string, patientId: string, executor: Executor = db) {
-  const [row] = await executor.select({ patientId: professionalPatients.patientId })
+export async function assertPatientOfProfessional(professionalId: string, patientId: string) {
+  const [link] = await db.select({ patientId: professionalPatients.patientId })
     .from(professionalPatients)
     .where(and(eq(professionalPatients.professionalId, professionalId), eq(professionalPatients.patientId, patientId)));
-  return !!row;
-}
-
-export async function assertPatientOfProfessional(professionalId: string, patientId: string) {
-  if (!(await isPatientOfProfessional(professionalId, patientId))) {
-    throw new AppError(404, 'Patient not found');
-  }
+  if (!link) throw new AppError(404, 'Patient not found');
 }
 
 /** Idempotently links a patient to a professional. */

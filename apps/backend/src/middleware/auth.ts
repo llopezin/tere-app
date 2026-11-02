@@ -42,7 +42,6 @@ export function requireRole(...roles: Role[]) {
  * the role guard is what actually enforces access.
  */
 export function requireOrigin(...allowed: Array<string | undefined>) {
-  // Env origins are already canonical (config/env.ts), so the header can be compared as is.
   // An unset origin (e.g. PROFESSIONAL_APP_URL missing in production) allows no browser origin at all.
   const allowedOrigins = new Set(allowed.filter((o): o is string => !!o));
   return async (c: Context, next: Next) => {

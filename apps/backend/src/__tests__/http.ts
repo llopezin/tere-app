@@ -18,8 +18,8 @@ export interface Actor {
 
 interface RequestOptions {
   json?: unknown;
+  /** Defaults to the actor's app; `null` sends no Origin header. */
   origin?: string | null;
-  cookie?: string;
 }
 
 /** Calls the app in-process like a browser of `actor.origin` would (Origin + session cookie). */
@@ -27,8 +27,7 @@ export async function call(actor: Actor | null, method: string, path: string, op
   const headers: Record<string, string> = {};
   const origin = opts.origin === undefined ? actor?.origin : opts.origin;
   if (origin) headers.origin = origin;
-  const cookie = opts.cookie ?? actor?.cookie;
-  if (cookie) headers.cookie = cookie;
+  if (actor) headers.cookie = actor.cookie;
   if (opts.json !== undefined) headers['content-type'] = 'application/json';
   return app.request(path, {
     method,
@@ -43,8 +42,8 @@ function sessionCookie(res: Response): string {
   return cookies.join('; ');
 }
 
-export async function signIn(email: string, origin: string, password = PASSWORD) {
-  return call(null, 'POST', '/api/auth/sign-in/email', { origin, json: { email, password } });
+export async function signIn(email: string, origin: string) {
+  return call(null, 'POST', '/api/auth/sign-in/email', { origin, json: { email, password: PASSWORD } });
 }
 
 export async function signUpPatient(email: string, extra: Record<string, unknown> = {}, origin = CLIENT_ORIGIN) {
@@ -62,7 +61,7 @@ export async function patientActor(label: string): Promise<Actor> {
   const login = await signIn(email, CLIENT_ORIGIN);
   if (!login.ok) throw new Error(`Patient sign-in failed: ${login.status}`);
   const [u] = await testDb.select().from(user).where(eq(user.email, email));
-  await testDb.insert(rgpdConsents).values({ patientId: u.profileId!, signed: true, signedAt: new Date() }).onConflictDoNothing();
+  await testDb.insert(rgpdConsents).values({ patientId: u.profileId!, signed: true, signedAt: new Date() });
   return { cookie: sessionCookie(login), profileId: u.profileId!, origin: CLIENT_ORIGIN };
 }
 

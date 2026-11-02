@@ -28,7 +28,7 @@ export const list = createRoute({
   },
 });
 
-// POST /
+// GET /:id
 export const getOne = createRoute({
   method: 'get',
   path: '/invoices/{id}',

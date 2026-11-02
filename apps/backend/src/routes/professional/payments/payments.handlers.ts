@@ -18,7 +18,7 @@ export const list: AppRouteHandler<ListRoute> = async (c) => {
     await assertPatientOfProfessional(profileId, patientId);
     conditions.push(eq(payments.patientId, patientId));
   }
-  if (paymentMethod) conditions.push(eq(payments.paymentMethod, paymentMethod as any));
+  if (paymentMethod) conditions.push(eq(payments.paymentMethod, paymentMethod));
   const results = await db.select().from(payments)
     .where(and(...conditions))
     .orderBy(payments.paidAt)

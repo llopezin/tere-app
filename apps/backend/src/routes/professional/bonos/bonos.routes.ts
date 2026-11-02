@@ -1,5 +1,5 @@
 import { createRoute, z } from '@hono/zod-openapi';
-import { selectBonoSchema, insertBonoSchema, deductBonoSchema } from '../../../db/schema/bonos.js';
+import { bonos, selectBonoSchema, insertBonoSchema, deductBonoSchema } from '../../../db/schema/bonos.js';
 import { idParamsSchema } from '../../../lib/schemas.js';
 import * as HttpStatusCodes from 'stoker/http-status-codes';
 import { jsonContent, jsonContentRequired } from 'stoker/openapi/helpers';
@@ -28,7 +28,7 @@ export const list = createRoute({
   request: {
     query: z.object({
       patient_id: z.string().uuid().optional(),
-      status: z.string().optional(),
+      status: z.enum(bonos.status.enumValues).optional(),
     }),
   },
   responses: {

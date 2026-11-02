@@ -160,7 +160,7 @@ export const callback: AppRouteHandler<CallbackRoute> = async (c) => {
 
   // Helper for redirecting back to the frontend with specific status parameters
   const redirect = (params: Record<string, string>) => {
-    // Without PROFESSIONAL_APP_URL (production misconfig) fall back to the old behaviour: client-app root
+    // PROFESSIONAL_APP_URL can be unset in production (professional-app disabled)
     const url = env.PROFESSIONAL_APP_URL
       ? new URL('/ajustes/integraciones', env.PROFESSIONAL_APP_URL)
       : new URL('/', env.CLIENT_APP_URL);

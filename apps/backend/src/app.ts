@@ -31,7 +31,6 @@ app.on(['POST', 'GET'], '/api/auth/*', (c) => {
   return auth.handler(c.req.raw);
 });
 
-// BFFs: one router per frontend, each with its own role + origin guard
 app.route('/api/v1/patient', patientApi);
 app.route('/api/v1/professional', professionalApi);
 // Public: health + Google OAuth callback (its URL is registered in Google Cloud Console)
