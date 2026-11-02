@@ -43,10 +43,18 @@ const createProfileByRole: Record<Role, (input: NewUserProfileInput) => Promise<
 };
 
 /** Env origins are already canonical (config/env.ts) and browsers send `Origin` in that same form. */
-function appForOrigin(origin: string): FrontendApp | undefined {
+function appForOrigin(origin: string | null | undefined): FrontendApp | undefined {
+  if (!origin) return undefined;
   if (origin === env.CLIENT_APP_URL) return 'client';
   if (origin === env.PROFESSIONAL_APP_URL) return 'professional';
   return undefined;
+}
+
+async function findRoleByEmail(email: string): Promise<Role | undefined> {
+  const [account] = await db.select({ role: schema.user.role })
+    .from(schema.user)
+    .where(eq(schema.user.email, email.toLowerCase()));
+  return account?.role;
 }
 
 export const auth = betterAuth({
@@ -63,20 +71,18 @@ export const auth = betterAuth({
   secret: process.env.BETTER_AUTH_SECRET,
   trustedOrigins: trustedFrontendOrigins,
   hooks: {
+    // Each app only accepts its own role. Same error as a wrong password, so this does not
+    // reveal whether an email exists or which role it has.
     before: createAuthMiddleware(async (ctx) => {
-      const origin = ctx.headers?.get('origin');
-      const app = origin ? appForOrigin(origin) : undefined;
+      if (ctx.path !== '/sign-in/email') return;
 
-      // Each app only accepts its own role. Same error as a wrong password, so this does not
-      // reveal whether an email exists or which role it has.
-      if (ctx.path === '/sign-in/email' && app) {
-        const email = typeof ctx.body?.email === 'string' ? ctx.body.email.toLowerCase() : undefined;
-        const [account] = email
-          ? await db.select({ role: schema.user.role }).from(schema.user).where(eq(schema.user.email, email))
-          : [];
-        if (account && account.role !== ROLE_BY_APP[app]) {
-          throw new APIError('UNAUTHORIZED', { message: 'Invalid email or password', code: 'INVALID_EMAIL_OR_PASSWORD' });
-        }
+      const app = appForOrigin(ctx.headers?.get('origin'));
+      const email = ctx.body?.email;
+      if (!app || typeof email !== 'string') return;
+
+      const role = await findRoleByEmail(email);
+      if (role && role !== ROLE_BY_APP[app]) {
+        throw new APIError('UNAUTHORIZED', { message: 'Invalid email or password', code: 'INVALID_EMAIL_OR_PASSWORD' });
       }
     }),
   },
