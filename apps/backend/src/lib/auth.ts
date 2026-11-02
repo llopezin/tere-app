@@ -10,7 +10,6 @@ import { professionals } from '../db/schema/professionals.js';
 import { patients } from '../db/schema/patients.js';
 import * as schema from '../db/schema/auth-schema.js';
 import { env, trustedFrontendOrigins } from '../config/env.js';
-import { normalizeOrigin } from '../middleware/origin.js';
 
 type NewProfessional = InferInsertModel<typeof professionals>;
 type NewPatient = InferInsertModel<typeof patients>;
@@ -43,10 +42,10 @@ const createProfileByRole: Record<Role, (input: NewUserProfileInput) => Promise<
   },
 };
 
+/** Env origins are already canonical (config/env.ts) and browsers send `Origin` in that same form. */
 function appForOrigin(origin: string): FrontendApp | undefined {
-  const normalized = normalizeOrigin(origin);
-  if (normalized === normalizeOrigin(env.CLIENT_APP_URL)) return 'client';
-  if (env.PROFESSIONAL_APP_URL && normalized === normalizeOrigin(env.PROFESSIONAL_APP_URL)) return 'professional';
+  if (origin === env.CLIENT_APP_URL) return 'client';
+  if (origin === env.PROFESSIONAL_APP_URL) return 'professional';
   return undefined;
 }
 

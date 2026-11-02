@@ -2,7 +2,6 @@ import type { Context, Next } from 'hono';
 import { isRole, type Role } from '../lib/roles.js';
 import { auth, type Session } from '../lib/auth.js';
 import { AppError } from './error-handler.js';
-import { normalizeOrigin } from './origin.js';
 
 type AuthUser = Session['user'];
 type AuthSession = Session['session'];
@@ -43,11 +42,12 @@ export function requireRole(...roles: Role[]) {
  * the role guard is what actually enforces access.
  */
 export function requireOrigin(...allowed: Array<string | undefined>) {
-  // An unset origin (e.g. PROFESSIONAL_APP_URL missing in production) allows no browser origin at all
-  const allowedOrigins = new Set(allowed.filter((o): o is string => !!o).map(normalizeOrigin));
+  // Env origins are already canonical (config/env.ts), so the header can be compared as is.
+  // An unset origin (e.g. PROFESSIONAL_APP_URL missing in production) allows no browser origin at all.
+  const allowedOrigins = new Set(allowed.filter((o): o is string => !!o));
   return async (c: Context, next: Next) => {
     const origin = c.req.header('origin');
-    if (origin && !allowedOrigins.has(normalizeOrigin(origin))) {
+    if (origin && !allowedOrigins.has(origin)) {
       return c.json({ error: 'Origin not allowed' }, 403);
     }
     await next();
