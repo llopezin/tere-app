@@ -1,13 +1,17 @@
+import { readFileSync } from 'node:fs';
+import { parseEnv } from 'node:util';
 import { defineConfig, devices } from '@playwright/test';
+
+// Same env as the backend vitest suite: test database and NODE_ENV=test, which mounts /api/v1/test/*
+const backendEnv = parseEnv(readFileSync('apps/backend/.env.test', 'utf8'));
 
 export default defineConfig({
   testDir: './tests',
-  fullyParallel: false, // shared DB — keep sequential
+  // Every test resets the shared database
   workers: 1,
-  retries: 0,
   use: {
-    baseURL: 'http://localhost:5173',
-    trace: 'on-first-retry',
+    baseURL: backendEnv.CLIENT_APP_URL,
+    trace: 'retain-on-failure',
   },
   projects: [
     { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
@@ -15,25 +19,15 @@ export default defineConfig({
   webServer: [
     {
       command: 'pnpm --filter @fisio-app/backend dev',
-      url: 'http://localhost:3000/api/v1/health',
-      timeout: 60_000,
+      url: `${backendEnv.BETTER_AUTH_URL}/api/v1/health`,
       reuseExistingServer: !process.env.CI,
-      env: {
-        NODE_ENV: 'test',
-        DATABASE_URL: process.env.TEST_DATABASE_URL || 'postgres://user:password@localhost:5432/fisio_app_test',
-        BETTER_AUTH_SECRET: process.env.BETTER_AUTH_SECRET || 'test-secret-key-at-least-32-characters-long',
-        BETTER_AUTH_URL: 'http://localhost:3000',
-        PORT: '3000',
-      },
+      env: backendEnv,
     },
     {
       command: 'pnpm --filter @fisio-app/client-app dev',
-      url: 'http://localhost:5173',
-      timeout: 60_000,
+      url: backendEnv.CLIENT_APP_URL,
       reuseExistingServer: !process.env.CI,
-      env: {
-        VITE_API_URL: 'http://localhost:3000',
-      },
+      env: { VITE_API_URL: backendEnv.BETTER_AUTH_URL },
     },
   ],
 });

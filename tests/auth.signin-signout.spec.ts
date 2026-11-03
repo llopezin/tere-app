@@ -1,52 +1,32 @@
 import { test, expect } from './fixtures';
+import type { Page } from '@playwright/test';
+
+async function signIn(page: Page, email: string, password: string) {
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Iniciar Sesión' }).click();
+  await page.getByLabel('Correo Electrónico').fill(email);
+  await page.getByLabel('Contraseña', { exact: true }).fill(password);
+  await page.getByRole('dialog').getByRole('button', { name: 'Iniciar Sesión' }).click();
+}
 
 test.describe('Auth — sign in / sign out', () => {
-  test('patient can sign in and reaches dashboard', async ({ page, resetDb, seedProfessional, seedPatient }) => {
-    await page.goto('/patient/welcome');
-
-    // Open login modal
-    await page.getByRole('button', { name: 'Iniciar Sesión' }).click();
-
-    await page.getByLabel('Correo Electrónico').fill(seedPatient.email);
-    await page.getByLabel('Contraseña', { exact: true }).fill(seedPatient.password);
-    await page.getByRole('button', { name: 'Iniciar Sesión' }).click();
-
-    // Should redirect to dashboard
-    await expect(page).toHaveURL('/patient/dashboard', { timeout: 10_000 });
+  test('patient signs in and reaches the dashboard', async ({ page, patient }) => {
+    await signIn(page, patient.email, patient.password);
+    await expect(page).toHaveURL('/dashboard');
   });
 
-  test('sign out navigates back to /patient/welcome', async ({ page, authedPatient }) => {
-    await page.goto('/patient/dashboard');
-    await expect(page).toHaveURL('/patient/dashboard', { timeout: 10_000 });
-
-    // Click the logout button (desktop: "Salir", mobile: aria-label)
-    const logoutButton = page.getByRole('button', { name: /Salir|Cerrar sesión/i }).first();
-    await logoutButton.click();
-
-    await expect(page).toHaveURL('/patient/welcome', { timeout: 8_000 });
+  test('wrong password shows an error', async ({ page, patient }) => {
+    await signIn(page, patient.email, 'wrongpassword');
+    await expect(page.getByRole('alert')).toBeVisible();
+    await expect(page).toHaveURL('/');
   });
 
-  test('navigating to /patient/dashboard after sign out bounces to welcome', async ({ page, authedPatient }) => {
-    await page.goto('/patient/dashboard');
-    await expect(page).toHaveURL('/patient/dashboard', { timeout: 10_000 });
+  test('sign out goes back to / and the dashboard stays guarded', async ({ page, authedPatient: _ }) => {
+    await page.goto('/dashboard');
+    await page.getByRole('button', { name: 'Salir' }).click();
+    await expect(page).toHaveURL('/');
 
-    // Sign out
-    await page.getByRole('button', { name: /Salir|Cerrar sesión/i }).first().click();
-    await expect(page).toHaveURL('/patient/welcome', { timeout: 8_000 });
-
-    // Try to access dashboard again — should bounce back
-    await page.goto('/patient/dashboard');
-    await expect(page).toHaveURL('/patient/welcome', { timeout: 8_000 });
-  });
-
-  test('invalid password shows error message', async ({ page, resetDb, seedProfessional, seedPatient }) => {
-    await page.goto('/patient/welcome');
-    await page.getByRole('button', { name: 'Iniciar Sesión' }).click();
-
-    await page.getByLabel('Correo Electrónico').fill(seedPatient.email);
-    await page.getByLabel('Contraseña', { exact: true }).fill('wrongpassword');
-    await page.getByRole('button', { name: 'Iniciar Sesión' }).click();
-
-    await expect(page.getByRole('alert')).toBeVisible({ timeout: 5_000 });
+    await page.goto('/dashboard');
+    await expect(page).toHaveURL('/');
   });
 });

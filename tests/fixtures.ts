@@ -1,302 +1,99 @@
-import { test as base, expect, type BrowserContext } from '@playwright/test';
+import { test as base, expect, type APIRequestContext, type Page } from '@playwright/test';
 
-const BACKEND_URL = 'http://localhost:3000';
-const API_BASE = `${BACKEND_URL}/api/v1`;
+export const BACKEND_URL = 'http://localhost:3000';
+const TEST_API = `${BACKEND_URL}/api/v1/test`;
+const DAY_MS = 24 * 60 * 60 * 1000;
 
-// ── Seed data types ─────────────────────────────────────────────────────────
-
-export interface ProfessionalSeed {
-  userId: string;
-  professionalId: string;
-  appointmentTypeId: string;
-  email: string;
-  password: string;
-  firstName: string;
-  lastName: string;
-}
-
-export interface PatientSeed {
-  userId: string;
-  patientId: string;
-  email: string;
-  password: string;
-  firstName: string;
-  lastName: string;
-  phone: string;
-}
-
-export interface AppointmentSeed {
-  id: string;
-  professionalId: string;
-  patientId: string;
-  appointmentTypeId: string;
-  startAt: string;
-  endAt: string;
-  status: string;
-  price: string;
-}
-
-export interface AuthedPatientFixture {
-  patient: PatientSeed;
-  professional: ProfessionalSeed;
-}
-
-// Sign in against the browser context — cookies land in the context's cookie
-// jar automatically (context.request shares storage state with the context),
-// so page.goto() and page.request.* both see the session.
-async function signInIntoContext(
-  context: BrowserContext,
-  email: string,
-  password: string,
-): Promise<void> {
-  const response = await context.request.post(`${BACKEND_URL}/api/auth/sign-in/email`, {
-    data: { email, password },
-    headers: { 'Content-Type': 'application/json' },
-  });
-
-  if (!response.ok()) {
-    const body = await response.text();
-    throw new Error(`Sign-in failed for ${email}: ${response.status()} ${body}`);
-  }
-}
-
-// ── Fixture definitions ──────────────────────────────────────────────────────
-
-type Fixtures = {
-  resetDb: void;
-  seedProfessional: ProfessionalSeed;
-  seedPatient: PatientSeed;
-  authedPatient: AuthedPatientFixture;
-  authedPatientWithRgpd: AuthedPatientFixture;
-  seedAppointmentsForPatient: {
-    future: AppointmentSeed;
-    past: AppointmentSeed;
-    patient: PatientSeed;
-    professional: ProfessionalSeed;
-  };
-  seedBookableProfessional: ProfessionalSeed;
+export const PROFESSIONAL = { email: 'prof@test.com', password: 'password123', firstName: 'Ana', lastName: 'García' };
+export const PATIENT = {
+  email: 'patient@test.com',
+  password: 'password123',
+  firstName: 'Carlos',
+  lastName: 'López',
+  phone: '+34 600 000 001',
 };
 
+interface Professional { professionalId: string; appointmentTypeId: string }
+type Patient = typeof PATIENT & { patientId: string };
+interface Appointments { future: { id: string }; past: { id: string } }
+
+interface Fixtures {
+  resetDb: void;
+  /** Option: seed the patient with RGPD already signed (`test.use({ signRgpd: true })`). */
+  signRgpd: boolean;
+  professional: Professional;
+  patient: Patient;
+  /** Signed-in patient of a clinic with one bookable professional. */
+  authedPatient: Patient;
+  /** One upcoming (scheduled) and one past (completed) appointment of the authed patient. */
+  appointments: Appointments;
+}
+
+async function seed(request: APIRequestContext, path: string, data: object) {
+  const res = await request.post(`${TEST_API}${path}`, { data });
+  await expect(res).toBeOK();
+  return res.json();
+}
+
+const daysFromNow = (days: number) => new Date(Date.now() + days * DAY_MS).toISOString();
+
 export const test = base.extend<Fixtures>({
-  // Reset DB before each test that uses this fixture
+  // Runs before every test: the backend must be started with NODE_ENV=test, otherwise this is a 404
   resetDb: [
     async ({ request }, use) => {
-      const res = await request.post(`${API_BASE}/test/reset`);
-      if (!res.ok() && res.status() !== 204) {
-        throw new Error(`DB reset failed: ${res.status()}`);
-      }
+      await expect(await request.post(`${TEST_API}/reset`)).toBeOK();
       await use();
     },
-    { auto: false },
+    { auto: true },
   ],
 
-  seedProfessional: [
-    async ({ resetDb: _reset, request }, use) => {
-      const data = {
-        email: 'prof@test.com',
-        password: 'password123',
-        firstName: 'Ana',
-        lastName: 'García',
-      };
-      const res = await request.post(`${API_BASE}/test/seed/professional`, {
-        data,
-      });
-      if (!res.ok()) {
-        const body = await res.text();
-        throw new Error(`seedProfessional failed: ${res.status()} ${body}`);
-      }
-      const json = await res.json();
-      await use({ ...json, ...data } as ProfessionalSeed);
-    },
-    { auto: false },
-  ],
+  signRgpd: [false, { option: true }],
 
-  seedPatient: [
-    async ({ resetDb: _reset, request }, use) => {
-      const data = {
-        email: 'patient@test.com',
-        password: 'password123',
-        firstName: 'Carlos',
-        lastName: 'López',
-        phone: '+34 600 000 001',
-      };
-      const res = await request.post(`${API_BASE}/test/seed/patient`, {
-        data,
-      });
-      if (!res.ok()) {
-        const body = await res.text();
-        throw new Error(`seedPatient failed: ${res.status()} ${body}`);
-      }
-      const json = await res.json();
-      await use({ ...json, ...data } as PatientSeed);
-    },
-    { auto: false },
-  ],
+  professional: async ({ request }, use) => {
+    await use(await seed(request, '/seed/professional', PROFESSIONAL));
+  },
 
-  authedPatient: [
-    async ({ resetDb: _reset, request, context }, use) => {
-      // Seed professional first (needed for dashboard loader)
-      const profData = {
-        email: 'prof@test.com',
-        password: 'password123',
-        firstName: 'Ana',
-        lastName: 'García',
-      };
-      const profRes = await request.post(`${API_BASE}/test/seed/professional`, { data: profData });
-      if (!profRes.ok()) throw new Error(`seedProfessional failed: ${profRes.status()}`);
-      const profJson = await profRes.json();
-      const professional: ProfessionalSeed = { ...profJson, ...profData };
+  patient: async ({ request, signRgpd }, use) => {
+    const { patientId } = await seed(request, '/seed/patient', { ...PATIENT, signRgpd });
+    await use({ ...PATIENT, patientId });
+  },
 
-      // Seed patient
-      const patData = {
-        email: 'patient@test.com',
-        password: 'password123',
-        firstName: 'Carlos',
-        lastName: 'López',
-        phone: '+34 600 000 001',
-        signRgpd: false,
-      };
-      const patRes = await request.post(`${API_BASE}/test/seed/patient`, { data: patData });
-      if (!patRes.ok()) throw new Error(`seedPatient failed: ${patRes.status()}`);
-      const patJson = await patRes.json();
-      const patient: PatientSeed = { ...patJson, ...patData };
+  // context.request shares the browser cookie jar, so the page is signed in too
+  authedPatient: async ({ context, professional: _professional, patient }, use) => {
+    const res = await context.request.post(`${BACKEND_URL}/api/auth/sign-in/email`, {
+      data: { email: patient.email, password: patient.password },
+    });
+    await expect(res).toBeOK();
+    await use(patient);
+  },
 
-      await signInIntoContext(context, patient.email, patient.password);
-
-      await use({ patient, professional });
-    },
-    { auto: false },
-  ],
-
-  authedPatientWithRgpd: [
-    async ({ resetDb: _reset, request, context }, use) => {
-      // Seed professional first
-      const profData = {
-        email: 'prof@test.com',
-        password: 'password123',
-        firstName: 'Ana',
-        lastName: 'García',
-      };
-      const profRes = await request.post(`${API_BASE}/test/seed/professional`, { data: profData });
-      if (!profRes.ok()) throw new Error(`seedProfessional failed: ${profRes.status()}`);
-      const profJson = await profRes.json();
-      const professional: ProfessionalSeed = { ...profJson, ...profData };
-
-      // Seed patient with RGPD signed
-      const patData = {
-        email: 'patient@test.com',
-        password: 'password123',
-        firstName: 'Carlos',
-        lastName: 'López',
-        phone: '+34 600 000 001',
-        signRgpd: true,
-      };
-      const patRes = await request.post(`${API_BASE}/test/seed/patient`, { data: patData });
-      if (!patRes.ok()) throw new Error(`seedPatient failed: ${patRes.status()}`);
-      const patJson = await patRes.json();
-      const patient: PatientSeed = { ...patJson, ...patData };
-
-      await signInIntoContext(context, patient.email, patient.password);
-
-      await use({ patient, professional });
-    },
-    { auto: false },
-  ],
-
-  seedAppointmentsForPatient: [
-    async ({ resetDb: _reset, request, context }, use) => {
-      // Seed professional
-      const profData = {
-        email: 'prof@test.com',
-        password: 'password123',
-        firstName: 'Ana',
-        lastName: 'García',
-      };
-      const profRes = await request.post(`${API_BASE}/test/seed/professional`, { data: profData });
-      if (!profRes.ok()) throw new Error(`seedProfessional failed: ${profRes.status()}`);
-      const profJson = await profRes.json();
-      const professional: ProfessionalSeed = { ...profJson, ...profData };
-
-      // Seed patient with RGPD already signed
-      const patData = {
-        email: 'patient@test.com',
-        password: 'password123',
-        firstName: 'Carlos',
-        lastName: 'López',
-        phone: '+34 600 000 001',
-        signRgpd: true,
-      };
-      const patRes = await request.post(`${API_BASE}/test/seed/patient`, { data: patData });
-      if (!patRes.ok()) throw new Error(`seedPatient failed: ${patRes.status()}`);
-      const patJson = await patRes.json();
-      const patient: PatientSeed = { ...patJson, ...patData };
-
-      // Seed a future appointment (1 week from now)
-      const futureDate = new Date();
-      futureDate.setDate(futureDate.getDate() + 7);
-      // Ensure it's on a weekday (Mon-Fri) at 10:00
-      while (futureDate.getDay() === 0 || futureDate.getDay() === 6) {
-        futureDate.setDate(futureDate.getDate() + 1);
-      }
-      futureDate.setHours(10, 0, 0, 0);
-
-      const futureRes = await request.post(`${API_BASE}/test/seed/appointment`, {
-        data: {
-          patientEmail: patient.email,
-          professionalEmail: professional.email,
-          appointmentTypeId: professional.appointmentTypeId,
-          startAt: futureDate.toISOString(),
-          status: 'scheduled',
-        },
-      });
-      if (!futureRes.ok()) throw new Error(`seedFutureAppointment failed: ${futureRes.status()}`);
-      const future: AppointmentSeed = await futureRes.json();
-
-      // Seed a past appointment (1 week ago)
-      const pastDate = new Date();
-      pastDate.setDate(pastDate.getDate() - 7);
-      while (pastDate.getDay() === 0 || pastDate.getDay() === 6) {
-        pastDate.setDate(pastDate.getDate() - 1);
-      }
-      pastDate.setHours(10, 0, 0, 0);
-
-      const pastRes = await request.post(`${API_BASE}/test/seed/appointment`, {
-        data: {
-          patientEmail: patient.email,
-          professionalEmail: professional.email,
-          appointmentTypeId: professional.appointmentTypeId,
-          startAt: pastDate.toISOString(),
-          status: 'completed',
-        },
-      });
-      if (!pastRes.ok()) throw new Error(`seedPastAppointment failed: ${pastRes.status()}`);
-      const past: AppointmentSeed = await pastRes.json();
-
-      await signInIntoContext(context, patient.email, patient.password);
-
-      await use({ future, past, patient, professional });
-    },
-    { auto: false },
-  ],
-
-  seedBookableProfessional: [
-    async ({ resetDb: _reset, request }, use) => {
-      const data = {
-        email: 'prof@test.com',
-        password: 'password123',
-        firstName: 'Ana',
-        lastName: 'García',
-      };
-      const res = await request.post(`${API_BASE}/test/seed/professional`, { data });
-      if (!res.ok()) {
-        const body = await res.text();
-        throw new Error(`seedBookableProfessional failed: ${res.status()} ${body}`);
-      }
-      const json = await res.json();
-      await use({ ...json, ...data } as ProfessionalSeed);
-    },
-    { auto: false },
-  ],
+  appointments: async ({ request, professional, authedPatient }, use) => {
+    const appointment = (startAt: string, status: string) => seed(request, '/seed/appointment', {
+      patientId: authedPatient.patientId,
+      appointmentTypeId: professional.appointmentTypeId,
+      startAt,
+      status,
+    });
+    await use({
+      future: await appointment(daysFromNow(7), 'scheduled'),
+      past: await appointment(daysFromNow(-7), 'completed'),
+    });
+  },
 });
+
+/** Picks the seeded consultation type and the first slot still bookable. */
+export async function openBookingModal(page: Page) {
+  await page.goto('/dashboard');
+  await page.getByRole('combobox', { name: /Consultas de/ }).click();
+  await page.getByRole('option', { name: /Sesión estándar/ }).click();
+  // Earlier slots of the current week are rendered but disabled
+  await page.getByRole('button', { name: /^\d{2}:\d{2}$/, disabled: false }).first().click();
+  await expect(page.getByRole('heading', { name: 'Confirmar cita' })).toBeVisible();
+}
+
+export async function openAppointmentsTab(page: Page) {
+  await page.goto('/dashboard');
+  await page.getByRole('button', { name: 'Mis Citas' }).click();
+}
 
 export { expect };
