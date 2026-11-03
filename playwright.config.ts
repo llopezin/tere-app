@@ -7,6 +7,7 @@ const backendEnv = parseEnv(readFileSync('apps/backend/.env.test', 'utf8'));
 
 export default defineConfig({
   testDir: './tests',
+  globalSetup: './tests/global-setup.ts',
   // Every test resets the shared database
   workers: 1,
   use: {
@@ -20,13 +21,14 @@ export default defineConfig({
     {
       command: 'pnpm --filter @fisio-app/backend dev',
       url: `${backendEnv.BETTER_AUTH_URL}/api/v1/health`,
-      reuseExistingServer: !process.env.CI,
+      // webServers start before globalSetup takes the DB lock: reusing one would test another checkout's code
+      reuseExistingServer: false,
       env: backendEnv,
     },
     {
       command: 'pnpm --filter @fisio-app/client-app dev',
       url: backendEnv.CLIENT_APP_URL,
-      reuseExistingServer: !process.env.CI,
+      reuseExistingServer: false,
       env: { VITE_API_URL: backendEnv.BETTER_AUTH_URL },
     },
   ],
