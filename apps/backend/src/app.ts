@@ -4,11 +4,12 @@ import { onError, notFound } from 'stoker/middlewares';
 import createApp from './lib/create-app.js';
 import configureOpenAPI from './lib/configure-open-api.js';
 import { auth } from './lib/auth.js';
-import { trustedFrontendOrigins } from './config/env.js';
+import { env, trustedFrontendOrigins } from './config/env.js';
 
 import patientApi from './routes/patient/patient.index.js';
 import professionalApi from './routes/professional/professional.index.js';
 import publicApi from './routes/public/public.index.js';
+import testApi from './routes/test/test.index.js';
 
 const app = createApp();
 
@@ -36,13 +37,9 @@ app.route('/api/v1/professional', professionalApi);
 // Public: health + Google OAuth callback (its URL is registered in Google Cloud Console)
 app.route('/api/v1', publicApi);
 
-// Test-only routes — gated by NODE_ENV !== 'production'
-if (env.NODE_ENV !== 'production') {
-  // Lazy import to avoid loading test code in production builds
-  const { default: testRoutes } = await import('./routes/test/test.index.js');
-  const testApi = createRouter();
-  testApi.route('/', testRoutes);
-  app.route('/api/v1', testApi);
+// Reset/seed endpoints for the e2e suite. Only in test, so they can never wipe the dev or prod database.
+if (env.NODE_ENV === 'test') {
+  app.route('/api/v1/test', testApi);
 }
 
 app.notFound(notFound);
