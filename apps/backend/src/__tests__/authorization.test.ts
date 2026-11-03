@@ -33,6 +33,11 @@ function futureDate(daysAhead: number, hourUtc = 10) {
   return d;
 }
 
+/** Availability takes calendar days (YYYY-MM-DD). */
+function isoDay(d: Date) {
+  return d.toISOString().slice(0, 10);
+}
+
 let A: Actor, B: Actor, P1: Actor, P2: Actor, P3: Actor;
 let typeA: { id: string }, typeB: { id: string };
 let bonoP1: { id: string }, bonoP2: { id: string };
@@ -166,7 +171,7 @@ describe('Patient BFF: only my own data', () => {
   it("rejects availability for an appointment type of another professional", async () => {
     const qs = new URLSearchParams({
       professional_id: A.profileId, appointment_type_id: typeB.id,
-      from: futureDate(1).toISOString(), to: futureDate(7).toISOString(),
+      from: isoDay(futureDate(1)), to: isoDay(futureDate(7)),
     });
     expect((await call(P1, 'GET', `${P}/availability?${qs}`)).status).toBe(404);
   });
@@ -270,7 +275,7 @@ describe('Professional BFF: only my data and my patients', () => {
   });
 
   it('rejects availability for an appointment type of another professional', async () => {
-    const qs = new URLSearchParams({ appointment_type_id: typeB.id, from: futureDate(1).toISOString(), to: futureDate(7).toISOString() });
+    const qs = new URLSearchParams({ appointment_type_id: typeB.id, from: isoDay(futureDate(1)), to: isoDay(futureDate(7)) });
     expect((await call(A, 'GET', `${PRO}/availability?${qs}`)).status).toBe(404);
   });
 });

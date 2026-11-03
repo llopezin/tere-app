@@ -7,6 +7,7 @@ import { professionals } from '../../../db/schema/professionals.js';
 import { appointmentTypes } from '../../../db/schema/appointment-types.js';
 import * as availabilityService from '../../../services/availability.service.js';
 import { assertAppointmentTypeOf, assertProfessionalExists } from '../../../services/ownership.service.js';
+import { getBookingWindowEnd, getClinicToday, toClinicDate } from '../../../lib/booking-window.js';
 
 export const listProfessionals: AppRouteHandler<ListProfessionalsRoute> = async (c) => {
   const data = await db.select({
@@ -31,6 +32,17 @@ export const getAvailability: AppRouteHandler<GetAvailabilityRoute> = async (c) 
 
   await assertAppointmentTypeOf(professionalId, appointmentTypeId, { activeOnly: true });
 
-  const slots = await availabilityService.generateAvailableSlots(professionalId, appointmentTypeId, new Date(from), new Date(to));
-  return c.json({ slots }, HttpStatusCodes.OK);
+  // Patients only see slots inside the booking window (today → windowEnd).
+  // If the clipped range is empty the service returns no slots.
+  const windowEnd = getBookingWindowEnd();
+  const today = getClinicToday();
+  const fromDate = new Date(from < today ? today : from);
+  const toDate = new Date(to) > windowEnd ? windowEnd : new Date(to);
+
+  const slots = await availabilityService.generateAvailableSlots(professionalId, appointmentTypeId, fromDate, toDate);
+  return c.json({
+    // The service extends `to` to the end of the day in server time, so filter precisely.
+    slots: slots.filter((s) => new Date(s.start_at) <= windowEnd),
+    booking_window_last_day: toClinicDate(windowEnd),
+  }, HttpStatusCodes.OK);
 };

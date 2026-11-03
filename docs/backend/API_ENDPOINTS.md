@@ -222,13 +222,16 @@ Custom auth endpoints implemented in Hono. JWT-based with bcrypt password hashin
 &to=2026-03-30
 ```
 
+`from`/`to` must be `YYYY-MM-DD`, with `from <= to` and a range of at most 31 days; otherwise `422`.
+
 **Response:**
 ```json
 {
   "slots": [
     { "start_at": "2026-03-24T09:00:00Z", "end_at": "2026-03-24T10:00:00Z" },
     { "start_at": "2026-03-24T10:00:00Z", "end_at": "2026-03-24T11:00:00Z" }
-  ]
+  ],
+  "booking_window_last_day": "2026-06-24"
 }
 ```
 
@@ -237,7 +240,8 @@ Custom auth endpoints implemented in Hono. JWT-based with bcrypt password hashin
 2. Divide each schedule block into slots based on `appointment_types.duration_minutes`.
 3. Subtract slots that overlap with existing `appointments` (status ≠ cancelled).
 4. Subtract slots that overlap with `blocked_times`.
-5. Return remaining available slots.
+5. **Patient BFF only (`GET /patient/availability`):** clip the range to the booking window (today → end of day of today + 3 months, Europe/Madrid) and drop slots starting after it.
+6. Return remaining available slots. The patient BFF also returns `booking_window_last_day` (last bookable day, `YYYY-MM-DD` in clinic time); client-app uses it to limit week navigation, so the limit and the time-zone logic live only in the backend. `GET /professional/availability` is not limited and has no such field.
 
 ---
 
@@ -246,7 +250,7 @@ Custom auth endpoints implemented in Hono. JWT-based with bcrypt password hashin
 | Method | Path | Description | Role | Impl |
 |--------|------|-------------|------|------|
 | `GET` | `/appointments` | List appointments. Supports `?from=&to=&status=&patient_id=` | Professional | Drizzle query |
-| `POST` | `/appointments` | Create single appointment | Professional, Patient | Hono handler |
+| `POST` | `/appointments` | Create single appointment. In the patient BFF (`POST /patient/appointments`) returns `400` with `code: BOOKING_IN_PAST` or `BOOKING_OUTSIDE_WINDOW` if `start_at` is in the past or beyond the booking window | Professional, Patient | Hono handler |
 | `POST` | `/appointments/batch` | Create multiple appointments for same patient (multi-slot) | Professional | Hono handler |
 | `POST` | `/appointments/recurring` | Create recurring appointment series | Professional | Hono handler |
 | `GET` | `/appointments/:id` | Get appointment details (includes patient, type, payment info) | Professional, Patient (own) | Drizzle query |

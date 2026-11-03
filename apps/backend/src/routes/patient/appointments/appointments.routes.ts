@@ -36,6 +36,13 @@ export const create = createRoute({
   },
   responses: {
     [HttpStatusCodes.CREATED]: jsonContent(selectAppointmentSchema, 'The created appointment'),
+    [HttpStatusCodes.BAD_REQUEST]: jsonContent(
+      z.object({
+        message: z.string(),
+        code: z.enum(['BOOKING_IN_PAST', 'BOOKING_OUTSIDE_WINDOW']),
+      }),
+      'Booking in the past (BOOKING_IN_PAST) or beyond the booking window (BOOKING_OUTSIDE_WINDOW)',
+    ),
     [HttpStatusCodes.FORBIDDEN]: jsonContent(createMessageObjectSchema('RGPD consent required'), 'RGPD consent required'),
     [HttpStatusCodes.NOT_FOUND]: jsonContent(createMessageObjectSchema('Appointment type not found'), 'Appointment type or bono not found'),
     [HttpStatusCodes.CONFLICT]: jsonContent(createMessageObjectSchema('Time slot overlaps'), 'Time slot overlaps'),

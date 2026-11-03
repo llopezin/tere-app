@@ -2,6 +2,7 @@ import { createRoute, z } from '@hono/zod-openapi';
 import * as HttpStatusCodes from 'stoker/http-status-codes';
 import { jsonContent } from 'stoker/openapi/helpers';
 import { createMessageObjectSchema } from 'stoker/openapi/schemas';
+import { availabilityRangeSchema, refineAvailabilityRange } from '../../../lib/schemas.js';
 import { selectAppointmentTypeSchema } from '../../../db/schema/appointment-types.js';
 
 const tags = ['Patient / Booking'];
@@ -48,12 +49,12 @@ export const getAvailability = createRoute({
   tags,
   summary: 'Compute available appointment slots for a professional',
   request: {
-    query: z.object({
-      professional_id: z.string().uuid(),
-      appointment_type_id: z.string().uuid(),
-      from: z.string(),
-      to: z.string(),
-    }),
+    query: availabilityRangeSchema
+      .extend({
+        professional_id: z.string().uuid(),
+        appointment_type_id: z.string().uuid(),
+      })
+      .superRefine(refineAvailabilityRange),
   },
   responses: {
     [HttpStatusCodes.OK]: jsonContent(
@@ -62,9 +63,13 @@ export const getAvailability = createRoute({
           start_at: z.string(),
           end_at: z.string(),
         })),
+        booking_window_last_day: z.string().openapi({
+          description: 'Last bookable day for patients (YYYY-MM-DD, clinic time). Single source of truth for the client.',
+        }),
       }),
-      'Available appointment slots',
+      'Available appointment slots, clipped to the booking window',
     ),
+    [HttpStatusCodes.UNPROCESSABLE_ENTITY]: jsonContent(createMessageObjectSchema('Validation error'), 'Invalid date range'),
     [HttpStatusCodes.NOT_FOUND]: jsonContent(createMessageObjectSchema('Appointment type not found'), 'Appointment type not found'),
   },
 });

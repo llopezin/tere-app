@@ -119,6 +119,8 @@ export function BookingForm() {
       {professional && consultationType && (
         <div className="mt-6">
           <WeeklySchedule
+            // Reset week/auto-skip state when the selection changes.
+            key={`${professional}:${consultationType}`}
             professionalId={professional}
             appointmentTypeId={consultationType}
             onSlotSelect={handleSlotSelect}

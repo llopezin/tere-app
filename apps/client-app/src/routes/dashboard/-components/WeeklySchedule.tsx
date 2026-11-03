@@ -4,9 +4,6 @@ import { AlertCircle, ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
 import { cn } from "@fisio-app/ui";
 import { availabilityQueryOptions } from "@/api/availability";
 
-/** Max weeks to auto-skip forward looking for the first week with future slots. */
-const MAX_AUTO_SKIP_WEEKS = 12;
-
 const MONTH_NAMES = [
   "enero",
   "febrero",
@@ -58,6 +55,23 @@ function getMonday(offset: number): Date {
   return monday;
 }
 
+const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
+
+/** Local calendar date from a `YYYY-MM-DD` string (no time-zone conversion). */
+function parseCalendarDate(ymd: string): Date {
+  const [y, m, d] = ymd.split("-").map(Number);
+  return new Date(y, m - 1, d);
+}
+
+/** Week offset (relative to the current week) of the week containing `date`. */
+function getWeekOffsetOf(date: Date): number {
+  const day = date.getDay();
+  const diffToMonday = day === 0 ? -6 : 1 - day;
+  const monday = new Date(date.getFullYear(), date.getMonth(), date.getDate() + diffToMonday);
+  // Round to absorb DST hour shifts between the two Mondays.
+  return Math.round((monday.getTime() - getMonday(0).getTime()) / WEEK_MS);
+}
+
 function toISODate(d: Date): string {
   const y = d.getFullYear();
   const m = String(d.getMonth() + 1).padStart(2, "0");
@@ -85,6 +99,10 @@ export function WeeklySchedule({
 }: WeeklyScheduleProps) {
   const [weekOffset, setWeekOffset] = useState(0);
   const [userNavigated, setUserNavigated] = useState(false);
+  const [noSlotsInWindow, setNoSlotsInWindow] = useState(false);
+  // Last bookable day (YYYY-MM-DD, clinic time), provided by the backend (single source of truth).
+  // undefined = not known yet. Kept in state so it survives while the next week loads.
+  const [bookingWindowLastDay, setBookingWindowLastDay] = useState<string>();
 
   const { monday, friday, weekDays } = useMemo(() => {
     const mon = getMonday(weekOffset);
@@ -101,6 +119,21 @@ export function WeeklySchedule({
   const { data, isLoading, isError } = useQuery(
     availabilityQueryOptions(professionalId, appointmentTypeId, from, to),
   );
+
+  if (data && data.booking_window_last_day !== bookingWindowLastDay) {
+    setBookingWindowLastDay(data.booking_window_last_day);
+  }
+
+  // Last navigable week (undefined while unknown).
+  const maxWeekOffset = useMemo(
+    () =>
+      bookingWindowLastDay ? getWeekOffsetOf(parseCalendarDate(bookingWindowLastDay)) : undefined,
+    [bookingWindowLastDay],
+  );
+
+  // While the limit is unknown, only block forward navigation during the first load
+  // (if that request fails, the backend still enforces the window).
+  const isLastWeek = maxWeekOffset === undefined ? isLoading : weekOffset >= maxWeekOffset;
 
   const slotsByDay = useMemo(() => {
     const map = new Map<string, { start_at: string; end_at: string }[]>();
@@ -127,17 +160,20 @@ export function WeeklySchedule({
     return false;
   }, [slotsByDay]);
 
+  // Auto-skip forward to the first week with future slots, within the booking window.
   useEffect(() => {
-    if (
-      !isLoading &&
-      !isError &&
-      !userNavigated &&
-      !hasFutureSlots &&
-      weekOffset < MAX_AUTO_SKIP_WEEKS
-    ) {
-      setWeekOffset((o) => o + 1);
+    if (isLoading || isError || userNavigated || hasFutureSlots || maxWeekOffset === undefined) {
+      return;
     }
-  }, [isLoading, isError, userNavigated, hasFutureSlots, weekOffset]);
+    if (weekOffset < maxWeekOffset) {
+      setWeekOffset((o) => o + 1);
+    } else {
+      // Nothing bookable in the whole window: go back to the current week.
+      setNoSlotsInWindow(true);
+      setUserNavigated(true);
+      setWeekOffset(0);
+    }
+  }, [isLoading, isError, userNavigated, hasFutureSlots, weekOffset, maxWeekOffset]);
 
   return (
     <div className="flex flex-col gap-4">
@@ -147,6 +183,7 @@ export function WeeklySchedule({
       <div className="flex items-center justify-between">
         <button
           type="button"
+          aria-label="Semana anterior"
           disabled={weekOffset === 0}
           onClick={() => {
             setUserNavigated(true);
@@ -164,11 +201,16 @@ export function WeeklySchedule({
 
         <button
           type="button"
+          aria-label="Semana siguiente"
+          disabled={isLastWeek}
           onClick={() => {
             setUserNavigated(true);
             setWeekOffset((o) => o + 1);
           }}
-          className="size-8 rounded-md text-text-muted hover:bg-background transition-colors"
+          className={cn(
+            "size-8 rounded-md text-text-muted transition-colors",
+            isLastWeek ? "cursor-not-allowed opacity-40" : "hover:bg-background",
+          )}
         >
           <ChevronRight className="mx-auto size-5" />
         </button>
@@ -188,7 +230,9 @@ export function WeeklySchedule({
         </div>
       ) : !hasFutureSlots ? (
         <p className="py-8 text-center text-sm text-text-muted">
-          No hay citas disponibles esta semana
+          {noSlotsInWindow && bookingWindowLastDay
+            ? `No hay citas disponibles hasta el ${parseCalendarDate(bookingWindowLastDay).toLocaleDateString("es-ES", { day: "numeric", month: "long" })}`
+            : "No hay citas disponibles esta semana"}
         </p>
       ) : (
         <div className="grid grid-cols-5 gap-2 md:gap-3">

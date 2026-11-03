@@ -10,6 +10,7 @@ import { AppError } from '../../../middleware/error-handler.js';
 import * as appointmentService from '../../../services/appointment.service.js';
 import * as gcalSync from '../../../services/google-calendar/sync.js';
 import { assertAppointmentOf, assertBonoOf, linkPatientToProfessional } from '../../../services/ownership.service.js';
+import { assertPatientCanBookAt } from '../../../lib/booking-window.js';
 
 export const list: AppRouteHandler<ListRoute> = async (c) => {
   const patientId = getProfileId(c);
@@ -38,6 +39,8 @@ export const create: AppRouteHandler<CreateRoute> = async (c) => {
 
   const startAt = new Date(body.startAt);
   const endAt = new Date(startAt.getTime() + apptType.durationMinutes * 60 * 1000);
+
+  assertPatientCanBookAt(startAt);
 
   await appointmentService.verifyRgpdConsent(patientId);
   await appointmentService.checkOverlap(professionalId, startAt, endAt);
