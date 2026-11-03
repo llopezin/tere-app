@@ -11,11 +11,13 @@ function IndexPage() {
   const navigate = useNavigate();
   const { data: session, isPending } = useSession();
 
+  const isProfessional = session?.user.role === "professional";
+
   useEffect(() => {
-    if (!isPending && !session) {
+    if (!isPending && !isProfessional) {
       navigate({ to: "/login" });
     }
-  }, [session, isPending, navigate]);
+  }, [isProfessional, isPending, navigate]);
 
   const handleLogout = async () => {
     await signOut();
@@ -30,7 +32,7 @@ function IndexPage() {
     );
   }
 
-  if (!session) return null;
+  if (!session || !isProfessional) return null;
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-primary-50 to-primary-100 p-4">
@@ -38,28 +40,19 @@ function IndexPage() {
         <div className="flex flex-col items-center space-y-6 p-8">
           <BrandLogo />
           <div className="text-center w-full">
-            <h1 className="text-2xl font-bold text-primary-700 mb-1">
-              Hola, {session.user.name}
-            </h1>
-            <p className="text-text-secondary mb-6">
-              Panel de Control Profesional
-            </p>
-            
+            <h1 className="text-2xl font-bold text-primary-700 mb-1">Hola, {session.user.name}</h1>
+            <p className="text-text-secondary mb-6">Panel de Control Profesional</p>
+
             <div className="space-y-3">
-              <Button 
-                variant="primary" 
-                size="lg" 
-                onClick={() => navigate({ to: '/ajustes/integraciones' })}
+              <Button
+                variant="primary"
+                size="lg"
+                onClick={() => navigate({ to: "/ajustes/integraciones" })}
               >
                 Configurar Google Calendar
               </Button>
 
-              <Button 
-                variant="secondary" 
-                size="md" 
-                className="w-full"
-                onClick={handleLogout}
-              >
+              <Button variant="secondary" size="md" className="w-full" onClick={handleLogout}>
                 Cerrar sesión
               </Button>
             </div>

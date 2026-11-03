@@ -2,7 +2,6 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { client } from "@/lib/client";
 
 interface CreateAppointmentInput {
-  patientId: string;
   appointmentTypeId: string;
   startAt: string;
 }
@@ -12,9 +11,7 @@ async function postCreateAppointment(input: CreateAppointmentInput) {
   const data = await res.json();
   if (!res.ok) {
     const message =
-      "message" in data
-        ? (data as { message: string }).message
-        : "Error al crear la cita";
+      "message" in data ? (data as { message: string }).message : "Error al crear la cita";
     throw new Error(message);
   }
   return data;

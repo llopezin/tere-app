@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { Card, Button, Input, BrandLogo } from "@fisio-app/ui";
 import { signIn } from "../lib/auth-client";
@@ -20,18 +20,22 @@ function LoginPage() {
     setError("");
 
     try {
-      const { data, error: authError } = await signIn.email({
+      const { error: authError } = await signIn.email({
         email,
         password,
       });
 
       if (authError) {
-        setError(authError.message || "Credenciales inválidas");
+        setError(
+          authError.code === "INVALID_EMAIL_OR_PASSWORD"
+            ? "Email o contraseña incorrectos"
+            : authError.message || "Credenciales inválidas",
+        );
         return;
       }
 
       navigate({ to: "/" });
-    } catch (err) {
+    } catch {
       setError("Ocurrió un error inesperado");
     } finally {
       setLoading(false);
@@ -49,26 +53,21 @@ function LoginPage() {
           </div>
 
           <form onSubmit={handleLogin} className="w-full space-y-4">
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Email</label>
-              <Input
-                type="email"
-                placeholder="tu@email.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Contraseña</label>
-              <Input
-                type="password"
-                placeholder="••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-              />
-            </div>
+            <Input
+              label="Email"
+              type="email"
+              placeholder="tu@email.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+            />
+            <Input
+              label="Contraseña"
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+            />
 
             {error && <p className="text-danger text-sm text-center">{error}</p>}
 
@@ -77,11 +76,8 @@ function LoginPage() {
             </Button>
           </form>
 
-          <p className="text-sm text-center">
-            ¿No tienes cuenta?{" "}
-            <Link to="/signup" className="text-primary-600 font-medium">
-              Regístrate aquí
-            </Link>
+          <p className="text-sm text-center text-text-secondary">
+            Las cuentas de profesional las crea el administrador de la clínica.
           </p>
         </div>
       </Card>

@@ -72,14 +72,10 @@ export async function checkOverlap(
 }
 
 /**
- * Deducts a session from a bono within a transaction
+ * Deducts a session from a bono within a transaction. Without `appointmentId` it is a manual deduction.
  * @throws {AppError} 404 if bono not found, 400 if bono exhausted
  */
-export async function deductBonoSession(
-  tx: Transaction,
-  bonoId: string,
-  appointmentId: string
-): Promise<void> {
+export async function deductBonoSession(tx: Transaction, bonoId: string, appointmentId?: string) {
   const [bono] = await tx.select().from(bonos).where(eq(bonos.id, bonoId));
   if (!bono) throw new AppError(404, 'Bono not found');
   if (bono.status === 'exhausted') throw new AppError(400, 'Bono is exhausted');
@@ -88,17 +84,18 @@ export async function deductBonoSession(
   }
 
   const newUsed = bono.sessionsUsed + 1;
-  await tx.update(bonos).set({
+  const [updated] = await tx.update(bonos).set({
     sessionsUsed: newUsed,
     status: newUsed >= bono.totalSessions ? 'exhausted' : 'active',
     updatedAt: new Date(),
-  }).where(eq(bonos.id, bonoId));
+  }).where(eq(bonos.id, bonoId)).returning();
 
   await tx.insert(bonoTransactions).values({
     bonoId,
     appointmentId,
-    type: 'deduction',
+    type: appointmentId ? 'deduction' : 'manual_deduction',
   });
+  return updated;
 }
 
 /**
@@ -175,33 +172,55 @@ export async function createBatchAppointments(
   });
 }
 
+export type RecurrenceFrequency = 'daily' | 'weekly' | 'biweekly' | 'monthly';
+
 /**
- * Creates recurring appointments within a transaction
+ * Expands a recurrence rule into the start date of each occurrence
+ */
+export function generateRecurrenceDates(
+  startDate: Date,
+  frequency: RecurrenceFrequency,
+  count: number
+): Date[] {
+  const dates: Date[] = [];
+  for (let i = 0; i < count; i++) {
+    const date = new Date(startDate);
+    switch (frequency) {
+      case 'daily':
+        date.setDate(date.getDate() + i);
+        break;
+      case 'weekly':
+        date.setDate(date.getDate() + i * 7);
+        break;
+      case 'biweekly':
+        date.setDate(date.getDate() + i * 14);
+        break;
+      case 'monthly':
+        date.setMonth(date.getMonth() + i);
+        break;
+    }
+    dates.push(date);
+  }
+  return dates;
+}
+
+/**
+ * Checks every occurrence for overlaps, then creates them all within a transaction
+ * @throws {AppError} 409 if any occurrence overlaps
  */
 export async function createRecurringAppointments(
   professionalId: string,
   startDate: Date,
-  frequency: 'daily' | 'weekly' | 'biweekly' | 'monthly',
+  frequency: RecurrenceFrequency,
   count: number,
   durationMs: number,
   data: Omit<CreateAppointmentData, 'startAt' | 'endAt' | 'recurrenceGroupId'>
 ): Promise<{ appointments: any[]; recurrenceGroupId: string }> {
   const recurrenceGroupId = crypto.randomUUID();
+  const dates = generateRecurrenceDates(startDate, frequency, count);
 
-  // Generate dates
-  const dates: Date[] = [];
-  for (let i = 0; i < count; i++) {
-    const date = new Date(startDate);
-    if (frequency === 'weekly') {
-      date.setDate(date.getDate() + i * 7);
-    } else if (frequency === 'daily') {
-      date.setDate(date.getDate() + i);
-    } else if (frequency === 'biweekly') {
-      date.setDate(date.getDate() + i * 14);
-    } else if (frequency === 'monthly') {
-      date.setMonth(date.getMonth() + i);
-    }
-    dates.push(date);
+  for (const date of dates) {
+    await checkOverlap(professionalId, date, new Date(date.getTime() + durationMs));
   }
 
   const created = await db.transaction(async (tx) => {
@@ -237,10 +256,12 @@ export async function cancelAppointment(
   }
 
   const result = await db.transaction(async (tx) => {
+    // Only scheduled appointments can be cancelled: a repeated cancel must not refund the bono again
     const [updated] = await tx.update(appointments)
       .set({ status: 'cancelled', updatedAt: new Date() })
-      .where(eq(appointments.id, appointmentId))
+      .where(and(eq(appointments.id, appointmentId), eq(appointments.status, 'scheduled')))
       .returning();
+    if (!updated) throw new AppError(409, 'Only scheduled appointments can be cancelled');
 
     if (appointment.bonoId && appointment.useBonoSession) {
       await refundBonoSession(tx, appointment.bonoId, appointmentId);

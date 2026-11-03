@@ -9,15 +9,17 @@ WORKDIR /app
 # Enable the correct pnpm version declared in package.json
 RUN corepack enable
 
-# Copy workspace manifest files needed for pnpm to resolve the workspace graph
+# Download every package in the lockfile into the pnpm store.
+# This layer only depends on the lockfile, so it stays cached while deps don't change.
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+RUN pnpm fetch
 
 # Copy package manifests for all workspace members referenced by the backend
 COPY apps/backend/package.json ./apps/backend/package.json
 COPY packages/validators/package.json ./packages/validators/package.json
 
-# Install all deps for the workspace (filter is not supported on install)
-RUN pnpm install --frozen-lockfile
+# Only links from the store, no network
+RUN pnpm install --frozen-lockfile --offline
 
 # =============================================================================
 # Stage 2: build — compile TypeScript → dist/

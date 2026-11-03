@@ -12,5 +12,5 @@ console.log(`📚 API Documentation:`);
 console.log(`   - Main API: http://localhost:${env.PORT}/api/v1/docs`);
 console.log(`   - Auth API: http://localhost:${env.PORT}/api/auth/docs`);
 
-export type { AppType } from './app.js';
+export type { PatientAppType, ProfessionalAppType } from './app.js';
 export default app;

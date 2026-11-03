@@ -1,0 +1,34 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  ci:
+    runs-on: ubuntu-26.04
+    container:
+      image: node:24
+
+    # No env needed: lint, format and build never read secrets or connect to a DB.
+    # Add an env block with test-only values when backend tests are wired in.
+    steps:
+      - uses: actions/checkout@v5
+      - run: corepack enable
+
+      # Persist the pnpm store between runs (key = lockfile hash)
+      - run: echo "PNPM_STORE=$(pnpm store path --silent)" >> $GITHUB_ENV
+      - uses: actions/cache@v4
+        with:
+          path: ${{ env.PNPM_STORE }}
+          key: pnpm-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: pnpm-${{ runner.os }}-
+
+      - run: pnpm install --frozen-lockfile
+
+      # 1. Lint & format: fast, no build needed, fail early
+      - run: pnpm -r --if-present lint
+      - run: pnpm -r --if-present fmt:check
+
+      # 2. Build = type check (tsc / tsc -b) + bundle, in dependency order (validators → backend → FEs)
+      - run: pnpm -F client-app... -F professional-app... build
