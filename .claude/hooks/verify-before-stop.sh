@@ -1,9 +1,8 @@
 #!/usr/bin/env bash
-# Stop hook: before Claude ends a turn, run lint, the repo's own tests and the e2e suite.
-# Exit 2 + stderr blocks the stop and feeds the failure back to Claude so it fixes it.
+# Exit 2 blocks the stop and sends stderr back to Claude
 set -uo pipefail
 
-MAX_BLOCKS=3 # consecutive failed attempts before letting Claude stop (avoids infinite loops)
+MAX_BLOCKS=3 # avoids an endless loop when the failure is outside Claude's control
 
 cd "${CLAUDE_PROJECT_DIR:-$(pwd)}" || exit 0
 input=$(cat)
@@ -15,8 +14,7 @@ passed_file="$state_dir/last-passed"
 blocks_file="$state_dir/blocks-$session_id"
 log_dir="$state_dir/logs"
 
-# Fingerprint of the working tree (HEAD + tracked diff + untracked files).
-# If nothing changed since the last green run (e.g. a Q&A turn), skip the checks.
+# Skip the checks if the tree is unchanged since the last green run
 fingerprint=$(
   {
     git rev-parse HEAD
@@ -29,10 +27,10 @@ if [[ -f "$passed_file" && "$(cat "$passed_file")" == "$fingerprint" ]]; then
   exit 0
 fi
 
-# All worktrees share the same test database: serialize runs with a lock in the common git dir
+# Worktrees share the test database
 lock_dir="$(git rev-parse --path-format=absolute --git-common-dir)/claude-verify.lock"
 until mkdir "$lock_dir" 2>/dev/null; do
-  # Recover from a lock left behind by a killed run
+  # Stale lock from a killed run
   if [[ -n $(find "$lock_dir" -maxdepth 0 -mmin +30 2>/dev/null) ]]; then rm -rf "$lock_dir"; fi
   sleep 5
 done
