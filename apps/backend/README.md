@@ -116,7 +116,7 @@ All variables are validated at startup via Zod (`src/config/env.ts`). The server
 | `pnpm db:migrate` | Run pending migrations |
 | `pnpm db:push` | Push schema directly to database (dev shortcut, no migration files) |
 | `pnpm db:studio` | Open Drizzle Studio (visual DB browser) |
-| `pnpm test` | Run tests once (Vitest) |
+| `pnpm test` | Run tests once (Vitest). Concurrent runs queue on a Postgres advisory lock because they share the test DB |
 | `pnpm test:watch` | Run tests in watch mode |
 | `pnpm create-professional -- --email … --password … --first-name … --last-name …` | Create a professional account (public sign-up only creates patients) |
 
