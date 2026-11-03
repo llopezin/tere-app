@@ -111,6 +111,8 @@ All variables are validated at startup via Zod (`src/config/env.ts`). The server
 |--------|-------------|
 | `pnpm dev` | Start dev server with hot-reload (tsx watch) |
 | `pnpm build` | Compile TypeScript to `./dist` |
+| `pnpm lint` | Lint with oxlint |
+| `pnpm typecheck` | Type-aware lint + type check (oxlint + tsgolint; build `@fisio-app/validators` first) |
 | `pnpm start` | Run compiled production server |
 | `pnpm db:generate` | Generate Drizzle migration files from schema changes |
 | `pnpm db:migrate` | Run pending migrations |

@@ -32,3 +32,7 @@ jobs:
 
       # 2. Build = type check (tsc / tsc -b) + bundle, in dependency order (validators → backend → FEs)
       - run: pnpm -F client-app... -F professional-app... build
+
+      # 3. Backend type-aware lint + type check (oxlint + tsgolint). Runs after the build
+      #    because @fisio-app/validators resolves to its dist/ output.
+      - run: pnpm -F @fisio-app/backend typecheck
