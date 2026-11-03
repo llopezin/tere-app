@@ -45,9 +45,8 @@ describe('Appointments - Create', () => {
     const prof = await createProfessional();
     const patient = await createPatient(prof.id);
     // Don't sign consent
-    const apptType = await createAppointmentType('Consultation', 60, prof.id);
+    await createAppointmentType('Consultation', 60, prof.id);
 
-    const startAt = new Date('2026-05-01T10:00:00Z');
     
     // This should fail RGPD check in handler
     await expect(async () => {
@@ -96,7 +95,7 @@ describe('Appointments - Create', () => {
     const prof = await createProfessional();
     const patient = await createPatient(prof.id);
     await signRgpdConsent(patient.id);
-    const apptType = await createAppointmentType('Consultation', 60, prof.id);
+    await createAppointmentType('Consultation', 60, prof.id);
 
     const startAt = new Date('2026-05-01T10:00:00Z');
     const endAt = new Date('2026-05-01T11:00:00Z');
@@ -261,7 +260,7 @@ describe('Appointments - Bono Integration', () => {
     // Use first session
     const startAt1 = new Date('2026-05-01T10:00:00Z');
     await testDb.transaction(async (tx) => {
-      const [appt] = await tx.insert(appointments).values({
+      await tx.insert(appointments).values({
         professionalId: prof.id,
         patientId: patient.id,
         appointmentTypeId: apptType.id,
@@ -280,7 +279,7 @@ describe('Appointments - Bono Integration', () => {
     // Use second session
     const startAt2 = new Date('2026-05-02T10:00:00Z');
     const result = await testDb.transaction(async (tx) => {
-      const [appt] = await tx.insert(appointments).values({
+      await tx.insert(appointments).values({
         professionalId: prof.id,
         patientId: patient.id,
         appointmentTypeId: apptType.id,
