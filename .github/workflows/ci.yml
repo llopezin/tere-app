@@ -36,7 +36,8 @@ jobs:
   # Runs on the runner host (not in a container) so Postgres is reachable on localhost,
   # matching apps/backend/.env.test, which Playwright uses to boot the backend.
   e2e:
-    runs-on: ubuntu-26.04
+    # Playwright 1.59 cannot install browsers on ubuntu-26.04 yet
+    runs-on: ubuntu-24.04
     services:
       postgres:
         image: postgres:18.6-alpine
