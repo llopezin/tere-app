@@ -1,27 +1,27 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { Card, Button, BrandLogo } from "@fisio-app/ui";
-import { useSession, signOut } from "../lib/auth-client";
+"use client";
+
+import { useRouter } from "next/navigation";
 import { useEffect } from "react";
+import { BrandLogo } from "@fisio-app/ui/BrandLogo";
+import { Button } from "@fisio-app/ui/Button";
+import { Card } from "@fisio-app/ui/Card";
+import { useSession, signOut } from "@/lib/auth-client";
 
-export const Route = createFileRoute("/")({
-  component: IndexPage,
-});
-
-function IndexPage() {
-  const navigate = useNavigate();
+export default function IndexPage() {
+  const router = useRouter();
   const { data: session, isPending } = useSession();
 
   const isProfessional = session?.user.role === "professional";
 
   useEffect(() => {
     if (!isPending && !isProfessional) {
-      navigate({ to: "/login" });
+      router.push("/login");
     }
-  }, [isProfessional, isPending, navigate]);
+  }, [isProfessional, isPending, router]);
 
   const handleLogout = async () => {
     await signOut();
-    navigate({ to: "/login" });
+    router.push("/login");
   };
 
   if (isPending) {
@@ -47,7 +47,7 @@ function IndexPage() {
               <Button
                 variant="primary"
                 size="lg"
-                onClick={() => navigate({ to: "/ajustes/integraciones" })}
+                onClick={() => router.push("/ajustes/integraciones")}
               >
                 Configurar Google Calendar
               </Button>

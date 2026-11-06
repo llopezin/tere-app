@@ -13,6 +13,7 @@ dist/
 # TanStack / framework caches
 .tanstack/
 **/.tanstack/
+**/.next/
 
 # Environment files
 .env

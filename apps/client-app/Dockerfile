@@ -11,7 +11,7 @@ WORKDIR /app
 # Download every package in the lockfile into the pnpm store.
 # This layer only depends on the lockfile, so it stays cached while deps don't change
 # (editing a package.json script no longer forces a re-download).
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .node-version ./
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .node-version .pnpmfile.cjs ./
 RUN pnpm fetch
 
 # Workspace manifests needed to link @fisio-app/client-app and its workspace deps
