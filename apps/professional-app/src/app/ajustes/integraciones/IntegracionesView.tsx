@@ -1,28 +1,19 @@
-import { createFileRoute } from "@tanstack/react-router";
+"use client";
+
 import { useQuery } from "@tanstack/react-query";
 import {
   googleCalendarStatusQueryOptions,
   useConnectGoogleCalendar,
   useDisconnectGoogleCalendar,
 } from "@/api/google-calendar";
-import { Button } from "@fisio-app/ui";
+import { Button } from "@fisio-app/ui/Button";
 
-interface IntegracionesSearch {
+interface IntegracionesViewProps {
   gcal?: "connected" | "error";
   reason?: string;
 }
 
-export const Route = createFileRoute("/ajustes/integraciones")({
-  // The Google OAuth callback redirects here with ?gcal=connected|error&reason=...
-  validateSearch: (search: Record<string, unknown>): IntegracionesSearch => ({
-    gcal: search.gcal === "connected" || search.gcal === "error" ? search.gcal : undefined,
-    reason: typeof search.reason === "string" ? search.reason : undefined,
-  }),
-  component: IntegracionesPage,
-});
-
-function IntegracionesPage() {
-  const { gcal, reason } = Route.useSearch();
+export function IntegracionesView({ gcal, reason }: IntegracionesViewProps) {
   const { data: status, isLoading } = useQuery(googleCalendarStatusQueryOptions());
   const connectMutation = useConnectGoogleCalendar();
   const disconnectMutation = useDisconnectGoogleCalendar();

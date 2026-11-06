@@ -1,18 +1,19 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+"use client";
+
+import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { Card, Button, Input, BrandLogo } from "@fisio-app/ui";
-import { signIn } from "../lib/auth-client";
+import { BrandLogo } from "@fisio-app/ui/BrandLogo";
+import { Button } from "@fisio-app/ui/Button";
+import { Card } from "@fisio-app/ui/Card";
+import { Input } from "@fisio-app/ui/Input";
+import { signIn } from "@/lib/auth-client";
 
-export const Route = createFileRoute("/login")({
-  component: LoginPage,
-});
-
-function LoginPage() {
+export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const navigate = useNavigate();
+  const router = useRouter();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -34,7 +35,7 @@ function LoginPage() {
         return;
       }
 
-      navigate({ to: "/" });
+      router.push("/");
     } catch {
       setError("Ocurrió un error inesperado");
     } finally {

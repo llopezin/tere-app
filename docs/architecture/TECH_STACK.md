@@ -22,8 +22,8 @@ Backend
 ## 2. Frontend - Stack Overview
 
 - **Core**: React 19 + TypeScript 5
-- **Build Tool**: Vite
-- **Routing**: **TanStack Router** (Full type safety for nested routes and complex search params, critical for calendar navigation)
+- **Framework**: Vite + TanStack Router in `client-app`; Next.js with App Router in `professional-app`
+- **Routing (`client-app`)**: **TanStack Router** (Full type safety for nested routes and complex search params, critical for calendar navigation)
 - **Data Fetching**: TanStack Query (Tight integration with TanStack Router loaders)
 - **Styling**: Tailwind CSS + shadcn/ui
 - **Table/Grid**: **TanStack Table** (Highly recommended for sorting/filtering patient lists and billing history)

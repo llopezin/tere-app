@@ -8,12 +8,9 @@ pnpm-debug.log*
 lerna-debug.log*
 
 node_modules
-dist
-dist-ssr
+.next
+next-env.d.ts
 *.local
-
-# TanStack Router generated
-.tanstack/
 
 # Editor directories and files
 .vscode/*

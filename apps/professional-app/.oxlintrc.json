@@ -7,7 +7,7 @@
   "env": {
     "builtin": true
   },
-  "ignorePatterns": ["dist"],
+  "ignorePatterns": [".next", "next-env.d.ts"],
   "overrides": [
     {
       "files": ["**/*.{ts,tsx}"],
@@ -92,7 +92,8 @@
         "react/only-export-components": [
           "error",
           {
-            "allowConstantExport": true
+            "allowConstantExport": true,
+            "allowExportNames": ["metadata"]
           }
         ]
       },
