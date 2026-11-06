@@ -1,11 +1,9 @@
 import { IntegracionesView } from "./IntegracionesView";
 
-interface IntegracionesPageProps {
-  searchParams: Promise<{ gcal?: string | string[]; reason?: string | string[] }>;
-}
-
 // The Google OAuth callback redirects here with ?gcal=connected|error&reason=...
-export default async function IntegracionesPage({ searchParams }: IntegracionesPageProps) {
+export default async function IntegracionesPage({
+  searchParams,
+}: PageProps<"/ajustes/integraciones">) {
   const { gcal, reason } = await searchParams;
 
   return (

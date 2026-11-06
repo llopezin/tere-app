@@ -11,7 +11,7 @@ RUN corepack enable
 
 # Download every package in the lockfile into the pnpm store.
 # This layer only depends on the lockfile, so it stays cached while deps don't change.
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .pnpmfile.cjs ./
 RUN pnpm fetch
 
 # Copy package manifests for all workspace members referenced by the backend
