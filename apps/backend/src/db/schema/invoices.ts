@@ -26,7 +26,7 @@ export const invoices = pgTable('invoices', {
   pdfUrl: text('pdf_url'),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
 }, (table) => [
-  // Each professional has their own invoice sequence
+  // generateInvoiceNumber numbers per professional, so two professionals both have `<year>-0001`
   unique('uq_prof_invoice_number').on(table.professionalId, table.invoiceNumber),
 ]);
 
