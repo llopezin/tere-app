@@ -1,4 +1,4 @@
-import { pgTable, uuid, text, decimal, timestamp } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, text, decimal, timestamp, unique } from 'drizzle-orm/pg-core';
 import { createSelectSchema } from 'drizzle-zod';
 import { z } from 'zod';
 import { professionals } from './professionals.js';
@@ -8,7 +8,7 @@ import { payments } from './payments.js';
 
 export const invoices = pgTable('invoices', {
   id: uuid('id').defaultRandom().primaryKey(),
-  invoiceNumber: text('invoice_number').notNull().unique(),
+  invoiceNumber: text('invoice_number').notNull(),
   professionalId: uuid('professional_id').notNull().references(() => professionals.id),
   patientId: uuid('patient_id').notNull().references(() => patients.id),
   appointmentId: uuid('appointment_id').references(() => appointments.id),
@@ -25,7 +25,10 @@ export const invoices = pgTable('invoices', {
   issuedAt: timestamp('issued_at', { withTimezone: true }).defaultNow().notNull(),
   pdfUrl: text('pdf_url'),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
-});
+}, (table) => [
+  // Each professional has their own invoice sequence
+  unique('uq_prof_invoice_number').on(table.professionalId, table.invoiceNumber),
+]);
 
 export const selectInvoiceSchema = createSelectSchema(invoices);
 
