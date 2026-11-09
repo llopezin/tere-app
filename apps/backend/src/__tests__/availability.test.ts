@@ -11,8 +11,11 @@ day.setDate(day.getDate() + 7);
 day.setHours(0, 0, 0, 0);
 const dayOfWeek = (day.getDay() + 6) % 7;
 
-function at(hours: number, minutes = 0) {
-  const d = new Date(day);
+const nextDay = new Date(day);
+nextDay.setDate(nextDay.getDate() + 1);
+
+function at(hours: number, minutes = 0, base = day) {
+  const d = new Date(base);
   d.setHours(hours, minutes, 0, 0);
   return d;
 }
@@ -26,8 +29,8 @@ beforeEach(async () => {
   typeId = (await createAppointmentType('Session', 60, professionalId)).id;
 });
 
-async function slotStarts(appointmentTypeId = typeId) {
-  const slots = await generateAvailableSlots(professionalId, appointmentTypeId, day, day);
+async function slotStarts(appointmentTypeId = typeId, to = day) {
+  const slots = await generateAvailableSlots(professionalId, appointmentTypeId, day, to);
   return slots.map((s) => s.start_at);
 }
 
@@ -39,9 +42,9 @@ describe('Available slots', () => {
     expect(await slotStarts()).toEqual(iso(at(9), at(10), at(11)));
   });
 
-  it('offers no slots on a day without working schedule', async () => {
-    await createWorkingSchedule(professionalId, (dayOfWeek + 1) % 7, '09:00', '12:00');
-    expect(await slotStarts()).toEqual([]);
+  it('offers slots only on the days of the range that have a working schedule', async () => {
+    await createWorkingSchedule(professionalId, (dayOfWeek + 1) % 7, '09:00', '11:00');
+    expect(await slotStarts(typeId, nextDay)).toEqual(iso(at(9, 0, nextDay), at(10, 0, nextDay)));
   });
 
   it('sizes slots by the appointment type duration and never runs past the schedule end', async () => {

@@ -3,7 +3,6 @@
  * Ownership, double refunds, bono type and complete/no-show live in authorization.test.ts.
  */
 import { describe, it, expect, beforeEach } from 'vitest';
-import './setup.js';
 import { testDb } from './setup.js';
 import { eq } from 'drizzle-orm';
 import {
@@ -57,14 +56,17 @@ describe('Booking', () => {
   });
 
   it('rejects an appointment inside a blocked time', async () => {
-    await createBlockedTime(pro.profileId, futureDate(3, 9), futureDate(3, 13));
-    expect((await book({ startAt: futureDate(3, 11).toISOString() })).status).toBe(409);
+    await createBlockedTime(pro.profileId, futureDate(3, 10, 30), futureDate(3, 11, 30));
+    expect((await book({ startAt: futureDate(3, 10).toISOString() })).status).toBe(409);
   });
 
   // BUG: no handler checks the working schedule; only availability does, so a direct POST books any hour.
   it.fails('rejects a patient booking outside the working schedule', async () => {
     const patient = await patientActor('p');
-    const startAt = futureDate(3, 18);
+    // Schedules are read in the server's local time, so the booking hour is local too
+    const startAt = new Date();
+    startAt.setDate(startAt.getDate() + 3);
+    startAt.setHours(18, 0, 0, 0);
     await createWorkingSchedule(pro.profileId, (startAt.getDay() + 6) % 7, '09:00', '10:00');
     const res = await call(patient, 'POST', '/api/v1/patient/appointments', {
       json: { appointmentTypeId: typeId, startAt: startAt.toISOString() },
@@ -104,7 +106,8 @@ describe('Batch and recurring bookings', () => {
   });
 
   it('rejects a recurrence when any occurrence overlaps an existing appointment', async () => {
-    await createAppointment({ professionalId: pro.profileId, patientId, appointmentTypeId: typeId, startAt: futureDate(10), endAt: futureDate(10, 11) });
+    await createAppointment({ professionalId: pro.profileId, patientId, appointmentTypeId: typeId, startAt: futureDate(10, 8), endAt: futureDate(10, 13) });
+    // Wide on purpose: occurrences step in local days, so a DST change can shift them by an hour
     const res = await call(pro, 'POST', `${PRO}/appointments/recurring`, {
       json: { patientId, appointmentTypeId: typeId, startAt: futureDate(3).toISOString(), recurrenceRule: { frequency: 'weekly', count: 3 } },
     });
@@ -125,6 +128,14 @@ describe('Bonos', () => {
     expect((await book({ startAt: futureDate(3).toISOString(), bonoId: bono.id })).status).toBe(201);
     expect((await bonoState(bono.id)).status).toBe('exhausted');
     expect((await book({ startAt: futureDate(4).toISOString(), bonoId: bono.id })).status).toBe(400);
+  });
+
+  it('neither deducts nor refunds a session when the booking opts out of the bono', async () => {
+    const bono = await createBono(pro.profileId, patientId, typeId, { totalSessions: 5, sessionsUsed: 2 });
+    const { id } = await (await book({ startAt: futureDate(3).toISOString(), bonoId: bono.id, useBonoSession: false })).json();
+    expect((await bonoState(bono.id)).sessionsUsed).toBe(2);
+    expect((await call(pro, 'PATCH', `${PRO}/appointments/${id}/cancel`)).status).toBe(200);
+    expect((await bonoState(bono.id)).sessionsUsed).toBe(2);
   });
 
   it('gives the session back when the appointment is cancelled', async () => {

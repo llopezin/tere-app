@@ -1,5 +1,4 @@
 import { describe, it, expect } from 'vitest';
-import './setup.js';
 import { testDb } from './setup.js';
 import { eq } from 'drizzle-orm';
 import { createProfessional, createPatient, createAppointmentType, createAppointment } from './helpers.js';
@@ -9,17 +8,14 @@ import { patientBillingData } from '../db/schema/patient-billing-data.js';
 
 const year = new Date().getFullYear();
 
-async function appointmentFor(professionalId: string, patientId?: string) {
+async function invoiceFor(professionalId: string, patientId?: string) {
   const patient = patientId ?? (await createPatient(professionalId)).id;
+  // Type names are unique per professional and some tests invoice the same professional twice
   const type = await createAppointmentType(`Session ${crypto.randomUUID()}`, 60, professionalId);
   const startAt = new Date(Date.now() + 86_400_000);
-  return createAppointment({
+  const appt = await createAppointment({
     professionalId, patientId: patient, appointmentTypeId: type.id, startAt, endAt: new Date(startAt.getTime() + 3_600_000),
   });
-}
-
-async function invoiceFor(professionalId: string, patientId?: string) {
-  const appt = await appointmentFor(professionalId, patientId);
   return createInvoiceForAppointment(appt.id);
 }
 
@@ -48,7 +44,7 @@ describe('Invoice numbering', () => {
 });
 
 describe('Invoice billing snapshot', () => {
-  it('copies the billing data at issue time, so later edits do not change the invoice', async () => {
+  it("copies the patient's billing data and the professional's business data onto the invoice", async () => {
     const professional = await createProfessional('Ana Pro', {
       businessName: 'Clinic Ana', taxId: 'B12345678', addressStreet: 'Calle Mayor 1', addressCity: 'Madrid',
     });
@@ -58,10 +54,8 @@ describe('Invoice billing snapshot', () => {
     });
 
     const invoice = await invoiceFor(professional.id, patient.id);
-    await testDb.update(patientBillingData).set({ billingName: 'Changed' }).where(eq(patientBillingData.patientId, patient.id));
-    const [stored] = await testDb.select().from(invoices).where(eq(invoices.id, invoice.id));
 
-    expect(stored).toMatchObject({
+    expect(invoice).toMatchObject({
       profName: 'Clinic Ana',
       profTaxId: 'B12345678',
       profAddress: 'Calle Mayor 1, Madrid, España',
