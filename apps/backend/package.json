@@ -11,6 +11,7 @@
     "start": "node dist/index.js",
     "db:push": "drizzle-kit push",
     "db:push:test": "node --env-file=.env.test node_modules/drizzle-kit/bin.cjs push --force",
+    "db:push:e2e": "node --env-file=.env.e2e node_modules/drizzle-kit/bin.cjs push --force",
     "db:studio": "drizzle-kit studio",
     "test": "vitest run",
     "test:watch": "vitest",

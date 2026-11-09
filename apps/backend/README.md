@@ -116,6 +116,7 @@ All variables are validated at startup via Zod (`src/config/env.ts`). The server
 | `pnpm start` | Run compiled production server |
 | `pnpm db:push` | Sync the database in `.env` with the schema in `src/db/schema/` |
 | `pnpm db:push:test` | Same for the test database in `.env.test` (`--force`: test data is disposable) |
+| `pnpm db:push:e2e` | Same for the e2e database in `.env.e2e` (run by `pnpm test:e2e` from the repo root) |
 | `pnpm db:studio` | Open Drizzle Studio (visual DB browser) |
 | `pnpm test` | Run tests once (Vitest). Concurrent runs queue on a Postgres advisory lock because they share the test DB |
 | `pnpm test:watch` | Run tests in watch mode |
@@ -169,6 +170,15 @@ apps/backend/
 | Language | TypeScript | 5.7 |
 
 ---
+
+## End-to-end tests
+
+Playwright specs live in `tests/` at the repo root and cover the patient flows of client-app. Run them from the root with `pnpm test:e2e`: it pushes the schema to the e2e DB, then Playwright boots its own backend and client-app.
+
+- **Own stack** (`apps/backend/.env.e2e`): database `fisio_app_e2e`, backend on `:3100`, client-app on `:5175`. It never touches the dev DB or `fisio_app_test`, so it can run alongside `pnpm dev` and the Vitest suite.
+- **Never reuses a running server** (`reuseExistingServer: false`). If `:3100` or `:5175` is busy (another e2e run), Playwright fails at start.
+- **One-time local setup:** `createdb -U user fisio_app_e2e` and `pnpm exec playwright install chromium`.
+- The Claude Code Stop hook (`.claude/hooks/verify-before-stop.sh`) runs `test:e2e` too, so that setup is needed before working with agents.
 
 ## Database Schema
 

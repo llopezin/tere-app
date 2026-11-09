@@ -1,17 +1,14 @@
-import { readFileSync } from 'node:fs';
-import { parseEnv } from 'node:util';
 import { defineConfig, devices } from '@playwright/test';
+import { e2eEnv } from './tests/e2e-env';
 
-// Same env as the backend vitest suite: test database and NODE_ENV=test, which mounts /api/v1/test/*
-const backendEnv = parseEnv(readFileSync('apps/backend/.env.test', 'utf8'));
+const clientPort = new URL(e2eEnv.CLIENT_APP_URL).port;
 
 export default defineConfig({
   testDir: './tests',
-  globalSetup: './tests/global-setup.ts',
-  // Every test resets the shared database
+  // Every test resets the e2e database
   workers: 1,
   use: {
-    baseURL: backendEnv.CLIENT_APP_URL,
+    baseURL: e2eEnv.CLIENT_APP_URL,
     trace: 'retain-on-failure',
   },
   projects: [
@@ -20,16 +17,17 @@ export default defineConfig({
   webServer: [
     {
       command: 'pnpm --filter @fisio-app/backend dev',
-      url: `${backendEnv.BETTER_AUTH_URL}/api/v1/health`,
-      // webServers start before globalSetup takes the DB lock: reusing one would test another checkout's code
+      url: `${e2eEnv.BETTER_AUTH_URL}/api/v1/health`,
+      // Always our own server: an existing one could run another checkout's code or point at another DB
       reuseExistingServer: false,
-      env: backendEnv,
+      env: e2eEnv,
     },
     {
-      command: 'pnpm --filter @fisio-app/client-app dev',
-      url: backendEnv.CLIENT_APP_URL,
+      // --strictPort: fail instead of moving to a port the backend does not trust (CORS)
+      command: `pnpm --filter @fisio-app/client-app dev --port ${clientPort} --strictPort`,
+      url: e2eEnv.CLIENT_APP_URL,
       reuseExistingServer: false,
-      env: { VITE_API_URL: backendEnv.BETTER_AUTH_URL },
+      env: { VITE_API_URL: e2eEnv.BETTER_AUTH_URL },
     },
   ],
 });

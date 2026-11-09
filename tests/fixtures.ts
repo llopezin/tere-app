@@ -1,6 +1,7 @@
 import { test as base, expect, type APIRequestContext, type Page } from '@playwright/test';
+import { e2eEnv } from './e2e-env';
 
-export const BACKEND_URL = 'http://localhost:3000';
+export const BACKEND_URL = e2eEnv.BETTER_AUTH_URL;
 const TEST_API = `${BACKEND_URL}/api/v1/test`;
 const DAY_MS = 24 * 60 * 60 * 1000;
 
