@@ -9,7 +9,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import './setup.js';
 import { testDb } from './setup.js';
 import { and, eq } from 'drizzle-orm';
-import { createAppointmentType, createAppointment, createBono } from './helpers.js';
+import { createAppointmentType, createAppointment, createBono, createAlwaysOpenSchedule } from './helpers.js';
 import {
   call, signIn, signUpPatient, patientActor, professionalActor, link,
   CLIENT_ORIGIN, PROFESSIONAL_ORIGIN, type Actor,
@@ -49,6 +49,8 @@ beforeEach(async () => {
   await link(A, P3);
   await link(B, P3);
 
+  await createAlwaysOpenSchedule(A.profileId);
+  await createAlwaysOpenSchedule(B.profileId);
   typeA = await createAppointmentType('Fisio A', 60, A.profileId);
   typeB = await createAppointmentType('Fisio B', 60, B.profileId);
   bonoP1 = await createBono(A.profileId, P1.profileId, typeA.id);

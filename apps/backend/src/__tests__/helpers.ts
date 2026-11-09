@@ -139,3 +139,10 @@ export async function createWorkingSchedule(professionalId: string, dayOfWeek: n
   }).returning();
   return schedule;
 }
+
+/** Open every day all day, for tests where patients book but the schedule is not under test. */
+export async function createAlwaysOpenSchedule(professionalId: string) {
+  await testDb.insert(workingSchedules).values(
+    Array.from({ length: 7 }, (_, dayOfWeek) => ({ professionalId, dayOfWeek, startTime: '00:00', endTime: '24:00' })),
+  );
+}
