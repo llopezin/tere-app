@@ -72,6 +72,19 @@ export async function checkOverlap(
 }
 
 /**
+ * Checks that the slots of one request do not overlap each other (checkOverlap only sees the database)
+ * @throws {AppError} 409 if two slots overlap
+ */
+export function checkSlotsOverlap(slots: { startAt: Date; endAt: Date }[]): void {
+  const sorted = [...slots].sort((a, b) => a.startAt.getTime() - b.startAt.getTime());
+  for (let i = 1; i < sorted.length; i++) {
+    if (sorted[i].startAt < sorted[i - 1].endAt) {
+      throw new AppError(409, 'Time slots overlap each other');
+    }
+  }
+}
+
+/**
  * Deducts a session from a bono within a transaction. Without `appointmentId` it is a manual deduction.
  * @throws {AppError} 404 if bono not found, 400 if bono exhausted
  */
