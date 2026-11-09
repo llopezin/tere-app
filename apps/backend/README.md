@@ -187,7 +187,7 @@ There are no migration files while the app is in development: `drizzle-kit push`
 - **Local:** `pnpm db:push` (dev DB) and `pnpm db:push:test` (test DB, also creates the tables in a new one: `createdb -U user fisio_app_test` first).
 - **CI:** `db:push:test` against an empty Postgres service before the tests.
 - **Deployed container:** `docker-entrypoint.sh` runs `drizzle-kit push` **without** `--force`. A change that would lose data (dropping or renaming a column with rows) is refused and the container does not start. After checking the data can go, apply it once on the VM with `docker compose -f docker-compose.prod.yml run --rm backend node_modules/.bin/drizzle-kit push --force`.
-- **Before the first real patient data**, switch back to migrations: `drizzle-kit generate` creates a baseline from the current schema, and the container runs `drizzle-kit migrate` instead of `push`.
+- **Before the first real patient data**, switch back to migrations: add `out` to `drizzle.config.ts`, run `drizzle-kit generate` to create a baseline from the current schema, and make the container run `drizzle-kit migrate` instead of `push`.
 
 ### Entity Relationship Overview
 
