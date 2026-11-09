@@ -174,6 +174,17 @@ export async function createBatchAppointments(
 
 export type RecurrenceFrequency = 'daily' | 'weekly' | 'biweekly' | 'monthly';
 
+/** Same day of month `months` later, clamped to the last day of shorter months (May 31 → Jun 30). */
+function addMonthsClamped(date: Date, months: number): Date {
+  const result = new Date(date);
+  // Day 1 first, so setMonth cannot overflow into the following month
+  result.setDate(1);
+  result.setMonth(result.getMonth() + months);
+  const lastDay = new Date(result.getFullYear(), result.getMonth() + 1, 0).getDate();
+  result.setDate(Math.min(date.getDate(), lastDay));
+  return result;
+}
+
 /**
  * Expands a recurrence rule into the start date of each occurrence
  */
@@ -184,7 +195,7 @@ export function generateRecurrenceDates(
 ): Date[] {
   const dates: Date[] = [];
   for (let i = 0; i < count; i++) {
-    const date = new Date(startDate);
+    let date = new Date(startDate);
     switch (frequency) {
       case 'daily':
         date.setDate(date.getDate() + i);
@@ -196,7 +207,7 @@ export function generateRecurrenceDates(
         date.setDate(date.getDate() + i * 14);
         break;
       case 'monthly':
-        date.setMonth(date.getMonth() + i);
+        date = addMonthsClamped(startDate, i);
         break;
     }
     dates.push(date);
