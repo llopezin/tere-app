@@ -28,6 +28,7 @@ jobs:
       - uses: actions/setup-node@v5
         with:
           node-version-file: .node-version
+          package-manager-cache: false # pnpm is enabled below and its store is cached by hand
       - run: corepack enable
 
       # Persist the pnpm store between runs (key = lockfile hash)
