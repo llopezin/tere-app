@@ -95,8 +95,11 @@ describe('Booking', () => {
 
   it('rejects a patient booking in the past', async () => {
     const patient = await patientActor('p');
+    // Inside the working schedule, so only the past-date rule can reject it
+    const startAt = localDate(-1, 10);
+    await createWorkingSchedule(pro.profileId, dayOfWeek(startAt), '09:00', '12:00');
     const res = await call(patient, 'POST', '/api/v1/patient/appointments', {
-      json: { appointmentTypeId: typeId, startAt: futureDate(-1).toISOString() },
+      json: { appointmentTypeId: typeId, startAt: startAt.toISOString() },
     });
     await expectRejectedBooking(res);
   });
