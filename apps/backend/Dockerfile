@@ -36,9 +36,6 @@ RUN pnpm --filter @fisio-app/backend... build
 # Deploy production-only deps + compiled output to a clean directory
 RUN pnpm deploy --filter @fisio-app/backend --prod /app/deploy
 
-# Copy migration SQL files (not part of compiled output)
-RUN cp -r /app/apps/backend/drizzle /app/deploy/drizzle
-
 # =============================================================================
 # Stage 3: runtime — minimal production image
 # =============================================================================
@@ -59,4 +56,5 @@ EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
   CMD wget -qO- http://localhost:${PORT:-3000}/api/v1/health || exit 1
 
-CMD ["sh", "-c", "node dist/migrate.js && node dist/index.js"]
+# pnpm deploy also copies src/ and drizzle.config.ts, which drizzle-kit push reads at start
+CMD ["sh", "docker-entrypoint.sh"]

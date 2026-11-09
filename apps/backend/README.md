@@ -114,9 +114,8 @@ All variables are validated at startup via Zod (`src/config/env.ts`). The server
 | `pnpm lint` | Lint with oxlint |
 | `pnpm typecheck` | Type-aware lint + type check (oxlint + tsgolint; build `@fisio-app/validators` first) |
 | `pnpm start` | Run compiled production server |
-| `pnpm db:generate` | Generate Drizzle migration files from schema changes |
-| `pnpm db:migrate` | Run pending migrations |
-| `pnpm db:push` | Push schema directly to database (dev shortcut, no migration files) |
+| `pnpm db:push` | Sync the database in `.env` with the schema in `src/db/schema/` |
+| `pnpm db:push:test` | Same for the test database in `.env.test` (`--force`: test data is disposable) |
 | `pnpm db:studio` | Open Drizzle Studio (visual DB browser) |
 | `pnpm test` | Run tests once (Vitest). Concurrent runs queue on a Postgres advisory lock because they share the test DB |
 | `pnpm test:watch` | Run tests in watch mode |
@@ -151,7 +150,7 @@ apps/backend/
 │       │   └── me/ patients/ appointment-types/ working-schedules/ blocked-times/ availability/
 │       │       appointments/ bonos/ payments/ reports/ invoices/ consent-documents/ integrations/
 │       └── public/                  # /api/v1/health, Google OAuth callback
-└── drizzle/                         # SQL migrations
+└── docker-entrypoint.sh             # Container start: drizzle-kit push, then the server
 ```
 
 ---
@@ -172,6 +171,13 @@ apps/backend/
 ---
 
 ## Database Schema
+
+There are no migration files while the app is in development: `drizzle-kit push` syncs each database with `src/db/schema/`.
+
+- **Local:** `pnpm db:push` (dev DB) and `pnpm db:push:test` (test DB, also creates the tables in a new one: `createdb -U user fisio_app_test` first).
+- **CI:** `db:push:test` against an empty Postgres service before the tests.
+- **Deployed container:** `docker-entrypoint.sh` runs `drizzle-kit push` **without** `--force`. A change that would lose data (dropping or renaming a column with rows) is refused and the container does not start. After checking the data can go, apply it once on the VM with `docker compose -f docker-compose.prod.yml run --rm backend node_modules/.bin/drizzle-kit push --force`.
+- **Before the first real patient data**, switch back to migrations: `drizzle-kit generate` creates a baseline from the current schema, and the container runs `drizzle-kit migrate` instead of `push`.
 
 ### Entity Relationship Overview
 
@@ -379,7 +385,7 @@ Interactive docs: `/api/v1/docs` (tags `Patient / …`, `Professional / …`, `P
 
 1. Create schema file in `src/db/schema/your-table.ts`
 2. Export from `src/db/schema/index.ts`
-3. Run `pnpm db:push` (dev) or `pnpm db:generate && pnpm db:migrate` (production)
+3. Run `pnpm db:push` (dev DB) and `pnpm db:push:test` (test DB). The deployed container pushes on start
 
 ### CORS
 

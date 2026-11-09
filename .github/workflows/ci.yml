@@ -7,13 +7,27 @@ on:
 jobs:
   ci:
     runs-on: ubuntu-26.04
-    container:
-      image: node:24
 
-    # No env needed: lint, format and build never read secrets or connect to a DB.
-    # Add an env block with test-only values when backend tests are wired in.
+    # Backend test DB on localhost:5432, matching apps/backend/.env.test (committed, test-only values)
+    services:
+      postgres:
+        image: postgres:18.6-alpine # same as docker-compose.yml
+        env:
+          POSTGRES_USER: user
+          POSTGRES_PASSWORD: password
+          POSTGRES_DB: fisio_app_test
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U user -d fisio_app_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
     steps:
       - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: .node-version
       - run: corepack enable
 
       # Persist the pnpm store between runs (key = lockfile hash)
@@ -36,3 +50,7 @@ jobs:
       # 3. Backend type-aware lint + type check (oxlint + tsgolint). Runs after the build
       #    because @fisio-app/validators resolves to its dist/ output.
       - run: pnpm -F @fisio-app/backend typecheck
+
+      # 4. Backend tests: create the schema in the empty service DB, then run Vitest
+      - run: pnpm -F @fisio-app/backend db:push:test
+      - run: pnpm -F @fisio-app/backend test

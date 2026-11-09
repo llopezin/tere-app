@@ -42,8 +42,7 @@ __snapshots__/
 **/__tests__/
 vitest.config.*
 
-# Drizzle kit artefacts (not needed at runtime)
-drizzle/
+# Seed scripts (not needed at runtime)
 seed-*.sql
 
 # OS files

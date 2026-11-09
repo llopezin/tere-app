@@ -7,7 +7,7 @@ on:
 
 concurrency:
   group: deploy-production
-  cancel-in-progress: false # never cancel a deploy mid-flight; a half-applied migration is worse than queueing
+  cancel-in-progress: false # never cancel a deploy mid-flight; a half-applied schema change is worse than queueing
 
 env:
   IMAGE_BACKEND: ${{ vars.GCP_REGION }}-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/${{ vars.GCP_AR_REPO }}/backend
