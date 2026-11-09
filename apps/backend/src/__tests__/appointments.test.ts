@@ -38,6 +38,23 @@ const book = (json: Record<string, unknown>) =>
 
 const appointmentCount = async () => (await testDb.select().from(appointments)).length;
 
+// Rules where the exact status is up to the handler: any client error, and nothing written.
+async function expectRejectedBooking(res: Response) {
+  expect(res.status).toBeGreaterThanOrEqual(400);
+  expect(res.status).toBeLessThan(500);
+  expect(await appointmentCount()).toBe(0);
+}
+
+// Schedules are read in the server's local time, so bookings tested against them are built in local time too
+function localDate(daysAhead: number, hours: number) {
+  const d = new Date();
+  d.setDate(d.getDate() + daysAhead);
+  d.setHours(hours, 0, 0, 0);
+  return d;
+}
+
+const dayOfWeek = (d: Date) => (d.getDay() + 6) % 7;
+
 async function bonoState(id: string) {
   const [bono] = await testDb.select().from(bonos).where(eq(bonos.id, id));
   return bono;
@@ -60,18 +77,32 @@ describe('Booking', () => {
     expect((await book({ startAt: futureDate(3, 10).toISOString() })).status).toBe(409);
   });
 
-  // BUG: no handler checks the working schedule; only availability does, so a direct POST books any hour.
-  it.fails('rejects a patient booking outside the working schedule', async () => {
+  it('rejects a patient booking outside the working schedule', async () => {
     const patient = await patientActor('p');
-    // Schedules are read in the server's local time, so the booking hour is local too
-    const startAt = new Date();
-    startAt.setDate(startAt.getDate() + 3);
-    startAt.setHours(18, 0, 0, 0);
-    await createWorkingSchedule(pro.profileId, (startAt.getDay() + 6) % 7, '09:00', '10:00');
+    const startAt = localDate(3, 18);
+    await createWorkingSchedule(pro.profileId, dayOfWeek(startAt), '09:00', '10:00');
     const res = await call(patient, 'POST', '/api/v1/patient/appointments', {
       json: { appointmentTypeId: typeId, startAt: startAt.toISOString() },
     });
-    expect(res.ok).toBe(false);
+    await expectRejectedBooking(res);
+  });
+
+  it('lets a professional book outside their own working schedule', async () => {
+    const startAt = localDate(3, 18);
+    await createWorkingSchedule(pro.profileId, dayOfWeek(startAt), '09:00', '10:00');
+    expect((await book({ startAt: startAt.toISOString() })).status).toBe(201);
+  });
+
+  it('rejects a patient booking in the past', async () => {
+    const patient = await patientActor('p');
+    const res = await call(patient, 'POST', '/api/v1/patient/appointments', {
+      json: { appointmentTypeId: typeId, startAt: futureDate(-1).toISOString() },
+    });
+    await expectRejectedBooking(res);
+  });
+
+  it('rejects a professional booking in the past', async () => {
+    await expectRejectedBooking(await book({ startAt: futureDate(-1).toISOString() }));
   });
 });
 
@@ -86,13 +117,13 @@ describe('Batch and recurring bookings', () => {
     expect((await bonoState(bono.id)).sessionsUsed).toBe(0);
   });
 
-  // BUG: each slot is only checked against the database, never against the other slots of the same batch.
-  it.fails('rejects a batch whose slots overlap each other', async () => {
+  it('rejects a batch whose slots overlap each other', async () => {
     const startAt = futureDate(3).toISOString();
     const res = await call(pro, 'POST', `${PRO}/appointments/batch`, {
       json: { patientId, appointmentTypeId: typeId, slots: [{ startAt }, { startAt }] },
     });
-    expect(res.ok).toBe(false);
+    expect(res.status).toBe(409);
+    expect(await appointmentCount()).toBe(0);
   });
 
   it('creates no occurrence of a recurrence when one of them fails', async () => {

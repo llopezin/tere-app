@@ -37,9 +37,8 @@ describe('generateRecurrenceDates', () => {
     ]);
   });
 
-  // BUG: setMonth overflows short months, so a series on May 31 jumps to Jul 1.
-  // Assumed rule: clamp to the last day of the month. Dates avoid DST changes so a fix passes in any timezone.
-  it.fails('keeps monthly occurrences inside their month when the start day does not exist in it', () => {
+  // Dates avoid DST changes so the expectation holds in any timezone
+  it('keeps monthly occurrences inside their month when the start day does not exist in it', () => {
     expect(toIso(generateRecurrenceDates(new Date('2027-05-31T10:00:00Z'), 'monthly', 3))).toEqual([
       '2027-05-31T10:00:00.000Z',
       '2027-06-30T10:00:00.000Z',
