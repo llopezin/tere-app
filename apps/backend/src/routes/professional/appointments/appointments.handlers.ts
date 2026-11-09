@@ -115,9 +115,9 @@ export const batch: AppRouteHandler<BatchRoute> = async (c) => {
     const startAt = new Date(slot.startAt);
     return { startAt, endAt: new Date(startAt.getTime() + durationMs) };
   });
+  for (const slot of slots) appointmentService.checkNotInPast(slot.startAt);
   appointmentService.checkSlotsOverlap(slots);
   for (const slot of slots) {
-    appointmentService.checkNotInPast(slot.startAt);
     await appointmentService.checkOverlap(profileId, slot.startAt, slot.endAt);
   }
 
