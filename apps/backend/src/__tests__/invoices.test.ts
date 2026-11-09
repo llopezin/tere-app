@@ -34,8 +34,7 @@ describe('Invoice numbering', () => {
     expect((await invoiceFor(professional.id)).invoiceNumber).toBe(`${year}-0001`);
   });
 
-  // BUG: invoice_number is unique across all professionals, so B's first invoice collides with A's `<year>-0001`.
-  it.fails('keeps a separate sequence per professional', async () => {
+  it('keeps a separate sequence per professional', async () => {
     const a = await createProfessional('Pro A');
     const b = await createProfessional('Pro B');
     await invoiceFor(a.id);
