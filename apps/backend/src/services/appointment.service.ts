@@ -33,6 +33,14 @@ export async function verifyRgpdConsent(patientId: string): Promise<void> {
 }
 
 /**
+ * Rejects appointments that start before now (same status and message as the patient booking window)
+ * @throws {AppError} 400 if startAt is in the past
+ */
+export function checkNotInPast(startAt: Date): void {
+  if (startAt < new Date()) throw new AppError(400, 'Cannot book an appointment in the past');
+}
+
+/**
  * Checks if a time slot overlaps with existing appointments or blocked times
  * @throws {AppError} 409 if overlap detected
  */
