@@ -1,438 +1,146 @@
-import { describe, it, expect } from 'vitest';
+/**
+ * Booking rules, exercised through the BFF handlers that orchestrate them.
+ * Ownership, double refunds, bono type and complete/no-show live in authorization.test.ts.
+ */
+import { describe, it, expect, beforeEach } from 'vitest';
 import './setup.js';
 import { testDb } from './setup.js';
+import { eq } from 'drizzle-orm';
 import {
-  createProfessional,
-  createPatient,
-  createAppointmentType,
-  signRgpdConsent,
-  createBono,
-  createBlockedTime,
+  createPatient, signRgpdConsent, createAppointmentType, createAppointment, createBono, createBlockedTime,
+  createWorkingSchedule,
 } from './helpers.js';
+import { call, professionalActor, patientActor, type Actor } from './http.js';
 import { appointments } from '../db/schema/appointments.js';
 import { bonos } from '../db/schema/bonos.js';
-import { bonoTransactions } from '../db/schema/bono-transactions.js';
-import { rgpdConsents } from '../db/schema/rgpd-consents.js';
-import { blockedTimes } from '../db/schema/blocked-times.js';
-import { eq, and } from 'drizzle-orm';
 
-describe('Appointments - Create', () => {
-  it('should create a simple appointment', async () => {
-    const prof = await createProfessional();
-    const patient = await createPatient(prof.id);
-    await signRgpdConsent(patient.id);
-    const apptType = await createAppointmentType('Consultation', 60, prof.id);
+const PRO = '/api/v1/professional';
 
-    const startAt = new Date('2026-05-01T10:00:00Z');
-    
-    const [appt] = await testDb.insert(appointments).values({
-      professionalId: prof.id,
-      patientId: patient.id,
-      appointmentTypeId: apptType.id,
-      startAt,
-      endAt: new Date(startAt.getTime() + 60 * 60 * 1000),
-      price: apptType.price,
-      useBonoSession: false,
-    }).returning();
+function futureDate(daysAhead: number, hourUtc = 10, minutes = 0) {
+  const d = new Date();
+  d.setUTCDate(d.getUTCDate() + daysAhead);
+  d.setUTCHours(hourUtc, minutes, 0, 0);
+  return d;
+}
 
-    expect(appt).toBeDefined();
-    expect(appt.professionalId).toBe(prof.id);
-    expect(appt.patientId).toBe(patient.id);
-    expect(appt.status).toBe('scheduled');
+let pro: Actor;
+let patientId: string;
+let typeId: string;
+
+beforeEach(async () => {
+  pro = await professionalActor('pro');
+  patientId = (await createPatient(pro.profileId)).id;
+  await signRgpdConsent(patientId);
+  typeId = (await createAppointmentType('Session', 60, pro.profileId)).id;
+});
+
+const book = (json: Record<string, unknown>) =>
+  call(pro, 'POST', `${PRO}/appointments`, { json: { patientId, appointmentTypeId: typeId, ...json } });
+
+const appointmentCount = async () => (await testDb.select().from(appointments)).length;
+
+async function bonoState(id: string) {
+  const [bono] = await testDb.select().from(bonos).where(eq(bonos.id, id));
+  return bono;
+}
+
+describe('Booking', () => {
+  it('rejects booking for a patient without signed RGPD consent', async () => {
+    const unsigned = await createPatient(pro.profileId);
+    const res = await book({ patientId: unsigned.id, startAt: futureDate(3).toISOString() });
+    expect(res.status).toBe(403);
   });
 
-  it('should reject appointment without RGPD consent', async () => {
-    const prof = await createProfessional();
-    const patient = await createPatient(prof.id);
-    // Don't sign consent
-    await createAppointmentType('Consultation', 60, prof.id);
-
-    
-    // This should fail RGPD check in handler
-    await expect(async () => {
-      // Simulate handler logic
-      const [consent] = await testDb.select().from(rgpdConsents)
-        .where(and(
-          eq(rgpdConsents.patientId, patient.id),
-          eq(rgpdConsents.signed, true)
-        ));
-      if (!consent) throw new Error('Patient must sign RGPD consent before booking');
-    }).rejects.toThrow('Patient must sign RGPD consent before booking');
+  it('rejects an appointment that overlaps another one', async () => {
+    await createAppointment({ professionalId: pro.profileId, patientId, appointmentTypeId: typeId, startAt: futureDate(3), endAt: futureDate(3, 11) });
+    expect((await book({ startAt: futureDate(3, 10, 30).toISOString() })).status).toBe(409);
   });
 
-  it('should reject overlapping appointments', async () => {
-    const prof = await createProfessional();
-    const patient = await createPatient(prof.id);
-    await signRgpdConsent(patient.id);
-    const apptType = await createAppointmentType('Consultation', 60, prof.id);
+  it('rejects an appointment inside a blocked time', async () => {
+    await createBlockedTime(pro.profileId, futureDate(3, 9), futureDate(3, 13));
+    expect((await book({ startAt: futureDate(3, 11).toISOString() })).status).toBe(409);
+  });
 
-    const startAt = new Date('2026-05-01T10:00:00Z');
-    const endAt = new Date('2026-05-01T11:00:00Z');
-    
-    // Create first appointment
-    await testDb.insert(appointments).values({
-      professionalId: prof.id,
-      patientId: patient.id,
-      appointmentTypeId: apptType.id,
-      startAt,
-      endAt,
-      price: apptType.price,
-      useBonoSession: false,
+  // BUG: no handler checks the working schedule; only availability does, so a direct POST books any hour.
+  it.fails('rejects a patient booking outside the working schedule', async () => {
+    const patient = await patientActor('p');
+    const startAt = futureDate(3, 18);
+    await createWorkingSchedule(pro.profileId, (startAt.getDay() + 6) % 7, '09:00', '10:00');
+    const res = await call(patient, 'POST', '/api/v1/patient/appointments', {
+      json: { appointmentTypeId: typeId, startAt: startAt.toISOString() },
     });
-
-    // Try to create overlapping appointment
-    const overlapping = await testDb.select({ id: appointments.id })
-      .from(appointments)
-      .where(and(
-        eq(appointments.professionalId, prof.id),
-        eq(appointments.status, 'scheduled')
-      ));
-
-    expect(overlapping.length).toBeGreaterThan(0);
-  });
-
-  it('should reject appointment during blocked time', async () => {
-    const prof = await createProfessional();
-    const patient = await createPatient(prof.id);
-    await signRgpdConsent(patient.id);
-    await createAppointmentType('Consultation', 60, prof.id);
-
-    const startAt = new Date('2026-05-01T10:00:00Z');
-    const endAt = new Date('2026-05-01T11:00:00Z');
-    
-    // Create blocked time
-    await createBlockedTime(prof.id, startAt, endAt);
-
-    // Check for blocked time overlap
-    const blocked = await testDb.select().from(blockedTimes)
-      .where(eq(blockedTimes.professionalId, prof.id));
-
-    expect(blocked.length).toBeGreaterThan(0);
+    expect(res.ok).toBe(false);
   });
 });
 
-describe('Appointments - Batch Creation', () => {
-  it('should create multiple appointments in one transaction', async () => {
-    const prof = await createProfessional();
-    const patient = await createPatient(prof.id);
-    await signRgpdConsent(patient.id);
-    const apptType = await createAppointmentType('Consultation', 60, prof.id);
-
-    const slots = [
-      new Date('2026-05-01T10:00:00Z'),
-      new Date('2026-05-01T11:00:00Z'),
-      new Date('2026-05-01T14:00:00Z'),
-    ];
-
-    const created = await testDb.transaction(async (tx) => {
-      const results = [];
-      for (const startAt of slots) {
-        const endAt = new Date(startAt.getTime() + 60 * 60 * 1000);
-        const [appt] = await tx.insert(appointments).values({
-          professionalId: prof.id,
-          patientId: patient.id,
-          appointmentTypeId: apptType.id,
-          startAt,
-          endAt,
-          price: apptType.price,
-          useBonoSession: false,
-        }).returning();
-        results.push(appt);
-      }
-      return results;
+describe('Batch and recurring bookings', () => {
+  it('creates no appointment of a batch when one of them fails', async () => {
+    const bono = await createBono(pro.profileId, patientId, typeId, { totalSessions: 1 });
+    const res = await call(pro, 'POST', `${PRO}/appointments/batch`, {
+      json: { patientId, appointmentTypeId: typeId, bonoId: bono.id, slots: [{ startAt: futureDate(3).toISOString() }, { startAt: futureDate(4).toISOString() }] },
     });
+    expect(res.status).toBe(400);
+    expect(await appointmentCount()).toBe(0);
+    expect((await bonoState(bono.id)).sessionsUsed).toBe(0);
+  });
 
-    expect(created).toHaveLength(3);
-    expect(created[0].startAt).toEqual(slots[0]);
+  // BUG: each slot is only checked against the database, never against the other slots of the same batch.
+  it.fails('rejects a batch whose slots overlap each other', async () => {
+    const startAt = futureDate(3).toISOString();
+    const res = await call(pro, 'POST', `${PRO}/appointments/batch`, {
+      json: { patientId, appointmentTypeId: typeId, slots: [{ startAt }, { startAt }] },
+    });
+    expect(res.ok).toBe(false);
+  });
+
+  it('creates no occurrence of a recurrence when one of them fails', async () => {
+    const bono = await createBono(pro.profileId, patientId, typeId, { totalSessions: 2 });
+    const res = await call(pro, 'POST', `${PRO}/appointments/recurring`, {
+      json: { patientId, appointmentTypeId: typeId, bonoId: bono.id, startAt: futureDate(3).toISOString(), recurrenceRule: { frequency: 'weekly', count: 3 } },
+    });
+    expect(res.status).toBe(400);
+    expect(await appointmentCount()).toBe(0);
+    expect((await bonoState(bono.id)).sessionsUsed).toBe(0);
+  });
+
+  it('rejects a recurrence when any occurrence overlaps an existing appointment', async () => {
+    await createAppointment({ professionalId: pro.profileId, patientId, appointmentTypeId: typeId, startAt: futureDate(10), endAt: futureDate(10, 11) });
+    const res = await call(pro, 'POST', `${PRO}/appointments/recurring`, {
+      json: { patientId, appointmentTypeId: typeId, startAt: futureDate(3).toISOString(), recurrenceRule: { frequency: 'weekly', count: 3 } },
+    });
+    expect(res.status).toBe(409);
+    expect(await appointmentCount()).toBe(1);
   });
 });
 
-describe('Appointments - Recurring Creation', () => {
-  it('should create weekly recurring appointments', async () => {
-    const prof = await createProfessional();
-    const patient = await createPatient(prof.id);
-    await signRgpdConsent(patient.id);
-    const apptType = await createAppointmentType('Consultation', 60, prof.id);
+describe('Bonos', () => {
+  it('deducts one bono session per booking', async () => {
+    const bono = await createBono(pro.profileId, patientId, typeId, { totalSessions: 5 });
+    expect((await book({ startAt: futureDate(3).toISOString(), bonoId: bono.id })).status).toBe(201);
+    expect((await bonoState(bono.id)).sessionsUsed).toBe(1);
+  });
 
-    const startDate = new Date('2026-05-01T10:00:00Z');
-    const recurrenceGroupId = crypto.randomUUID();
-    const count = 4;
+  it('exhausts the bono on its last session and rejects further bookings with it', async () => {
+    const bono = await createBono(pro.profileId, patientId, typeId, { totalSessions: 1 });
+    expect((await book({ startAt: futureDate(3).toISOString(), bonoId: bono.id })).status).toBe(201);
+    expect((await bonoState(bono.id)).status).toBe('exhausted');
+    expect((await book({ startAt: futureDate(4).toISOString(), bonoId: bono.id })).status).toBe(400);
+  });
 
-    const created = await testDb.transaction(async (tx) => {
-      const results = [];
-      for (let i = 0; i < count; i++) {
-        const startAt = new Date(startDate);
-        startAt.setDate(startAt.getDate() + i * 7);
-        const endAt = new Date(startAt.getTime() + 60 * 60 * 1000);
-        
-        const [appt] = await tx.insert(appointments).values({
-          professionalId: prof.id,
-          patientId: patient.id,
-          appointmentTypeId: apptType.id,
-          startAt,
-          endAt,
-          price: apptType.price,
-          useBonoSession: false,
-          recurrenceGroupId,
-        }).returning();
-        results.push(appt);
-      }
-      return results;
-    });
-
-    expect(created).toHaveLength(4);
-    expect(created.every(a => a.recurrenceGroupId === recurrenceGroupId)).toBe(true);
-    
-    // Check weekly spacing
-    const firstDate = created[0].startAt.getTime();
-    const secondDate = created[1].startAt.getTime();
-    const weekInMs = 7 * 24 * 60 * 60 * 1000;
-    expect(secondDate - firstDate).toBe(weekInMs);
+  it('gives the session back when the appointment is cancelled', async () => {
+    const bono = await createBono(pro.profileId, patientId, typeId, { totalSessions: 1 });
+    const { id } = await (await book({ startAt: futureDate(3).toISOString(), bonoId: bono.id })).json();
+    expect((await call(pro, 'PATCH', `${PRO}/appointments/${id}/cancel`)).status).toBe(200);
+    expect(await bonoState(bono.id)).toMatchObject({ sessionsUsed: 0, status: 'active' });
   });
 });
 
-describe('Appointments - Bono Integration', () => {
-  it('should deduct a bono session when creating appointment', async () => {
-    const prof = await createProfessional();
-    const patient = await createPatient(prof.id);
-    await signRgpdConsent(patient.id);
-    const apptType = await createAppointmentType('Consultation', 60, prof.id);
-    const bono = await createBono(prof.id, patient.id, apptType.id);
-
-    expect(bono.sessionsUsed).toBe(0);
-    expect(bono.status).toBe('active');
-
-    const startAt = new Date('2026-05-01T10:00:00Z');
-    const endAt = new Date(startAt.getTime() + 60 * 60 * 1000);
-
-    const result = await testDb.transaction(async (tx) => {
-      // Create appointment
-      const [appt] = await tx.insert(appointments).values({
-        professionalId: prof.id,
-        patientId: patient.id,
-        appointmentTypeId: apptType.id,
-        startAt,
-        endAt,
-        price: apptType.price,
-        bonoId: bono.id,
-        useBonoSession: true,
-      }).returning();
-
-      // Deduct bono session
-      const [updatedBono] = await tx.update(bonos)
-        .set({
-          sessionsUsed: bono.sessionsUsed + 1,
-          status: (bono.sessionsUsed + 1) >= bono.totalSessions ? 'exhausted' : 'active',
-          updatedAt: new Date(),
-        })
-        .where(eq(bonos.id, bono.id))
-        .returning();
-
-      // Create transaction log
-      await tx.insert(bonoTransactions).values({
-        bonoId: bono.id,
-        appointmentId: appt.id,
-        type: 'deduction',
-      });
-
-      return { appt, updatedBono };
+describe('Cancelling', () => {
+  it('cannot cancel an appointment that has already started', async () => {
+    const startAt = new Date(Date.now() - 10 * 60_000);
+    const appt = await createAppointment({
+      professionalId: pro.profileId, patientId, appointmentTypeId: typeId, startAt, endAt: new Date(startAt.getTime() + 3_600_000),
     });
-
-    expect(result.updatedBono.sessionsUsed).toBe(1);
-    expect(result.appt.bonoId).toBe(bono.id);
-
-    // Verify transaction log
-    const transactions = await testDb.select().from(bonoTransactions)
-      .where(eq(bonoTransactions.bonoId, bono.id));
-    expect(transactions).toHaveLength(1);
-    expect(transactions[0].type).toBe('deduction');
-  });
-
-  it('should exhaust bono when all sessions are used', async () => {
-    const prof = await createProfessional();
-    const patient = await createPatient(prof.id);
-    await signRgpdConsent(patient.id);
-    const apptType = await createAppointmentType('Consultation', 60, prof.id);
-    const bono = await createBono(prof.id, patient.id, apptType.id, {
-      totalSessions: 2,
-    });
-
-    // Use first session
-    const startAt1 = new Date('2026-05-01T10:00:00Z');
-    await testDb.transaction(async (tx) => {
-      await tx.insert(appointments).values({
-        professionalId: prof.id,
-        patientId: patient.id,
-        appointmentTypeId: apptType.id,
-        startAt: startAt1,
-        endAt: new Date(startAt1.getTime() + 60 * 60 * 1000),
-        price: apptType.price,
-        bonoId: bono.id,
-        useBonoSession: true,
-      }).returning();
-
-      await tx.update(bonos)
-        .set({ sessionsUsed: 1, updatedAt: new Date() })
-        .where(eq(bonos.id, bono.id));
-    });
-
-    // Use second session
-    const startAt2 = new Date('2026-05-02T10:00:00Z');
-    const result = await testDb.transaction(async (tx) => {
-      await tx.insert(appointments).values({
-        professionalId: prof.id,
-        patientId: patient.id,
-        appointmentTypeId: apptType.id,
-        startAt: startAt2,
-        endAt: new Date(startAt2.getTime() + 60 * 60 * 1000),
-        price: apptType.price,
-        bonoId: bono.id,
-        useBonoSession: true,
-      }).returning();
-
-      const [updated] = await tx.update(bonos)
-        .set({
-          sessionsUsed: 2,
-          status: 'exhausted',
-          updatedAt: new Date(),
-        })
-        .where(eq(bonos.id, bono.id))
-        .returning();
-
-      return updated;
-    });
-
-    expect(result.sessionsUsed).toBe(2);
-    expect(result.status).toBe('exhausted');
-  });
-});
-
-describe('Appointments - Cancel', () => {
-  it('should cancel appointment and refund bono session', async () => {
-    const prof = await createProfessional();
-    const patient = await createPatient(prof.id);
-    await signRgpdConsent(patient.id);
-    const apptType = await createAppointmentType('Consultation', 60, prof.id);
-    const bono = await createBono(prof.id, patient.id, apptType.id);
-
-    const startAt = new Date('2026-05-01T10:00:00Z');
-    const endAt = new Date(startAt.getTime() + 60 * 60 * 1000);
-
-    // Create appointment with bono
-    const [appt] = await testDb.transaction(async (tx) => {
-      const [created] = await tx.insert(appointments).values({
-        professionalId: prof.id,
-        patientId: patient.id,
-        appointmentTypeId: apptType.id,
-        startAt,
-        endAt,
-        price: apptType.price,
-        bonoId: bono.id,
-        useBonoSession: true,
-      }).returning();
-
-      await tx.update(bonos)
-        .set({ sessionsUsed: 1, updatedAt: new Date() })
-        .where(eq(bonos.id, bono.id));
-
-      await tx.insert(bonoTransactions).values({
-        bonoId: bono.id,
-        appointmentId: created.id,
-        type: 'deduction',
-      });
-
-      return [created];
-    });
-
-    // Cancel appointment
-    await testDb.transaction(async (tx) => {
-      await tx.update(appointments)
-        .set({ status: 'cancelled', updatedAt: new Date() })
-        .where(eq(appointments.id, appt.id));
-
-      // Refund bono session
-      await tx.update(bonos)
-        .set({
-          sessionsUsed: 0,
-          status: 'active',
-          updatedAt: new Date(),
-        })
-        .where(eq(bonos.id, bono.id));
-
-      await tx.insert(bonoTransactions).values({
-        bonoId: bono.id,
-        appointmentId: appt.id,
-        type: 'refund',
-      });
-    });
-
-    // Verify cancellation
-    const [cancelled] = await testDb.select().from(appointments)
-      .where(eq(appointments.id, appt.id));
-    expect(cancelled.status).toBe('cancelled');
-
-    // Verify bono refund
-    const [refundedBono] = await testDb.select().from(bonos)
-      .where(eq(bonos.id, bono.id));
-    expect(refundedBono.sessionsUsed).toBe(0);
-    expect(refundedBono.status).toBe('active');
-
-    // Verify transaction log
-    const transactions = await testDb.select().from(bonoTransactions)
-      .where(eq(bonoTransactions.bonoId, bono.id));
-    expect(transactions).toHaveLength(2);
-    expect(transactions.some(t => t.type === 'refund')).toBe(true);
-  });
-});
-
-describe('Appointments - Complete and No-Show', () => {
-  it('should mark appointment as completed', async () => {
-    const prof = await createProfessional();
-    const patient = await createPatient(prof.id);
-    await signRgpdConsent(patient.id);
-    const apptType = await createAppointmentType('Consultation', 60, prof.id);
-
-    const startAt = new Date('2026-05-01T10:00:00Z');
-    const [appt] = await testDb.insert(appointments).values({
-      professionalId: prof.id,
-      patientId: patient.id,
-      appointmentTypeId: apptType.id,
-      startAt,
-      endAt: new Date(startAt.getTime() + 60 * 60 * 1000),
-      price: apptType.price,
-      useBonoSession: false,
-    }).returning();
-
-    const [completed] = await testDb.update(appointments)
-      .set({ status: 'completed', updatedAt: new Date() })
-      .where(eq(appointments.id, appt.id))
-      .returning();
-
-    expect(completed.status).toBe('completed');
-  });
-
-  it('should mark appointment as no-show', async () => {
-    const prof = await createProfessional();
-    const patient = await createPatient(prof.id);
-    await signRgpdConsent(patient.id);
-    const apptType = await createAppointmentType('Consultation', 60, prof.id);
-
-    const startAt = new Date('2026-05-01T10:00:00Z');
-    const [appt] = await testDb.insert(appointments).values({
-      professionalId: prof.id,
-      patientId: patient.id,
-      appointmentTypeId: apptType.id,
-      startAt,
-      endAt: new Date(startAt.getTime() + 60 * 60 * 1000),
-      price: apptType.price,
-      useBonoSession: false,
-    }).returning();
-
-    const [noShow] = await testDb.update(appointments)
-      .set({ status: 'no_show', updatedAt: new Date() })
-      .where(eq(appointments.id, appt.id))
-      .returning();
-
-    expect(noShow.status).toBe('no_show');
+    expect((await call(pro, 'PATCH', `${PRO}/appointments/${appt.id}/cancel`)).status).toBe(400);
   });
 });
