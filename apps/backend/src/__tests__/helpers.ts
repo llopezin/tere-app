@@ -6,6 +6,7 @@ import { appointments } from '../db/schema/appointments.js';
 import { rgpdConsents } from '../db/schema/rgpd-consents.js';
 import { bonos } from '../db/schema/bonos.js';
 import { blockedTimes } from '../db/schema/blocked-times.js';
+import { workingSchedules } from '../db/schema/working-schedules.js';
 import { professionalPatients } from '../db/schema/professional-patients.js';
 import { user } from '../db/schema/auth-schema.js';
 import { eq } from 'drizzle-orm';
@@ -126,4 +127,15 @@ export async function createBlockedTime(professionalId: string, startAt: Date, e
     endAt,
   }).returning();
   return blocked;
+}
+
+/** `dayOfWeek` is Monday = 0 … Sunday = 6; times are `HH:MM`. */
+export async function createWorkingSchedule(professionalId: string, dayOfWeek: number, startTime: string, endTime: string) {
+  const [schedule] = await testDb.insert(workingSchedules).values({
+    professionalId,
+    dayOfWeek,
+    startTime,
+    endTime,
+  }).returning();
+  return schedule;
 }
