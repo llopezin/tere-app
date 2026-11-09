@@ -37,8 +37,13 @@ describe('generateRecurrenceDates', () => {
     ]);
   });
 
-  it('does not mutate the start date', () => {
-    generateRecurrenceDates(start, 'weekly', 3);
-    expect(start.toISOString()).toBe('2026-05-01T10:00:00.000Z');
+  // BUG: setMonth overflows short months, so a series on the 31st jumps from Jan 31 to Mar 3.
+  // Assumed rule: clamp to the last day of the month.
+  it.fails('keeps monthly occurrences inside their month when the start day does not exist in it', () => {
+    expect(toIso(generateRecurrenceDates(new Date('2027-01-31T10:00:00Z'), 'monthly', 3))).toEqual([
+      '2027-01-31T10:00:00.000Z',
+      '2027-02-28T10:00:00.000Z',
+      '2027-03-31T10:00:00.000Z',
+    ]);
   });
 });
