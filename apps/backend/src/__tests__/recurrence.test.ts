@@ -37,13 +37,13 @@ describe('generateRecurrenceDates', () => {
     ]);
   });
 
-  // BUG: setMonth overflows short months, so a series on the 31st jumps from Jan 31 to Mar 3.
-  // Assumed rule: clamp to the last day of the month.
+  // BUG: setMonth overflows short months, so a series on May 31 jumps to Jul 1.
+  // Assumed rule: clamp to the last day of the month. Dates avoid DST changes so a fix passes in any timezone.
   it.fails('keeps monthly occurrences inside their month when the start day does not exist in it', () => {
-    expect(toIso(generateRecurrenceDates(new Date('2027-01-31T10:00:00Z'), 'monthly', 3))).toEqual([
-      '2027-01-31T10:00:00.000Z',
-      '2027-02-28T10:00:00.000Z',
-      '2027-03-31T10:00:00.000Z',
+    expect(toIso(generateRecurrenceDates(new Date('2027-05-31T10:00:00Z'), 'monthly', 3))).toEqual([
+      '2027-05-31T10:00:00.000Z',
+      '2027-06-30T10:00:00.000Z',
+      '2027-07-31T10:00:00.000Z',
     ]);
   });
 });
