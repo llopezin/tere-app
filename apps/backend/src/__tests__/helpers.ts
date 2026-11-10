@@ -140,9 +140,12 @@ export async function createWorkingSchedule(professionalId: string, dayOfWeek: n
   return schedule;
 }
 
-/** Open every day all day, for tests where patients book but the schedule is not under test. */
-export async function createAlwaysOpenSchedule(professionalId: string) {
+/**
+ * The standard test week: every day 09:00–18:00, server local time.
+ * Book at 18:00 or later (or before 09:00) to be outside it.
+ */
+export async function createWorkingWeek(professionalId: string) {
   await testDb.insert(workingSchedules).values(
-    Array.from({ length: 7 }, (_, dayOfWeek) => ({ professionalId, dayOfWeek, startTime: '00:00', endTime: '24:00' })),
+    Array.from({ length: 7 }, (_, dayOfWeek) => ({ professionalId, dayOfWeek, startTime: '09:00', endTime: '18:00' })),
   );
 }
