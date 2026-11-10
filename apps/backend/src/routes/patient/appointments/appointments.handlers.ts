@@ -8,6 +8,7 @@ import { appointmentTypes } from '../../../db/schema/appointment-types.js';
 import { getProfileId } from '../../../middleware/auth.js';
 import { AppError } from '../../../middleware/error-handler.js';
 import * as appointmentService from '../../../services/appointment.service.js';
+import * as availabilityService from '../../../services/availability.service.js';
 import * as gcalSync from '../../../services/google-calendar/sync.js';
 import { assertAppointmentOf, assertBonoOf, linkPatientToProfessional } from '../../../services/ownership.service.js';
 
@@ -39,7 +40,9 @@ export const create: AppRouteHandler<CreateRoute> = async (c) => {
   const startAt = new Date(body.startAt);
   const endAt = new Date(startAt.getTime() + apptType.durationMinutes * 60 * 1000);
 
+  appointmentService.checkNotInPast(startAt);
   await appointmentService.verifyRgpdConsent(patientId);
+  await availabilityService.checkWithinWorkingSchedule(professionalId, startAt, endAt);
   await appointmentService.checkOverlap(professionalId, startAt, endAt);
 
   const result = await db.transaction(async (tx) => {

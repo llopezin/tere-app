@@ -80,6 +80,7 @@ export const create: AppRouteHandler<CreateRoute> = async (c) => {
   const startAt = new Date(body.startAt);
   const endAt = new Date(startAt.getTime() + apptType.durationMinutes * 60 * 1000);
 
+  appointmentService.checkNotInPast(startAt);
   await appointmentService.verifyRgpdConsent(body.patientId);
   await appointmentService.checkOverlap(profileId, startAt, endAt);
 
@@ -114,6 +115,8 @@ export const batch: AppRouteHandler<BatchRoute> = async (c) => {
     const startAt = new Date(slot.startAt);
     return { startAt, endAt: new Date(startAt.getTime() + durationMs) };
   });
+  for (const slot of slots) appointmentService.checkNotInPast(slot.startAt);
+  appointmentService.checkSlotsOverlap(slots);
   for (const slot of slots) {
     await appointmentService.checkOverlap(profileId, slot.startAt, slot.endAt);
   }
@@ -143,6 +146,8 @@ export const recurring: AppRouteHandler<RecurringRoute> = async (c) => {
 
   const durationMs = apptType.durationMinutes * 60 * 1000;
   const startDate = new Date(body.startAt);
+  // Occurrences only move forward, so checking the first one covers the series
+  appointmentService.checkNotInPast(startDate);
 
   const result = await appointmentService.createRecurringAppointments(
     profileId,

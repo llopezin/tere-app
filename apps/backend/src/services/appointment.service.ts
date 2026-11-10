@@ -33,6 +33,14 @@ export async function verifyRgpdConsent(patientId: string): Promise<void> {
 }
 
 /**
+ * Rejects appointments that start before now (same status and message as the patient booking window)
+ * @throws {AppError} 400 if startAt is in the past
+ */
+export function checkNotInPast(startAt: Date): void {
+  if (startAt < new Date()) throw new AppError(400, 'Cannot book an appointment in the past');
+}
+
+/**
  * Checks if a time slot overlaps with existing appointments or blocked times
  * @throws {AppError} 409 if overlap detected
  */
@@ -68,6 +76,19 @@ export async function checkOverlap(
     .limit(1);
   if (overlappingBlocked.length > 0) {
     throw new AppError(409, 'Time slot overlaps with a blocked time');
+  }
+}
+
+/**
+ * Checks that the slots of one request do not overlap each other (checkOverlap only sees the database)
+ * @throws {AppError} 409 if two slots overlap
+ */
+export function checkSlotsOverlap(slots: { startAt: Date; endAt: Date }[]): void {
+  const sorted = [...slots].sort((a, b) => a.startAt.getTime() - b.startAt.getTime());
+  for (let i = 1; i < sorted.length; i++) {
+    if (sorted[i].startAt < sorted[i - 1].endAt) {
+      throw new AppError(409, 'Time slots overlap each other');
+    }
   }
 }
 
@@ -174,6 +195,17 @@ export async function createBatchAppointments(
 
 export type RecurrenceFrequency = 'daily' | 'weekly' | 'biweekly' | 'monthly';
 
+/** Same day of month `months` later, clamped to the last day of shorter months (May 31 → Jun 30). */
+function addMonthsClamped(date: Date, months: number): Date {
+  const result = new Date(date);
+  // Day 1 first, so setMonth cannot overflow into the following month
+  result.setDate(1);
+  result.setMonth(result.getMonth() + months);
+  const lastDay = new Date(result.getFullYear(), result.getMonth() + 1, 0).getDate();
+  result.setDate(Math.min(date.getDate(), lastDay));
+  return result;
+}
+
 /**
  * Expands a recurrence rule into the start date of each occurrence
  */
@@ -184,7 +216,7 @@ export function generateRecurrenceDates(
 ): Date[] {
   const dates: Date[] = [];
   for (let i = 0; i < count; i++) {
-    const date = new Date(startDate);
+    let date = new Date(startDate);
     switch (frequency) {
       case 'daily':
         date.setDate(date.getDate() + i);
@@ -196,7 +228,7 @@ export function generateRecurrenceDates(
         date.setDate(date.getDate() + i * 14);
         break;
       case 'monthly':
-        date.setMonth(date.getMonth() + i);
+        date = addMonthsClamped(startDate, i);
         break;
     }
     dates.push(date);
