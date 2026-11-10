@@ -7,7 +7,7 @@ import { testDb } from './setup.js';
 import { eq } from 'drizzle-orm';
 import {
   createPatient, signRgpdConsent, createAppointmentType, createAppointment, createBono, createBlockedTime,
-  createWorkingSchedule,
+  createWorkingWeek,
 } from './helpers.js';
 import { call, professionalActor, patientActor, type Actor } from './http.js';
 import { appointments } from '../db/schema/appointments.js';
@@ -53,8 +53,6 @@ function localDate(daysAhead: number, hours: number) {
   return d;
 }
 
-const dayOfWeek = (d: Date) => (d.getDay() + 6) % 7;
-
 async function bonoState(id: string) {
   const [bono] = await testDb.select().from(bonos).where(eq(bonos.id, id));
   return bono;
@@ -79,27 +77,24 @@ describe('Booking', () => {
 
   it('rejects a patient booking outside the working schedule', async () => {
     const patient = await patientActor('p');
-    const startAt = localDate(3, 18);
-    await createWorkingSchedule(pro.profileId, dayOfWeek(startAt), '09:00', '10:00');
+    await createWorkingWeek(pro.profileId);
     const res = await call(patient, 'POST', '/api/v1/patient/appointments', {
-      json: { appointmentTypeId: typeId, startAt: startAt.toISOString() },
+      json: { appointmentTypeId: typeId, startAt: localDate(3, 18).toISOString() },
     });
     await expectRejectedBooking(res);
   });
 
   it('lets a professional book outside their own working schedule', async () => {
-    const startAt = localDate(3, 18);
-    await createWorkingSchedule(pro.profileId, dayOfWeek(startAt), '09:00', '10:00');
-    expect((await book({ startAt: startAt.toISOString() })).status).toBe(201);
+    await createWorkingWeek(pro.profileId);
+    expect((await book({ startAt: localDate(3, 18).toISOString() })).status).toBe(201);
   });
 
   it('rejects a patient booking in the past', async () => {
     const patient = await patientActor('p');
-    // Inside the working schedule, so only the past-date rule can reject it
-    const startAt = localDate(-1, 10);
-    await createWorkingSchedule(pro.profileId, dayOfWeek(startAt), '09:00', '12:00');
+    // Inside the working week, so only the past-date rule can reject it
+    await createWorkingWeek(pro.profileId);
     const res = await call(patient, 'POST', '/api/v1/patient/appointments', {
-      json: { appointmentTypeId: typeId, startAt: startAt.toISOString() },
+      json: { appointmentTypeId: typeId, startAt: localDate(-1, 10).toISOString() },
     });
     await expectRejectedBooking(res);
   });
