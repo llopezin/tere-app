@@ -2,6 +2,7 @@ import app from '../app.js';
 import { testDb } from './setup.js';
 import { professionalPatients } from '../db/schema/professional-patients.js';
 import { rgpdConsents } from '../db/schema/rgpd-consents.js';
+import { patients } from '../db/schema/patients.js';
 import { user } from '../db/schema/auth-schema.js';
 import { createProfessionalAccount } from '../services/professional-account.service.js';
 import { eq } from 'drizzle-orm';
@@ -9,6 +10,10 @@ import { eq } from 'drizzle-orm';
 export const CLIENT_ORIGIN = process.env.CLIENT_APP_URL!;
 export const PROFESSIONAL_ORIGIN = process.env.PROFESSIONAL_APP_URL!;
 const PASSWORD = 'password-123456';
+
+// DNI/NIEs are unique, so each patient actor gets its own (the format is all that is validated)
+let nieCount = 0;
+const nextNie = () => `${String(++nieCount).padStart(8, '0')}A`;
 
 export interface Actor {
   cookie: string;
@@ -53,7 +58,7 @@ export async function signUpPatient(email: string, extra: Record<string, unknown
   });
 }
 
-/** A patient that signed up through client-app, with RGPD signed. */
+/** A patient that signed up through client-app, with RGPD signed and a DNI/NIE saved, so they can book. */
 export async function patientActor(label: string): Promise<Actor> {
   const email = `${label}-${crypto.randomUUID()}@test.com`;
   const res = await signUpPatient(email);
@@ -62,6 +67,7 @@ export async function patientActor(label: string): Promise<Actor> {
   if (!login.ok) throw new Error(`Patient sign-in failed: ${login.status}`);
   const [u] = await testDb.select().from(user).where(eq(user.email, email));
   await testDb.insert(rgpdConsents).values({ patientId: u.profileId!, signed: true, signedAt: new Date() });
+  await testDb.update(patients).set({ nie: nextNie() }).where(eq(patients.id, u.profileId!));
   return { cookie: sessionCookie(login), profileId: u.profileId!, origin: CLIENT_ORIGIN };
 }
 

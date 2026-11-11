@@ -13,7 +13,7 @@ export const patients = pgTable('patients', {
   authUserId: text('auth_user_id').unique().references(() => user.id, { onDelete: 'set null' }),
   firstName: text('first_name').notNull(),
   lastName: text('last_name').notNull(),
-  nie: text('nie'),
+  nie: text('nie').unique(),
   phone: text('phone').notNull(),
   email: text('email'),
   dateOfBirth: date('date_of_birth'),
