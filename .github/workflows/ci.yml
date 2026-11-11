@@ -52,8 +52,18 @@ jobs:
       #    because @fisio-app/validators resolves to its dist/ output.
       - run: pnpm -F @fisio-app/backend typecheck
 
-      # 4. Backend tests: create the schema in the empty service DB, then run Vitest
-      - run: pnpm -F @fisio-app/backend db:push:test
+      # 4. Every schema change has its migration: generating from the current schema must create nothing
+      - name: Check migrations are up to date
+        run: |
+          pnpm -F @fisio-app/backend db:generate
+          if [ -n "$(git status --porcelain apps/backend/drizzle)" ]; then
+            echo "::error::The schema changed without a migration. Run 'pnpm -F @fisio-app/backend db:generate' and commit apps/backend/drizzle/."
+            git status --porcelain apps/backend/drizzle
+            exit 1
+          fi
+
+      # 5. Backend tests: build the empty service DB with the migrations (same path as the deployed container), then run Vitest
+      - run: pnpm -F @fisio-app/backend db:migrate:test
       - run: pnpm -F @fisio-app/backend test
 
   # Own database (fisio_app_e2e), matching apps/backend/.env.e2e, which Playwright uses to boot the backend
@@ -87,7 +97,8 @@ jobs:
       - run: pnpm -F @fisio-app/validators build
       - run: pnpm exec playwright install --with-deps chromium
 
-      # db:push:e2e (schema into the empty service DB), then Playwright
+      # Build the empty service DB with the migrations; test:e2e's push then has nothing to change
+      - run: pnpm -F @fisio-app/backend db:migrate:e2e
       - run: pnpm test:e2e
 
       - if: failure()
