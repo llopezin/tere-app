@@ -17,7 +17,7 @@ import type {
 } from './patients.routes.js';
 import { db } from '../../../db/index.js';
 import { patients } from '../../../db/schema/patients.js';
-import { isNieTaken } from '../../../services/patient.service.js';
+import { isNieTaken, DUPLICATE_NIE_MESSAGE } from '../../../services/patient.service.js';
 import { appointments } from '../../../db/schema/appointments.js';
 import { bonos } from '../../../db/schema/bonos.js';
 import { payments } from '../../../db/schema/payments.js';
@@ -58,8 +58,6 @@ async function getPatientOf(professionalId: string, patientId: string) {
  * Personal data, billing data and the RGPD record are shared by every professional of a patient.
  * Once the patient has their own account, only they can change it.
  */
-const DUPLICATE_NIE = 'Ya existe un paciente con este DNI/NIE';
-
 async function assertCanEditSharedPatientData(patientId: string) {
   const [patient] = await db.select({ authUserId: patients.authUserId }).from(patients).where(eq(patients.id, patientId));
   if (patient?.authUserId) {
@@ -92,7 +90,7 @@ export const create: AppRouteHandler<CreateRoute> = async (c) => {
   const profileId = getProfileId(c);
   const { clinicalNotes, ...personalData } = c.req.valid('json');
 
-  if (personalData.nie && await isNieTaken(personalData.nie)) throw new AppError(409, DUPLICATE_NIE);
+  if (personalData.nie && await isNieTaken(personalData.nie)) throw new AppError(409, DUPLICATE_NIE_MESSAGE);
 
   const patientId = await db.transaction(async (tx) => {
     const [patient] = await tx.insert(patients).values(personalData).returning({ id: patients.id });
@@ -121,7 +119,7 @@ export const update: AppRouteHandler<UpdateRoute> = async (c) => {
   const hasPersonalChanges = Object.values(personalData).some((v) => v !== undefined);
   if (hasPersonalChanges) {
     await assertCanEditSharedPatientData(id);
-    if (personalData.nie && await isNieTaken(personalData.nie, id)) throw new AppError(409, DUPLICATE_NIE);
+    if (personalData.nie && await isNieTaken(personalData.nie, id)) throw new AppError(409, DUPLICATE_NIE_MESSAGE);
     await db.update(patients).set({ ...personalData, updatedAt: new Date() }).where(eq(patients.id, id));
   }
 

@@ -148,7 +148,7 @@ export function BookingConfirmationModal({
       phone: !phoneResult.success ? phoneResult.error.issues[0]?.message : undefined,
     };
     setErrors(newErrors);
-    if (newErrors.nie || newErrors.phone) return;
+    if (!nieResult.success || !phoneResult.success) return;
 
     if (!alreadySigned && !rgpdAccepted) {
       setSubmitError("Debes aceptar el consentimiento de protección de datos");
@@ -162,8 +162,8 @@ export function BookingConfirmationModal({
 
     try {
       // Booking requires a saved DNI/NIE; saving it first also stops here if another patient has it
-      if (nie.toUpperCase() !== profile.nie) {
-        await updatePatientProfile.mutateAsync({ nie });
+      if (nieResult.data !== profile.nie) {
+        await updatePatientProfile.mutateAsync({ nie: nieResult.data });
       }
 
       if (!alreadySigned) {

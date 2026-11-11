@@ -18,9 +18,7 @@ async function putPatientProfile(input: { nie: string }) {
   const res = await client.me.$put({ json: input });
   const data = await res.json();
   if (!res.ok) {
-    const message =
-      "message" in data ? (data as { message: string }).message : "Error al guardar tus datos";
-    throw new Error(message);
+    throw new ApiError(res.status, "message" in data ? String(data.message) : "Error al guardar tus datos");
   }
   return data;
 }

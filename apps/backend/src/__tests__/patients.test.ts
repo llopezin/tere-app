@@ -41,6 +41,13 @@ describe('Unique DNI/NIE', () => {
 
     expect((await call(pro, 'POST', `${PRO}/patients`, { json: newPatient(NIE) })).status).toBe(409);
   });
+
+  it('rejects a professional giving a patient a DNI/NIE another patient already has', async () => {
+    await call(patient, 'PUT', `${P}/me`, { json: { nie: NIE } });
+    const { id } = await (await call(pro, 'POST', `${PRO}/patients`, { json: newPatient('87654321X') })).json();
+
+    expect((await call(pro, 'PUT', `${PRO}/patients/${id}`, { json: { nie: NIE } })).status).toBe(409);
+  });
 });
 
 describe('DNI/NIE required to book', () => {
