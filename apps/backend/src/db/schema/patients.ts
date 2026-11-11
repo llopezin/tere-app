@@ -15,7 +15,7 @@ export const patients = pgTable('patients', {
   lastName: text('last_name').notNull(),
   nie: text('nie').unique(),
   phone: text('phone').notNull(),
-  email: text('email'),
+  email: text('email').notNull(),
   dateOfBirth: date('date_of_birth'),
   addressStreet: text('address_street'),
   addressPostal: text('address_postal'),
@@ -39,7 +39,7 @@ const patientDataSchema = createInsertSchema(patients, {
   lastName: schema => schema.min(1),
   phone: () => phoneSchema,
   nie: () => nieSchema.optional(),
-  email: schema => schema.email().optional(),
+  email: schema => schema.email(),
 }).omit({
   id: true,
   authUserId: true,

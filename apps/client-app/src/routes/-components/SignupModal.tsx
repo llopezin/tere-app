@@ -107,6 +107,7 @@ export function SignupModal({ open, onOpenChange, onSwitchToLogin }: SignupModal
           }}
           onBlur={() => validatePhone(phone)}
           error={phoneError}
+          required
         />
 
         <Input

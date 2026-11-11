@@ -1,13 +1,15 @@
 /**
- * DNI/NIE rules (PRD "Reglas de negocio"): every patient has a unique DNI/NIE, and patients need one to book.
+ * Patient identity rules (PRD "Reglas de negocio"): every patient has an email and a phone,
+ * a unique DNI/NIE, and patients need the DNI/NIE to book.
  */
 import { describe, it, expect, beforeEach } from 'vitest';
 import { testDb } from './setup.js';
 import { eq } from 'drizzle-orm';
 import { createAppointmentType } from './helpers.js';
-import { call, patientActor, professionalActor, type Actor } from './http.js';
+import { call, patientActor, professionalActor, signUpPatient, type Actor } from './http.js';
 import { patients } from '../db/schema/patients.js';
 import { appointments } from '../db/schema/appointments.js';
+import { user } from '../db/schema/auth-schema.js';
 
 const P = '/api/v1/patient';
 const PRO = '/api/v1/professional';
@@ -21,7 +23,24 @@ beforeEach(async () => {
   patient = await patientActor('p');
 });
 
-const newPatient = (nie: string) => ({ firstName: 'Ana', lastName: 'Ruiz', phone: '600111222', nie });
+const newPatient = (nie: string) => ({ firstName: 'Ana', lastName: 'Ruiz', phone: '600111222', email: `ana-${nie}@test.com`, nie });
+
+describe('Email and phone required', () => {
+  it('rejects a patient signing up without a valid phone', async () => {
+    for (const phone of [undefined, '', '123']) {
+      const email = `no-phone-${crypto.randomUUID()}@test.com`;
+
+      expect((await signUpPatient(email, { phone })).status).toBe(400);
+      expect(await testDb.select().from(user).where(eq(user.email, email))).toHaveLength(0);
+    }
+  });
+
+  it('rejects a professional creating a patient without an email', async () => {
+    const withoutEmail = { ...newPatient('87654321X'), email: undefined };
+
+    expect((await call(pro, 'POST', `${PRO}/patients`, { json: withoutEmail })).status).toBe(422);
+  });
+});
 
 describe('Unique DNI/NIE', () => {
   it('rejects a patient saving a DNI/NIE another patient already has, whatever its case', async () => {

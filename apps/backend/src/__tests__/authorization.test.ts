@@ -217,7 +217,7 @@ describe('Professional BFF: only my data and my patients', () => {
   });
 
   it('creates patients linked only to itself', async () => {
-    const res = await call(A, 'POST', `${PRO}/patients`, { json: { firstName: 'Nuevo', lastName: 'Paciente', phone: '+34600111222' } });
+    const res = await call(A, 'POST', `${PRO}/patients`, { json: { firstName: 'Nuevo', lastName: 'Paciente', phone: '+34600111222', email: 'nuevo@test.com' } });
     expect(res.status).toBe(201);
     const created = await res.json();
     expect((await call(A, 'GET', `${PRO}/patients/${created.id}`)).status).toBe(200);
@@ -319,7 +319,7 @@ describe('Business rules and shared data', () => {
     expect(await testDb.select().from(patientBillingData).where(eq(patientBillingData.patientId, P1.profileId))).toHaveLength(0);
     expect((await call(A, 'POST', `${PRO}/patients/${P1.profileId}/rgpd-consent`, { json: { signatureData: 'x', signed: true } })).status).toBe(403);
 
-    const withoutAccount = await (await call(A, 'POST', `${PRO}/patients`, { json: { firstName: 'Sin', lastName: 'Cuenta', phone: '+34600111333' } })).json();
+    const withoutAccount = await (await call(A, 'POST', `${PRO}/patients`, { json: { firstName: 'Sin', lastName: 'Cuenta', phone: '+34600111333', email: 'sin-cuenta@test.com' } })).json();
     expect((await call(A, 'PUT', `${PRO}/patients/${withoutAccount.id}/billing-data`, { json: billing })).status).toBeLessThan(300);
   });
 

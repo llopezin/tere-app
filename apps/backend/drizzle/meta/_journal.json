@@ -43,6 +43,13 @@
       "when": 1794417089494,
       "tag": "0005_unique_patient_nie",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1794428800488,
+      "tag": "0006_required_patient_contact",
+      "breakpoints": true
     }
   ]
 }
