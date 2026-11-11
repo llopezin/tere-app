@@ -59,4 +59,5 @@ EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
   CMD wget -qO- http://localhost:${PORT:-3000}/api/v1/health || exit 1
 
+# Apply pending migrations, then start the server
 CMD ["sh", "-c", "node dist/migrate.js && node dist/index.js"]
