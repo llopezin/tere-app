@@ -40,6 +40,7 @@ export const create: AppRouteHandler<CreateRoute> = async (c) => {
   const endAt = new Date(startAt.getTime() + apptType.durationMinutes * 60 * 1000);
 
   await appointmentService.verifyRgpdConsent(patientId);
+  await appointmentService.verifyNie(patientId);
   await appointmentService.checkOverlap(professionalId, startAt, endAt);
 
   const result = await db.transaction(async (tx) => {

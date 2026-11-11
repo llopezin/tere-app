@@ -1,0 +1,1 @@
+ALTER TABLE "patients" ALTER COLUMN "email" SET NOT NULL;

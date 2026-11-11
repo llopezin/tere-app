@@ -18,6 +18,7 @@ import { consentDocuments } from '../../../db/schema/consent-documents.js';
 import { rgpdConsents } from '../../../db/schema/rgpd-consents.js';
 import { eq, and, getTableColumns } from 'drizzle-orm';
 import { getProfileId } from '../../../middleware/auth.js';
+import { isNieTaken, DUPLICATE_NIE_MESSAGE } from '../../../services/patient.service.js';
 import { AppError } from '../../../middleware/error-handler.js';
 import * as HttpStatusCodes from 'stoker/http-status-codes';
 
@@ -31,6 +32,8 @@ export const getMe: AppRouteHandler<GetMeRoute> = async (c) => {
 export const updateMe: AppRouteHandler<UpdateMeRoute> = async (c) => {
   const profileId = getProfileId(c);
   const body = c.req.valid('json');
+
+  if (body.nie && await isNieTaken(body.nie, profileId)) throw new AppError(409, DUPLICATE_NIE_MESSAGE);
 
   const [updated] = await db.update(patients)
     .set({ ...body, updatedAt: new Date() })
