@@ -1,30 +1,36 @@
-import { pgTable, uuid, text, date, timestamp } from 'drizzle-orm/pg-core';
-import { createSelectSchema, createInsertSchema } from 'drizzle-zod';
-import { z } from 'zod';
-import { user } from './auth-schema.js';
-import { phoneSchema, nieSchema } from '@fisio-app/validators';
+import { pgTable, uuid, text, date, timestamp } from "drizzle-orm/pg-core";
+import { createSelectSchema, createInsertSchema } from "drizzle-zod";
+import { z } from "zod";
+import { user } from "./auth-schema.js";
+import { phoneSchema, nieSchema } from "@fisio-app/validators";
 
 /**
  * Personal data of a patient, shared by all their professionals.
  * Which professionals a patient belongs to, and each one's clinical notes, live in `professional_patients` (N:M).
  */
-export const patients = pgTable('patients', {
-  id: uuid('id').defaultRandom().primaryKey(),
-  authUserId: text('auth_user_id').unique().references(() => user.id, { onDelete: 'set null' }),
-  firstName: text('first_name').notNull(),
-  lastName: text('last_name').notNull(),
-  nie: text('nie'),
-  phone: text('phone').notNull(),
-  email: text('email'),
-  dateOfBirth: date('date_of_birth'),
-  addressStreet: text('address_street'),
-  addressPostal: text('address_postal'),
-  addressCity: text('address_city'),
-  addressProvince: text('address_province'),
-  addressCountry: text('address_country').default('España'),
-  contactMethod: text('contact_method', { enum: ['email', 'sms', 'whatsapp'] }),
-  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
-  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+export const patients = pgTable("patients", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  authUserId: text("auth_user_id")
+    .unique()
+    .references(() => user.id, { onDelete: "set null" }),
+  firstName: text("first_name").notNull(),
+  lastName: text("last_name").notNull(),
+  nie: text("nie"),
+  phone: text("phone").notNull(),
+  email: text("email"),
+  dateOfBirth: date("date_of_birth"),
+  addressStreet: text("address_street"),
+  addressPostal: text("address_postal"),
+  addressCity: text("address_city"),
+  addressProvince: text("address_province"),
+  addressCountry: text("address_country").default("España"),
+  contactMethod: text("contact_method", { enum: ["email", "sms", "whatsapp"] }),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
 });
 
 export const selectPatientSchema = createSelectSchema(patients);
@@ -35,11 +41,11 @@ export const selectPatientForProfessionalSchema = selectPatientSchema.extend({
 });
 
 const patientDataSchema = createInsertSchema(patients, {
-  firstName: schema => schema.min(1),
-  lastName: schema => schema.min(1),
+  firstName: (schema) => schema.min(1),
+  lastName: (schema) => schema.min(1),
   phone: () => phoneSchema,
   nie: () => nieSchema.optional(),
-  email: schema => schema.email().optional(),
+  email: (schema) => schema.email().optional(),
 }).omit({
   id: true,
   authUserId: true,
