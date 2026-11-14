@@ -1,6 +1,6 @@
 {
-  "id": "56a8df34-02c4-4cae-9025-9732eb23bd3d",
-  "prevId": "e0bf1e45-1304-4ad3-834c-717b68f03650",
+  "id": "25b3ec90-865e-4b37-aaf1-99a5887ca65a",
+  "prevId": "53ae0bf9-4c68-427b-a3ba-e6a1b66d8b57",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -838,8 +838,8 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "google_calendar_integrations_professional_id_professionals_id_fk": {
-          "name": "google_calendar_integrations_professional_id_professionals_id_fk",
+        "google_calendar_integrations_professional_id_fk": {
+          "name": "google_calendar_integrations_professional_id_fk",
           "tableFrom": "google_calendar_integrations",
           "tableTo": "professionals",
           "columnsFrom": [

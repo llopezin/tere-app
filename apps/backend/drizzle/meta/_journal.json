@@ -10,10 +10,10 @@
       "breakpoints": true
     },
     {
-      "idx": 5,
+      "idx": 1,
       "version": "7",
-      "when": 1794238690936,
-      "tag": "0005_invoice_number_per_professional",
+      "when": 1794679425779,
+      "tag": "0001_invoice_number_per_professional",
       "breakpoints": true
     }
   ]
