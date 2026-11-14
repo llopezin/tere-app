@@ -247,6 +247,26 @@ describe('Professional BFF: only my data and my patients', () => {
     expect(recurring.status).toBe(404);
   });
 
+  it('calendar shows only my non-cancelled appointments within the requested range', async () => {
+    const cancelled = await createAppointment({
+      professionalId: A.profileId, patientId: P1.profileId, appointmentTypeId: typeA.id,
+      startAt: futureDate(9), endAt: futureDate(9, 11), status: 'cancelled',
+    });
+    const outOfRange = await createAppointment({
+      professionalId: A.profileId, patientId: P1.profileId, appointmentTypeId: typeA.id,
+      startAt: futureDate(40), endAt: futureDate(40, 11),
+    });
+    const query = new URLSearchParams({ from: futureDate(0, 0).toISOString(), to: futureDate(30, 0).toISOString() });
+    const res = await call(A, 'GET', `${PRO}/calendar-appointments?${query}`);
+    expect(res.status).toBe(200);
+    const ids = (await res.json()).data.map((a: { id: string }) => a.id);
+    expect(ids).toContain(apptP1A.id);
+    expect(ids).toHaveLength(2);
+    expect(ids).not.toContain(apptP3B.id);
+    expect(ids).not.toContain(cancelled.id);
+    expect(ids).not.toContain(outOfRange.id);
+  });
+
   it("cannot read or modify another professional's appointment", async () => {
     expect((await call(A, 'GET', `${PRO}/appointments/${apptP2B.id}`)).status).toBe(404);
     expect((await call(A, 'PATCH', `${PRO}/appointments/${apptP3B.id}/cancel`)).status).toBe(404);
@@ -293,6 +313,59 @@ describe('Business rules and shared data', () => {
     expect((await call(P1, 'PATCH', `${P}/appointments/${id}/cancel`)).status).toBe(409);
     const [bono] = await testDb.select().from(bonos).where(eq(bonos.id, bonoP1.id));
     expect(bono.sessionsUsed).toBe(0);
+  });
+
+  it('an appointment keeps the price it was booked at when its type price changes', async () => {
+    const book = await call(P1, 'POST', `${P}/appointments`, {
+      json: { appointmentTypeId: typeA.id, startAt: futureDate(17).toISOString() },
+    });
+    expect(book.status).toBe(201);
+    const { id } = await book.json();
+
+    const put = await call(A, 'PUT', `${PRO}/appointment-types/${typeA.id}`, { json: { price: 99 } });
+    expect(put.status).toBe(200);
+
+    // An edit form re-sending the current type is not a type change
+    const edit = await call(A, 'PUT', `${PRO}/appointments/${id}`, { json: { appointmentTypeId: typeA.id, notes: 'x' } });
+    expect(edit.status).toBe(200);
+
+    const seenByProfessional = await (await call(A, 'GET', `${PRO}/appointments/${id}`)).json();
+    expect(seenByProfessional.price).toBe('50.00');
+    const seenByPatient = await (await call(P1, 'GET', `${P}/appointments/${id}`)).json();
+    expect(seenByPatient.price).toBe('50.00');
+  });
+
+  it('changing the appointment type takes the new type price unless a price is given', async () => {
+    const otherTypeA = await createAppointmentType('Otro A', 60, A.profileId, { price: '80.00' });
+
+    const byType = await call(A, 'PUT', `${PRO}/appointments/${apptP1A.id}`, { json: { appointmentTypeId: otherTypeA.id } });
+    expect((await byType.json()).price).toBe('80.00');
+
+    const explicit = await call(A, 'PUT', `${PRO}/appointments/${apptP1A.id}`, { json: { appointmentTypeId: typeA.id, price: 30 } });
+    expect((await explicit.json()).price).toBe('30.00');
+  });
+
+  it('changing the appointment type resizes it to the new duration without overlapping others', async () => {
+    const longType = await createAppointmentType('Largo A', 90, A.profileId);
+
+    const resized = await call(A, 'PUT', `${PRO}/appointments/${apptP1A.id}`, { json: { appointmentTypeId: longType.id } });
+    expect(new Date((await resized.json()).endAt)).toEqual(new Date(futureDate(5).getTime() + 90 * 60 * 1000));
+
+    await call(A, 'PUT', `${PRO}/appointments/${apptP1A.id}`, { json: { appointmentTypeId: typeA.id } });
+    const next = await call(A, 'POST', `${PRO}/appointments`, {
+      json: { patientId: P1.profileId, appointmentTypeId: typeA.id, startAt: futureDate(5, 11).toISOString() },
+    });
+    expect(next.status).toBe(201);
+    expect((await call(A, 'PUT', `${PRO}/appointments/${apptP1A.id}`, { json: { appointmentTypeId: longType.id } })).status).toBe(409);
+  });
+
+  it('moving an appointment keeps its booked duration when its type duration changes', async () => {
+    expect((await call(A, 'PUT', `${PRO}/appointment-types/${typeA.id}`, { json: { durationMinutes: 45 } })).status).toBe(200);
+
+    const moved = await call(A, 'PUT', `${PRO}/appointments/${apptP1A.id}`, {
+      json: { startAt: futureDate(6).toISOString(), appointmentTypeId: typeA.id },
+    });
+    expect(new Date((await moved.json()).endAt)).toEqual(futureDate(6, 11));
   });
 
   it('only scheduled appointments can be completed or marked no-show', async () => {

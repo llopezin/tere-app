@@ -1,6 +1,6 @@
-import { Badge } from "@fisio-app/ui";
+import { Badge } from "./Badge";
 
-type AppointmentStatus = "scheduled" | "completed" | "cancelled" | "no_show";
+export type AppointmentStatus = "scheduled" | "completed" | "cancelled" | "no_show";
 
 const statusConfig: Record<
   AppointmentStatus,

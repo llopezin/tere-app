@@ -9,6 +9,7 @@ After large commits, make sure to run pnpm build and check that the project buil
 After large commits, run a code review over the commit and if any critical issues or improvements create a refactor commit.
 This project uses tankstack router, use it for dynamic navigations
 When creating queries to api on frontend, always separate the query options from the query function
+Never hardcode a query key outside its query options file. To invalidate or read a query, reuse `xQueryOptions(...).queryKey`; to target all variants of a parameterised query, export its prefix from the same file (e.g. `export const calendarAppointmentsQueryKey = ["calendar-appointments"] as const`, used as `queryKey: [...calendarAppointmentsQueryKey, range]`)
 For now we are not caching any request, so don't use any caching to query options
 Tests only cover business rules and security, and always exercise the real code (import the service or go through HTTP with `app.request`). Never copy production logic into a test, and don't test CRUD pass-through, library behaviour or implementation details. Each test name states the rule it protects.
 

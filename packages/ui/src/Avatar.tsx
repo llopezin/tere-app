@@ -1,10 +1,12 @@
 import { User } from "lucide-react";
-import { cn } from "./cn";
+import { cn } from "./lib/cn";
 
 type AvatarSize = "sm" | "md";
 
 interface AvatarProps {
   size?: AvatarSize;
+  /** Shown instead of the user icon, e.g. "MG". */
+  initials?: string;
   className?: string;
 }
 
@@ -13,7 +15,7 @@ const sizeStyles: Record<AvatarSize, { container: string; icon: string }> = {
   md: { container: "size-10", icon: "size-5" },
 };
 
-export function Avatar({ size = "md", className }: AvatarProps) {
+export function Avatar({ size = "md", initials, className }: AvatarProps) {
   const s = sizeStyles[size];
 
   return (
@@ -24,7 +26,11 @@ export function Avatar({ size = "md", className }: AvatarProps) {
         className,
       )}
     >
-      <User className={cn("text-primary-600", s.icon)} />
+      {initials ? (
+        <span className="text-sm font-semibold text-primary-600">{initials}</span>
+      ) : (
+        <User className={cn("text-primary-600", s.icon)} />
+      )}
     </div>
   );
 }

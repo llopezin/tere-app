@@ -1,13 +1,15 @@
 import { type ReactNode } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
 import { X } from "lucide-react";
-import { cn } from "./cn";
+import { cn } from "./lib/cn";
 
 interface ModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   title: string;
   subtitle?: ReactNode;
+  /** Rendered next to the title, e.g. a status badge. */
+  headerAside?: ReactNode;
   children: ReactNode;
   className?: string;
 }
@@ -17,6 +19,7 @@ export function Modal({
   onOpenChange,
   title,
   subtitle,
+  headerAside,
   children,
   className,
 }: ModalProps) {
@@ -30,15 +33,18 @@ export function Modal({
             className,
           )}
         >
-          <div className="mb-5 pr-8">
-            <Dialog.Title className="text-lg font-bold text-text">
-              {title}
-            </Dialog.Title>
-            {subtitle && (
-              <Dialog.Description className="mt-1 text-sm text-text-secondary">
-                {subtitle}
-              </Dialog.Description>
-            )}
+          <div className="mb-5 flex items-start justify-between gap-3 pr-8">
+            <div>
+              <Dialog.Title className="text-lg font-bold text-text">
+                {title}
+              </Dialog.Title>
+              {subtitle && (
+                <Dialog.Description className="mt-1 text-sm text-text-secondary">
+                  {subtitle}
+                </Dialog.Description>
+              )}
+            </div>
+            {headerAside}
           </div>
 
           {children}
