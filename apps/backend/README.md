@@ -180,6 +180,7 @@ Playwright specs live in `tests/` at the repo root and cover the patient flows o
 
 - **Own stack** (`apps/backend/.env.e2e`): database `fisio_app_e2e`, backend on `:3100`, client-app on `:5175`. It never touches the dev DB or `fisio_app_test`, so it can run alongside `pnpm dev` and the Vitest suite.
 - **Never reuses a running server** (`reuseExistingServer: false`). If `:3100` or `:5175` is busy (another e2e run), Playwright fails at start.
+- **Test data goes straight into the e2e DB** (`tests/seed.ts`): the fixtures import the backend's `db`, `auth` and `createProfessionalAccount`, so the server has no test-only endpoints. Each test starts from an empty DB.
 - **One-time local setup:** `createdb -U user fisio_app_e2e` and `pnpm exec playwright install chromium`.
 - The Claude Code Stop hook (`.claude/hooks/verify-before-stop.sh`) runs `test:e2e` too, so that setup is needed before working with agents.
 

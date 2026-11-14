@@ -1,8 +1,8 @@
-import { test as base, expect, type APIRequestContext, type Page } from '@playwright/test';
+import { test as base, expect, type Page } from '@playwright/test';
 import { e2eEnv } from './e2e-env';
+import { resetDb, seedAppointment, seedPatient, seedProfessional } from './seed';
 
 export const BACKEND_URL = e2eEnv.BETTER_AUTH_URL;
-const TEST_API = `${BACKEND_URL}/api/v1/test`;
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 export const PROFESSIONAL = { email: 'prof@test.com', password: 'password123', firstName: 'Ana', lastName: 'García' };
@@ -30,19 +30,13 @@ interface Fixtures {
   appointments: Appointments;
 }
 
-async function seed(request: APIRequestContext, path: string, data: object) {
-  const res = await request.post(`${TEST_API}${path}`, { data });
-  await expect(res).toBeOK();
-  return res.json();
-}
-
-const daysFromNow = (days: number) => new Date(Date.now() + days * DAY_MS).toISOString();
+const daysFromNow = (days: number) => new Date(Date.now() + days * DAY_MS);
 
 export const test = base.extend<Fixtures>({
-  // Runs before every test: the backend must be started with NODE_ENV=test, otherwise this is a 404
+  // Runs before every test
   resetDb: [
-    async ({ request }, use) => {
-      await expect(await request.post(`${TEST_API}/reset`)).toBeOK();
+    async ({}, use) => {
+      await resetDb();
       await use();
     },
     { auto: true },
@@ -50,12 +44,12 @@ export const test = base.extend<Fixtures>({
 
   signRgpd: [false, { option: true }],
 
-  professional: async ({ request }, use) => {
-    await use(await seed(request, '/seed/professional', PROFESSIONAL));
+  professional: async ({}, use) => {
+    await use(await seedProfessional(PROFESSIONAL));
   },
 
-  patient: async ({ request, signRgpd }, use) => {
-    const { patientId } = await seed(request, '/seed/patient', { ...PATIENT, signRgpd });
+  patient: async ({ signRgpd }, use) => {
+    const { patientId } = await seedPatient({ ...PATIENT, signRgpd });
     await use({ ...PATIENT, patientId });
   },
 
@@ -68,8 +62,8 @@ export const test = base.extend<Fixtures>({
     await use(patient);
   },
 
-  appointments: async ({ request, professional, authedPatient }, use) => {
-    const appointment = (startAt: string, status: string) => seed(request, '/seed/appointment', {
+  appointments: async ({ professional, authedPatient }, use) => {
+    const appointment = (startAt: Date, status: 'scheduled' | 'completed') => seedAppointment({
       patientId: authedPatient.patientId,
       appointmentTypeId: professional.appointmentTypeId,
       startAt,
