@@ -78,6 +78,34 @@ CREATE TABLE "bonos" (
 	CONSTRAINT "chk_sessions_used_non_negative" CHECK ("bonos"."sessions_used" >= 0)
 );
 --> statement-breakpoint
+CREATE TABLE "consent_documents" (
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+	"professional_id" uuid NOT NULL,
+	"title" text NOT NULL,
+	"description" text,
+	"content" text NOT NULL,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
+);
+--> statement-breakpoint
+CREATE TABLE "google_calendar_integrations" (
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+	"professional_id" uuid NOT NULL,
+	"google_sub" text NOT NULL,
+	"google_email" text NOT NULL,
+	"access_token" text NOT NULL,
+	"refresh_token" text NOT NULL,
+	"access_token_expires_at" timestamp with time zone NOT NULL,
+	"scope" text,
+	"status" text DEFAULT 'active' NOT NULL,
+	"last_error" text,
+	"last_error_at" timestamp with time zone,
+	"last_synced_at" timestamp with time zone,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
+	CONSTRAINT "google_calendar_integrations_professional_id_unique" UNIQUE("professional_id")
+);
+--> statement-breakpoint
 CREATE TABLE "invoices" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"invoice_number" text NOT NULL,
@@ -113,10 +141,22 @@ CREATE TABLE "patient_billing_data" (
 	CONSTRAINT "patient_billing_data_patient_id_unique" UNIQUE("patient_id")
 );
 --> statement-breakpoint
+CREATE TABLE "patient_consents" (
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+	"consent_document_id" uuid NOT NULL,
+	"patient_id" uuid NOT NULL,
+	"professional_id" uuid NOT NULL,
+	"status" text DEFAULT 'pending' NOT NULL,
+	"signature_data" text,
+	"signed_at" timestamp with time zone,
+	"ip_address" text,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
+	CONSTRAINT "uq_patient_consent_doc" UNIQUE("consent_document_id","patient_id")
+);
+--> statement-breakpoint
 CREATE TABLE "patients" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"auth_user_id" text,
-	"professional_id" uuid,
 	"first_name" text NOT NULL,
 	"last_name" text NOT NULL,
 	"nie" text,
@@ -128,8 +168,7 @@ CREATE TABLE "patients" (
 	"address_city" text,
 	"address_province" text,
 	"address_country" text DEFAULT 'España',
-	"contact_method" text DEFAULT 'whatsapp' NOT NULL,
-	"clinical_notes" text,
+	"contact_method" text,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
 	CONSTRAINT "patients_auth_user_id_unique" UNIQUE("auth_user_id")
@@ -149,11 +188,21 @@ CREATE TABLE "payments" (
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
+CREATE TABLE "professional_patients" (
+	"professional_id" uuid NOT NULL,
+	"patient_id" uuid NOT NULL,
+	"clinical_notes" text,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
+	CONSTRAINT "professional_patients_professional_id_patient_id_pk" PRIMARY KEY("professional_id","patient_id")
+);
+--> statement-breakpoint
 CREATE TABLE "professionals" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"auth_user_id" text NOT NULL,
 	"first_name" text NOT NULL,
 	"last_name" text NOT NULL,
+	"business_name" text,
 	"email" text NOT NULL,
 	"phone" text,
 	"tax_id" text,
@@ -202,6 +251,9 @@ CREATE TABLE "user" (
 	"updated_at" timestamp DEFAULT now() NOT NULL,
 	"role" text DEFAULT 'patient' NOT NULL,
 	"profile_id" text,
+	"first_name" text,
+	"last_name" text,
+	"phone" text,
 	CONSTRAINT "user_email_unique" UNIQUE("email")
 );
 --> statement-breakpoint
@@ -237,17 +289,23 @@ ALTER TABLE "bono_transactions" ADD CONSTRAINT "bono_transactions_appointment_id
 ALTER TABLE "bonos" ADD CONSTRAINT "bonos_professional_id_professionals_id_fk" FOREIGN KEY ("professional_id") REFERENCES "public"."professionals"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "bonos" ADD CONSTRAINT "bonos_patient_id_patients_id_fk" FOREIGN KEY ("patient_id") REFERENCES "public"."patients"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "bonos" ADD CONSTRAINT "bonos_appointment_type_id_appointment_types_id_fk" FOREIGN KEY ("appointment_type_id") REFERENCES "public"."appointment_types"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "consent_documents" ADD CONSTRAINT "consent_documents_professional_id_professionals_id_fk" FOREIGN KEY ("professional_id") REFERENCES "public"."professionals"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "google_calendar_integrations" ADD CONSTRAINT "google_calendar_integrations_professional_id_fk" FOREIGN KEY ("professional_id") REFERENCES "public"."professionals"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "invoices" ADD CONSTRAINT "invoices_professional_id_professionals_id_fk" FOREIGN KEY ("professional_id") REFERENCES "public"."professionals"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "invoices" ADD CONSTRAINT "invoices_patient_id_patients_id_fk" FOREIGN KEY ("patient_id") REFERENCES "public"."patients"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "invoices" ADD CONSTRAINT "invoices_appointment_id_appointments_id_fk" FOREIGN KEY ("appointment_id") REFERENCES "public"."appointments"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "invoices" ADD CONSTRAINT "invoices_payment_id_payments_id_fk" FOREIGN KEY ("payment_id") REFERENCES "public"."payments"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "patient_billing_data" ADD CONSTRAINT "patient_billing_data_patient_id_patients_id_fk" FOREIGN KEY ("patient_id") REFERENCES "public"."patients"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "patient_consents" ADD CONSTRAINT "patient_consents_consent_document_id_consent_documents_id_fk" FOREIGN KEY ("consent_document_id") REFERENCES "public"."consent_documents"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "patient_consents" ADD CONSTRAINT "patient_consents_patient_id_patients_id_fk" FOREIGN KEY ("patient_id") REFERENCES "public"."patients"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "patient_consents" ADD CONSTRAINT "patient_consents_professional_id_professionals_id_fk" FOREIGN KEY ("professional_id") REFERENCES "public"."professionals"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "patients" ADD CONSTRAINT "patients_auth_user_id_user_id_fk" FOREIGN KEY ("auth_user_id") REFERENCES "public"."user"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "patients" ADD CONSTRAINT "patients_professional_id_professionals_id_fk" FOREIGN KEY ("professional_id") REFERENCES "public"."professionals"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "payments" ADD CONSTRAINT "payments_professional_id_professionals_id_fk" FOREIGN KEY ("professional_id") REFERENCES "public"."professionals"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "payments" ADD CONSTRAINT "payments_patient_id_patients_id_fk" FOREIGN KEY ("patient_id") REFERENCES "public"."patients"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "payments" ADD CONSTRAINT "payments_appointment_id_appointments_id_fk" FOREIGN KEY ("appointment_id") REFERENCES "public"."appointments"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "payments" ADD CONSTRAINT "payments_bono_id_bonos_id_fk" FOREIGN KEY ("bono_id") REFERENCES "public"."bonos"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "professional_patients" ADD CONSTRAINT "professional_patients_professional_id_professionals_id_fk" FOREIGN KEY ("professional_id") REFERENCES "public"."professionals"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "professional_patients" ADD CONSTRAINT "professional_patients_patient_id_patients_id_fk" FOREIGN KEY ("patient_id") REFERENCES "public"."patients"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "professionals" ADD CONSTRAINT "professionals_auth_user_id_user_id_fk" FOREIGN KEY ("auth_user_id") REFERENCES "public"."user"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "rgpd_consents" ADD CONSTRAINT "rgpd_consents_patient_id_patients_id_fk" FOREIGN KEY ("patient_id") REFERENCES "public"."patients"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "session" ADD CONSTRAINT "session_user_id_user_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."user"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
@@ -255,5 +313,6 @@ ALTER TABLE "working_schedules" ADD CONSTRAINT "working_schedules_professional_i
 CREATE INDEX "account_userId_idx" ON "account" USING btree ("user_id");--> statement-breakpoint
 CREATE INDEX "idx_appt_professional_start" ON "appointments" USING btree ("professional_id","start_at");--> statement-breakpoint
 CREATE INDEX "idx_payments_professional_paid" ON "payments" USING btree ("professional_id","paid_at");--> statement-breakpoint
+CREATE INDEX "idx_professional_patients_patient" ON "professional_patients" USING btree ("patient_id");--> statement-breakpoint
 CREATE INDEX "session_userId_idx" ON "session" USING btree ("user_id");--> statement-breakpoint
 CREATE INDEX "verification_identifier_idx" ON "verification" USING btree ("identifier");

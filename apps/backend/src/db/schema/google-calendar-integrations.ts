@@ -1,10 +1,10 @@
-import { pgTable, uuid, text, timestamp } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, text, timestamp, foreignKey } from 'drizzle-orm/pg-core';
 import { createSelectSchema } from 'drizzle-zod';
 import { professionals } from './professionals.js';
 
 export const googleCalendarIntegrations = pgTable('google_calendar_integrations', {
   id: uuid('id').defaultRandom().primaryKey(),
-  professionalId: uuid('professional_id').notNull().unique().references(() => professionals.id, { onDelete: 'cascade' }),
+  professionalId: uuid('professional_id').notNull().unique(),
   googleSub: text('google_sub').notNull(),
   googleEmail: text('google_email').notNull(),
   accessToken: text('access_token').notNull(),
@@ -17,7 +17,15 @@ export const googleCalendarIntegrations = pgTable('google_calendar_integrations'
   lastSyncedAt: timestamp('last_synced_at', { withTimezone: true }),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
-});
+}, (table) => [
+  // The generated name is longer than Postgres' 63-char limit; Postgres truncates it and
+  // drizzle-kit push then sees a different name, dropping and re-adding the FK on every run.
+  foreignKey({
+    name: 'google_calendar_integrations_professional_id_fk',
+    columns: [table.professionalId],
+    foreignColumns: [professionals.id],
+  }).onDelete('cascade'),
+]);
 
 export const selectGoogleCalendarIntegrationSchema = createSelectSchema(googleCalendarIntegrations).omit({
   accessToken: true,
