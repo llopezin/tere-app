@@ -15,5 +15,8 @@ export function patientAppointmentsQueryOptions() {
   return queryOptions({
     queryKey: ["patient-appointments"],
     queryFn: fetchPatientAppointments,
+    // "Mis Citas" unmounts when switching tabs: dropping the cache makes every landing fetch fresh
+    // and show the skeleton, instead of the old list (e.g. without a just-booked appointment)
+    gcTime: 0,
   });
 }
