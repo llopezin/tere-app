@@ -102,7 +102,7 @@ Custom auth endpoints implemented in Hono. JWT-based with bcrypt password hashin
 |--------|------|-------------|------|------|
 | `GET` | `/patient/me` | Get own profile | Patient | Drizzle query |
 | `PUT` | `/patient/me` | Update own personal data + contact method | Patient | Drizzle query |
-| `GET` | `/patient/me/appointments` | Get own past & upcoming appointments | Patient | Drizzle query |
+| `GET` | `/patient/appointments` | Own past & upcoming appointments, shaped for "Mis citas" (BFF): `{ data: [{ id, startAt, endAt, status, price, professionalName, appointmentTypeName }], page, per_page }`. Names come from a server-side join, so deactivated types keep their name | Patient | Drizzle query |
 
 ---
 

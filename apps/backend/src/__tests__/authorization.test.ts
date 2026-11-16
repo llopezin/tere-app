@@ -154,8 +154,7 @@ describe('Patient BFF: only my own data', () => {
   it('lists only my appointments', async () => {
     const res = await call(P1, 'GET', `${P}/appointments`);
     const { data } = await res.json();
-    expect(data.length).toBeGreaterThan(0);
-    expect(data.every((a: { patientId: string }) => a.patientId === P1.profileId)).toBe(true);
+    expect(data.map((a: { id: string }) => a.id)).toEqual([apptP1A.id]);
   });
 
   it("cannot read another patient's bono", async () => {
