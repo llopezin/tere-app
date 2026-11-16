@@ -22,7 +22,6 @@ export function blockedTimesQueryOptions(range: WeekRange) {
   return queryOptions({
     queryKey: [...blockedTimesQueryKey, range],
     queryFn: () => fetchBlockedTimes(range),
-    staleTime: 0,
     placeholderData: keepPreviousData,
   });
 }

@@ -13,7 +13,6 @@ export function appointmentDetailQueryOptions(id: string) {
   return queryOptions({
     queryKey: ["appointment-detail", id],
     queryFn: () => fetchAppointmentDetail(id),
-    staleTime: 0,
   });
 }
 
