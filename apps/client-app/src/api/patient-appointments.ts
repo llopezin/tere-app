@@ -15,5 +15,6 @@ export function patientAppointmentsQueryOptions() {
   return queryOptions({
     queryKey: ["patient-appointments"],
     queryFn: fetchPatientAppointments,
+    gcTime: 0,
   });
 }

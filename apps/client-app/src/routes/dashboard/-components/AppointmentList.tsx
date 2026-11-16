@@ -7,6 +7,7 @@ import { professionalsQueryOptions } from "@/api/professionals";
 import { appointmentTypesQueryOptions } from "@/api/appointment-types";
 import { patientAppointmentsQueryOptions } from "@/api/patient-appointments";
 import { AppointmentCard } from "./AppointmentCard";
+import { AppointmentListSkeleton } from "./AppointmentListSkeleton";
 import type { AppointmentCardData } from "./AppointmentCard";
 
 type SubTab = "upcoming" | "history";
@@ -108,7 +109,7 @@ export function AppointmentList() {
       {/* List */}
       <div className="mt-4 flex flex-col gap-3">
         {isLoading ? (
-          <div className="py-8 text-center text-sm text-text-secondary">Cargando citas...</div>
+          <AppointmentListSkeleton />
         ) : activeList.length === 0 ? (
           <div className="py-8 text-center text-sm text-text-secondary">
             {subTab === "upcoming" ? "No tienes citas programadas" : "No hay citas en tu historial"}

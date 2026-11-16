@@ -1,5 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { client } from "@/lib/client";
+import { patientAppointmentsQueryOptions } from "@/api/patient-appointments";
+import { availabilityQueryKey } from "@/api/availability";
 
 interface CreateAppointmentInput {
   appointmentTypeId: string;
@@ -22,8 +24,8 @@ export function useCreateAppointment() {
   return useMutation({
     mutationFn: postCreateAppointment,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["patient-appointments"] });
-      queryClient.invalidateQueries({ queryKey: ["availability"] });
+      queryClient.invalidateQueries({ queryKey: patientAppointmentsQueryOptions().queryKey });
+      queryClient.invalidateQueries({ queryKey: availabilityQueryKey });
     },
   });
 }

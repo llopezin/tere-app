@@ -79,6 +79,11 @@ export const test = base.extend<Fixtures>({
 /** Picks the seeded consultation type and the first slot still bookable. */
 export async function openBookingModal(page: Page) {
   await page.goto('/dashboard');
+  await pickFirstSlot(page);
+}
+
+/** Same as `openBookingModal`, from the booking tab already open (keeps the app's state). */
+export async function pickFirstSlot(page: Page) {
   await page.getByRole('combobox', { name: /Consultas de/ }).click();
   await page.getByRole('option', { name: /Sesión estándar/ }).click();
   // Earlier slots of the current week are rendered but disabled
