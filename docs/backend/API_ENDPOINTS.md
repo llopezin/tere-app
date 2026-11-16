@@ -245,7 +245,7 @@ Custom auth endpoints implemented in Hono. JWT-based with bcrypt password hashin
 
 | Method | Path | Description | Role | Impl |
 |--------|------|-------------|------|------|
-| `GET` | `/appointments` | List appointments. Supports `?from=&to=&status=&patient_id=` | Professional | Drizzle query |
+| `GET` | `/calendar-appointments` | Non-cancelled appointments overlapping `?from=&to=` (required), with patient and type names | Professional | Drizzle query |
 | `POST` | `/appointments` | Create single appointment | Professional, Patient | Hono handler |
 | `POST` | `/appointments/batch` | Create multiple appointments for same patient (multi-slot) | Professional | Hono handler |
 | `POST` | `/appointments/recurring` | Create recurring appointment series | Professional | Hono handler |

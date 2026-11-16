@@ -3,7 +3,7 @@ import * as routes from './appointments.routes.js';
 import * as handlers from './appointments.handlers.js';
 
 const router = createRouter()
-  .openapi(routes.list, handlers.list)
+  .openapi(routes.calendarList, handlers.calendarList)
   .openapi(routes.create, handlers.create)
   .openapi(routes.batch, handlers.batch)
   .openapi(routes.recurring, handlers.recurring)

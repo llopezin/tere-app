@@ -1,6 +1,6 @@
 import type { AppRouteHandler } from '../../../lib/types.js';
 import type {
-  ListRoute,
+  CalendarListRoute,
   CreateRoute,
   BatchRoute,
   RecurringRoute,
@@ -12,7 +12,9 @@ import type {
 } from './appointments.routes.js';
 import { db } from '../../../db/index.js';
 import { appointments } from '../../../db/schema/appointments.js';
-import { eq, and, sql } from 'drizzle-orm';
+import { patients } from '../../../db/schema/patients.js';
+import { appointmentTypes } from '../../../db/schema/appointment-types.js';
+import { eq, and, ne, lt, gt, sql } from 'drizzle-orm';
 import { getProfileId } from '../../../middleware/auth.js';
 import { AppError } from '../../../middleware/error-handler.js';
 import * as HttpStatusCodes from 'stoker/http-status-codes';
@@ -53,23 +55,30 @@ async function setFinalStatus(professionalId: string, id: string, status: 'compl
   throw new AppError(409, 'Only scheduled appointments can change status');
 }
 
-export const list: AppRouteHandler<ListRoute> = async (c) => {
+export const calendarList: AppRouteHandler<CalendarListRoute> = async (c) => {
   const profileId = getProfileId(c);
-  const { page, per_page, from, to, status, patient_id: patientId } = c.req.valid('query');
-  const conditions = [eq(appointments.professionalId, profileId)];
-  if (from) conditions.push(sql`${appointments.startAt} >= ${from}`);
-  if (to) conditions.push(sql`${appointments.startAt} <= ${to}`);
-  if (status) conditions.push(eq(appointments.status, status));
-  if (patientId) {
-    await assertPatientOfProfessional(profileId, patientId);
-    conditions.push(eq(appointments.patientId, patientId));
-  }
-  const results = await db.select().from(appointments)
-    .where(and(...conditions))
-    .orderBy(appointments.startAt)
-    .limit(per_page)
-    .offset((page - 1) * per_page);
-  return c.json({ data: results, page, per_page }, HttpStatusCodes.OK);
+  const { from, to } = c.req.valid('query');
+  const data = await db
+    .select({
+      id: appointments.id,
+      startAt: appointments.startAt,
+      endAt: appointments.endAt,
+      // Cancelled rows are filtered out below
+      status: sql<'scheduled' | 'completed' | 'no_show'>`${appointments.status}`,
+      patientName: sql<string>`${patients.firstName} || ' ' || ${patients.lastName}`,
+      appointmentTypeName: appointmentTypes.name,
+    })
+    .from(appointments)
+    .innerJoin(patients, eq(appointments.patientId, patients.id))
+    .innerJoin(appointmentTypes, eq(appointments.appointmentTypeId, appointmentTypes.id))
+    .where(and(
+      eq(appointments.professionalId, profileId),
+      ne(appointments.status, 'cancelled'),
+      lt(appointments.startAt, new Date(to)),
+      gt(appointments.endAt, new Date(from)),
+    ))
+    .orderBy(appointments.startAt);
+  return c.json({ data }, HttpStatusCodes.OK);
 };
 
 export const create: AppRouteHandler<CreateRoute> = async (c) => {
@@ -169,7 +178,30 @@ export const recurring: AppRouteHandler<RecurringRoute> = async (c) => {
 export const getOne: AppRouteHandler<GetOneRoute> = async (c) => {
   const profileId = getProfileId(c);
   const { id } = c.req.valid('param');
-  return c.json(await assertAppointmentOf({ professionalId: profileId }, id), HttpStatusCodes.OK);
+  const [row] = await db
+    .select({
+      id: appointments.id,
+      startAt: appointments.startAt,
+      endAt: appointments.endAt,
+      status: appointments.status,
+      price: appointments.price,
+      notes: appointments.notes,
+      appointmentType: { id: appointmentTypes.id, name: appointmentTypes.name },
+      patient: {
+        id: patients.id,
+        firstName: patients.firstName,
+        lastName: patients.lastName,
+        email: patients.email,
+        phone: patients.phone,
+        contactMethod: patients.contactMethod,
+      },
+    })
+    .from(appointments)
+    .innerJoin(patients, eq(appointments.patientId, patients.id))
+    .innerJoin(appointmentTypes, eq(appointments.appointmentTypeId, appointmentTypes.id))
+    .where(and(eq(appointments.id, id), eq(appointments.professionalId, profileId)));
+  if (!row) throw new AppError(404, 'Appointment not found');
+  return c.json(row, HttpStatusCodes.OK);
 };
 
 export const update: AppRouteHandler<UpdateRoute> = async (c) => {
@@ -178,20 +210,31 @@ export const update: AppRouteHandler<UpdateRoute> = async (c) => {
   const body = c.req.valid('json');
 
   const existing = await assertAppointmentOf({ professionalId: profileId }, id);
-  const newType = body.appointmentTypeId ? await assertAppointmentTypeOf(profileId, body.appointmentTypeId) : undefined;
+  // Re-sending the current type is not a change: the booked price and duration stay
+  const { appointmentTypeId } = body;
+  const newType = appointmentTypeId && appointmentTypeId !== existing.appointmentTypeId
+    ? await assertAppointmentTypeOf(profileId, appointmentTypeId)
+    : undefined;
 
   const updateData: Partial<typeof appointments.$inferInsert> = { updatedAt: new Date() };
 
-  if (body.startAt) {
-    const apptType = newType ?? await assertAppointmentTypeOf(profileId, existing.appointmentTypeId);
-    const startAt = new Date(body.startAt);
-    const endAt = new Date(startAt.getTime() + apptType.durationMinutes * 60 * 1000);
+  // Moving the appointment or changing its type both change its time slot
+  if (body.startAt || newType) {
+    const startAt = body.startAt ? new Date(body.startAt) : existing.startAt;
+    const durationMs = newType
+      ? newType.durationMinutes * 60 * 1000
+      : existing.endAt.getTime() - existing.startAt.getTime();
+    const endAt = new Date(startAt.getTime() + durationMs);
     await appointmentService.checkOverlap(profileId, startAt, endAt, id);
 
     updateData.startAt = startAt;
     updateData.endAt = endAt;
   }
-  if (body.appointmentTypeId) updateData.appointmentTypeId = body.appointmentTypeId;
+  if (newType) {
+    updateData.appointmentTypeId = newType.id;
+    // A new type brings its current price unless the professional sets one explicitly
+    updateData.price = newType.price;
+  }
   if (body.notes !== undefined) updateData.notes = body.notes;
   if (body.price !== undefined) updateData.price = body.price.toFixed(2);
 
