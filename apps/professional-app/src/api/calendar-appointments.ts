@@ -24,7 +24,6 @@ export function calendarAppointmentsQueryOptions(range: WeekRange) {
   return queryOptions({
     queryKey: [...calendarAppointmentsQueryKey, range],
     queryFn: () => fetchCalendarAppointments(range),
-    staleTime: 0,
     placeholderData: keepPreviousData,
   });
 }
