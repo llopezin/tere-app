@@ -2,6 +2,9 @@ import { queryOptions } from "@tanstack/react-query";
 import { client } from "@/lib/client";
 import { ApiError } from "@/lib/api-error";
 
+/** Prefix of every availability query, to invalidate all of them at once. */
+export const availabilityQueryKey = ["availability"] as const;
+
 export function availabilityQueryOptions(
   professionalId: string,
   appointmentTypeId: string,
@@ -9,7 +12,7 @@ export function availabilityQueryOptions(
   to: string,
 ) {
   return queryOptions({
-    queryKey: ["availability", professionalId, appointmentTypeId, from, to],
+    queryKey: [...availabilityQueryKey, professionalId, appointmentTypeId, from, to],
     queryFn: async () => {
       const res = await client.availability.$get({
         query: {
