@@ -16,7 +16,7 @@ export const Route = createFileRoute("/")({
 
 function WelcomePage() {
   return (
-    <div className="flex min-h-svh flex-col items-center bg-gradient-to-b from-primary-50 via-background to-background px-4 py-12 md:py-16">
+    <div className="flex min-h-svh flex-col items-center bg-gradient-to-b from-accent-50 via-background to-background px-4 py-12 md:py-16">
       <div className="animate-fade-in mb-10">
         <BrandLogo subtitle="Portal del Paciente" />
       </div>
