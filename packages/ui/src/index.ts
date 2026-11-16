@@ -12,4 +12,4 @@ export { RadioGroup } from "./RadioGroup";
 export { Select } from "./Select";
 export type { SelectOption } from "./Select";
 export { Textarea } from "./Textarea";
-export { cn } from "./cn";
+export { cn } from "./lib/cn";
