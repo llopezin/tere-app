@@ -1,4 +1,3 @@
-/** Placeholder with the shape of two `AppointmentCard`s while the list loads. */
 export function AppointmentListSkeleton() {
   return (
     <div role="status" aria-label="Cargando citas" className="flex flex-col gap-3">

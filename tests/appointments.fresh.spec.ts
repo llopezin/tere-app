@@ -14,7 +14,6 @@ test('shows a loader, never the stale list, until the just-booked appointment ar
   // The footer button (the X icon is also labelled "Cerrar")
   await page.getByRole('dialog', { name: '¡Cita confirmada!' }).getByText('Cerrar', { exact: true }).click();
 
-  // Hold the list request so what is shown while it loads can be checked
   let releaseList!: () => void;
   const listHeld = new Promise<void>((resolve) => { releaseList = resolve; });
   await page.route(/\/api\/v1\/patient\/appointments\?/, async (route) => {
