@@ -33,6 +33,6 @@ try {
   console.log(`✅ Professional created: ${professional.firstName} ${professional.lastName} <${professional.email}> (${professional.id})`);
   process.exit(0);
 } catch (error) {
-  console.error(`❌ ${error instanceof Error ? error.message : error}`);
+  console.error(`❌ ${error instanceof Error ? error.message : String(error)}`);
   process.exit(1);
 }

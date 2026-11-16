@@ -135,7 +135,7 @@ export const auth = betterAuth({
     user: {
       create: {
         after: async (user) => {
-          if (!isRole(user.role)) throw new Error(`Unknown role: ${user.role}`);
+          if (!isRole(user.role)) throw new Error(`Unknown role: ${String(user.role)}`);
           const profileId = await createProfileByRole[user.role]({
             user: { id: user.id, email: user.email, phone: asString(user.phone) },
             firstName: asString(user.firstName) ?? '',

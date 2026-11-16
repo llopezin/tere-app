@@ -1,6 +1,8 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import type { ApiErrorCode } from "@fisio-app/backend";
 import { client } from "@/lib/client";
+import { patientAppointmentsQueryOptions } from "@/api/patient-appointments";
+import { availabilityQueryKey } from "@/api/availability";
 
 /** Spanish UI messages for the backend error codes of POST /appointments. */
 const ERROR_MESSAGES: Record<ApiErrorCode, string> = {
@@ -34,8 +36,8 @@ export function useCreateAppointment() {
   return useMutation({
     mutationFn: postCreateAppointment,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["patient-appointments"] });
-      queryClient.invalidateQueries({ queryKey: ["availability"] });
+      queryClient.invalidateQueries({ queryKey: patientAppointmentsQueryOptions().queryKey });
+      queryClient.invalidateQueries({ queryKey: availabilityQueryKey });
     },
   });
 }

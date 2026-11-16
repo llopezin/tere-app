@@ -83,7 +83,7 @@ export async function createInvoiceForAppointment(
 }
 
 /** Escapes text interpolated into the invoice HTML (fields come from user-editable billing data). */
-function escapeHtml(value: unknown): string {
+function escapeHtml(value: string | number | null | undefined): string {
   return String(value ?? '')
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
