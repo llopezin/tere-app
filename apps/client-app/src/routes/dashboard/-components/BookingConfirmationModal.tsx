@@ -6,7 +6,7 @@ import { Input } from "@fisio-app/ui";
 import { RadioGroup } from "@fisio-app/ui";
 import { Button } from "@fisio-app/ui";
 import { Checkbox } from "@fisio-app/ui";
-import { patientProfileQueryOptions } from "@/api/patient-profile";
+import { patientProfileQueryOptions, useUpdatePatientProfile } from "@/api/patient-profile";
 import { useCreateAppointment } from "@/api/appointments";
 import { rgpdConsentQueryOptions, useAcceptRgpdConsent } from "@/api/rgpd-consent";
 import { phoneSchema, nieSchema } from "@fisio-app/validators";
@@ -61,6 +61,7 @@ export function BookingConfirmationModal({
   const { data: rgpdConsent } = useQuery(rgpdConsentQueryOptions());
   const createAppointment = useCreateAppointment();
   const acceptRgpdConsent = useAcceptRgpdConsent();
+  const updatePatientProfile = useUpdatePatientProfile();
   const profileLoaded = useRef(false);
 
   const alreadySigned = rgpdConsent?.signed === true;
@@ -95,7 +96,6 @@ export function BookingConfirmationModal({
 
   const validateField = (field: "nie" | "phone", value: string) => {
     if (field === "nie") {
-      if (!value) return setErrors((e) => ({ ...e, nie: undefined }));
       const result = nieSchema.safeParse(value);
       setErrors((e) => ({
         ...e,
@@ -141,21 +141,14 @@ export function BookingConfirmationModal({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    const nieResult = nie ? nieSchema.safeParse(nie) : { success: true };
+    const nieResult = nieSchema.safeParse(nie);
     const phoneResult = phoneSchema.safeParse(phone);
     const newErrors = {
-      nie: !nieResult.success
-        ? (
-            nieResult as {
-              success: false;
-              error: { issues: { message: string }[] };
-            }
-          ).error.issues[0]?.message
-        : undefined,
+      nie: !nieResult.success ? nieResult.error.issues[0]?.message : undefined,
       phone: !phoneResult.success ? phoneResult.error.issues[0]?.message : undefined,
     };
     setErrors(newErrors);
-    if (newErrors.nie || newErrors.phone) return;
+    if (!nieResult.success || !phoneResult.success) return;
 
     if (!alreadySigned && !rgpdAccepted) {
       setSubmitError("Debes aceptar el consentimiento de protección de datos");
@@ -168,6 +161,11 @@ export function BookingConfirmationModal({
     setSubmitError(null);
 
     try {
+      // Booking requires a saved DNI/NIE; saving it first also stops here if another patient has it
+      if (nieResult.data !== profile.nie) {
+        await updatePatientProfile.mutateAsync({ nie: nieResult.data });
+      }
+
       if (!alreadySigned) {
         await acceptRgpdConsent.mutateAsync();
       }

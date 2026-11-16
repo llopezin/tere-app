@@ -47,9 +47,15 @@ export function SignupModal({ open, onOpenChange, onSwitchToLogin }: SignupModal
       phone,
     } as Parameters<typeof signUp.email>[0]);
 
+    if (signUpError) {
+      setError(signUpError.message ?? "Error al crear la cuenta");
+      setLoading(false);
+      return;
+    }
+
     const { error: signInError } = await signIn.email({ email, password });
 
-    if (signUpError || signInError) {
+    if (signInError) {
       setError("Error al crear la cuenta");
       setLoading(false);
       return;
@@ -107,6 +113,7 @@ export function SignupModal({ open, onOpenChange, onSwitchToLogin }: SignupModal
           }}
           onBlur={() => validatePhone(phone)}
           error={phoneError}
+          required
         />
 
         <Input
