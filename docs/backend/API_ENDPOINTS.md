@@ -240,7 +240,7 @@ Custom auth endpoints implemented in Hono. JWT-based with bcrypt password hashin
 2. Divide each schedule block into slots based on `appointment_types.duration_minutes`.
 3. Subtract slots that overlap with existing `appointments` (status ≠ cancelled).
 4. Subtract slots that overlap with `blocked_times`.
-5. **Patient BFF only (`GET /patient/availability`):** clip the range to the booking window (today → end of day of today + 3 months, Europe/Madrid) and drop slots starting after it.
+5. **Patient BFF only (`GET /patient/availability`):** clip the range to the booking window (now → end of day of today + 3 months, Europe/Madrid) and drop slots starting before now or after the window. A range outside the window is valid (`200` with no slots).
 6. Return remaining available slots. The patient BFF also returns `booking_window_last_day` (last bookable day, `YYYY-MM-DD` in clinic time); client-app uses it to limit week navigation, so the limit and the time-zone logic live only in the backend. `GET /professional/availability` is not limited and has no such field.
 
 ---

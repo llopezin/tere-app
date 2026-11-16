@@ -32,17 +32,22 @@ export const getAvailability: AppRouteHandler<GetAvailabilityRoute> = async (c) 
 
   await assertAppointmentTypeOf(professionalId, appointmentTypeId, { activeOnly: true });
 
-  // Patients only see slots inside the booking window (today → windowEnd).
+  // Patients only see slots inside the booking window (now → windowEnd).
   // If the clipped range is empty the service returns no slots.
-  const windowEnd = getBookingWindowEnd();
-  const today = getClinicToday();
+  const now = new Date();
+  const windowEnd = getBookingWindowEnd(now);
+  const today = getClinicToday(now);
   const fromDate = new Date(from < today ? today : from);
   const toDate = new Date(to) > windowEnd ? windowEnd : new Date(to);
 
   const slots = await availabilityService.generateAvailableSlots(professionalId, appointmentTypeId, fromDate, toDate);
   return c.json({
-    // The service extends `to` to the end of the day in server time, so filter precisely.
-    slots: slots.filter((s) => new Date(s.start_at) <= windowEnd),
+    // The service works with whole days, so drop slots already started today and,
+    // since it extends `to` to the end of the day in server time, those after windowEnd.
+    slots: slots.filter((s) => {
+      const startAt = new Date(s.start_at);
+      return startAt >= now && startAt <= windowEnd;
+    }),
     booking_window_last_day: toClinicDate(windowEnd),
   }, HttpStatusCodes.OK);
 };

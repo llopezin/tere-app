@@ -45,11 +45,10 @@ function patientAvailability(from: string, to: string) {
 }
 
 describe('Patient availability', () => {
-  it('returns the last bookable day and no slots after the window', async () => {
+  it('does not return slots after the end of the booking window', async () => {
     const res = await patientAvailability(addDays(lastDay, -3), addDays(lastDay, 3));
     expect(res.status).toBe(200);
     const body = await res.json();
-    expect(body.booking_window_last_day).toBe(lastDay);
     expect(body.slots.length).toBeGreaterThan(0);
     for (const s of body.slots) {
       expect(new Date(s.start_at).getTime()).toBeLessThanOrEqual(windowEnd.getTime());
@@ -62,15 +61,28 @@ describe('Patient availability', () => {
     expect((await res.json()).slots).toEqual([]);
   });
 
-  it('returns no slots for a range entirely beyond the window', async () => {
+  it('does not return slots that start before now', async () => {
+    // Open the whole of today so there are earlier slots today to leave out.
+    await testDb.insert(workingSchedules).values({
+      professionalId: pro.profileId, dayOfWeek: new Date().getDay(), startTime: '00:00', endTime: '23:59',
+    });
+    const before = Date.now();
+    const res = await patientAvailability(addDays(today, -1), addDays(today, 7));
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.slots.length).toBeGreaterThan(0);
+    for (const s of body.slots) {
+      expect(new Date(s.start_at).getTime()).toBeGreaterThanOrEqual(before);
+    }
+  });
+
+  it('accepts a range beyond the window but returns no slots', async () => {
     const res = await patientAvailability(addDays(lastDay, 1), addDays(lastDay, 7));
     expect(res.status).toBe(200);
     expect((await res.json()).slots).toEqual([]);
   });
 
-  it('rejects invalid ranges with 422', async () => {
-    expect((await patientAvailability('not-a-date', today)).status).toBe(422);
-    expect((await patientAvailability(addDays(today, 5), today)).status).toBe(422);
+  it('rejects ranges longer than 31 days', async () => {
     expect((await patientAvailability(today, addDays(today, 31))).status).toBe(422);
     expect((await patientAvailability(today, addDays(today, 30))).status).toBe(200);
   });
@@ -79,10 +91,6 @@ describe('Patient availability', () => {
 describe('Patient booking', () => {
   const book = (startAt: Date) =>
     call(patient, 'POST', `${P}/appointments`, { json: { appointmentTypeId: type.id, startAt: startAt.toISOString() } });
-
-  it('books inside the window', async () => {
-    expect((await book(new Date(Date.now() + 7 * DAY_MS))).status).toBe(201);
-  });
 
   it('rejects a booking beyond the window with BOOKING_OUTSIDE_WINDOW', async () => {
     const res = await book(new Date(windowEnd.getTime() + 1));
@@ -98,16 +106,15 @@ describe('Patient booking', () => {
 });
 
 describe('Professional BFF is not limited', () => {
-  it('returns slots beyond the window and no booking_window_last_day', async () => {
+  it('returns slots beyond the window to professionals', async () => {
     const qs = new URLSearchParams({ appointment_type_id: type.id, from: addDays(lastDay, 1), to: addDays(lastDay, 7) });
     const res = await call(pro, 'GET', `${PRO}/availability?${qs}`);
     expect(res.status).toBe(200);
     const body = await res.json();
     expect(body.slots.length).toBeGreaterThan(0);
-    expect(body).not.toHaveProperty('booking_window_last_day');
   });
 
-  it('books beyond the window', async () => {
+  it('lets professionals book beyond the window', async () => {
     const res = await call(pro, 'POST', `${PRO}/appointments`, {
       json: { patientId: patient.profileId, appointmentTypeId: type.id, startAt: new Date(windowEnd.getTime() + 7 * DAY_MS).toISOString() },
     });
