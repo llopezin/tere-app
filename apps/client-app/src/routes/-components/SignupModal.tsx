@@ -48,7 +48,10 @@ export function SignupModal({ open, onOpenChange, onSwitchToLogin }: SignupModal
     } as Parameters<typeof signUp.email>[0]);
 
     if (signUpError) {
-      setError(signUpError.message ?? "Error al crear la cuenta");
+      // Better Auth answers an existing account itself (in English); the backend answers 409 for an existing patient
+      const alreadyRegistered =
+        signUpError.status === 409 || signUpError.code === "USER_ALREADY_EXISTS_USE_ANOTHER_EMAIL";
+      setError(alreadyRegistered ? "Usuario existente, inicia sesión" : "Error al crear la cuenta");
       setLoading(false);
       return;
     }

@@ -53,11 +53,11 @@ UPDATE "user" SET profile_id = 'a1111111-1111-1111-1111-111111111111' WHERE id =
 -- ============================================
 
 INSERT INTO patients (id, auth_user_id, first_name, last_name, nie, phone, email, date_of_birth, contact_method, address_city, address_province) VALUES
-  ('b0000001-0001-0001-0001-000000000001', 'auth-pat-1', 'María',  'López',     'X1234567A', '+34 611 111 001', 'maria.lopez@gmail.com',    '1985-03-15', 'whatsapp', 'Madrid',              'Madrid'),
-  ('b0000002-0002-0002-0002-000000000002', 'auth-pat-2', 'Pedro',  'Martínez',  'Y2345678B', '+34 611 111 002', 'pedro.martinez@gmail.com', '1990-07-22', 'email',    'Madrid',              'Madrid'),
-  ('b0000003-0003-0003-0003-000000000003', NULL,         'Elena',  'Sánchez',   'Z3456789C', '+34 611 111 003', 'elena.s@yahoo.com',        '1978-11-08', 'sms',      'Madrid',              'Madrid'),
-  ('b0000004-0004-0004-0004-000000000004', NULL,         'Javier', 'Hernández', NULL,        '+34 611 111 004', NULL,                        '2001-01-30', 'whatsapp', 'Alcalá de Henares',   'Madrid'),
-  ('b0000005-0005-0005-0005-000000000005', NULL,         'Carmen', 'Díaz',      'W4567890D', '+34 611 111 005', 'carmen.diaz@gmail.com',    '1965-06-12', 'whatsapp', 'Madrid',              'Madrid');
+  ('b0000001-0001-0001-0001-000000000001', 'auth-pat-1', 'María',  'López',     'X1234567A', '+34611111001', 'maria.lopez@gmail.com',    '1985-03-15', 'whatsapp', 'Madrid',              'Madrid'),
+  ('b0000002-0002-0002-0002-000000000002', 'auth-pat-2', 'Pedro',  'Martínez',  'Y2345678B', '+34611111002', 'pedro.martinez@gmail.com', '1990-07-22', 'email',    'Madrid',              'Madrid'),
+  ('b0000003-0003-0003-0003-000000000003', NULL,         'Elena',  'Sánchez',   'Z3456789C', '+34611111003', 'elena.s@yahoo.com',        '1978-11-08', 'sms',      'Madrid',              'Madrid'),
+  ('b0000004-0004-0004-0004-000000000004', NULL,         'Javier', 'Hernández', NULL,        '+34611111004', 'javier.h@gmail.com',       '2001-01-30', 'whatsapp', 'Alcalá de Henares',   'Madrid'),
+  ('b0000005-0005-0005-0005-000000000005', NULL,         'Carmen', 'Díaz',      'W4567890D', '+34611111005', 'carmen.diaz@gmail.com',    '1965-06-12', 'whatsapp', 'Madrid',              'Madrid');
 
 -- Update patient profile links
 UPDATE "user" SET profile_id = 'b0000001-0001-0001-0001-000000000001' WHERE id = 'auth-pat-1';
