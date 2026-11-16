@@ -17,6 +17,7 @@ import type {
 } from './patients.routes.js';
 import { db } from '../../../db/index.js';
 import { patients } from '../../../db/schema/patients.js';
+import { assertUniquePatientData } from '../../../services/patient.service.js';
 import { appointments } from '../../../db/schema/appointments.js';
 import { bonos } from '../../../db/schema/bonos.js';
 import { payments } from '../../../db/schema/payments.js';
@@ -89,6 +90,8 @@ export const create: AppRouteHandler<CreateRoute> = async (c) => {
   const profileId = getProfileId(c);
   const { clinicalNotes, ...personalData } = c.req.valid('json');
 
+  await assertUniquePatientData(personalData);
+
   const patientId = await db.transaction(async (tx) => {
     const [patient] = await tx.insert(patients).values(personalData).returning({ id: patients.id });
     await tx.insert(professionalPatients).values({ professionalId: profileId, patientId: patient.id, clinicalNotes });
@@ -116,6 +119,7 @@ export const update: AppRouteHandler<UpdateRoute> = async (c) => {
   const hasPersonalChanges = Object.values(personalData).some((v) => v !== undefined);
   if (hasPersonalChanges) {
     await assertCanEditSharedPatientData(id);
+    await assertUniquePatientData(personalData, id);
     await db.update(patients).set({ ...personalData, updatedAt: new Date() }).where(eq(patients.id, id));
   }
 
