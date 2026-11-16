@@ -1,38 +1,41 @@
 import { createRoute, z } from '@hono/zod-openapi';
 import {
-  appointments,
   selectAppointmentSchema,
   insertAppointmentSchema,
   updateAppointmentSchema,
   batchAppointmentSchema,
   recurringAppointmentSchema,
 } from '../../../db/schema/appointments.js';
-import { paginationSchema, idParamsSchema } from '../../../lib/schemas.js';
+import { selectPatientSchema } from '../../../db/schema/patients.js';
+import { idParamsSchema } from '../../../lib/schemas.js';
 import * as HttpStatusCodes from 'stoker/http-status-codes';
 import { jsonContent, jsonContentRequired } from 'stoker/openapi/helpers';
 import { createMessageObjectSchema } from 'stoker/openapi/schemas';
 
 const tags = ['Professional / Appointments'];
 
-// GET /
-export const list = createRoute({
+// GET /calendar-appointments
+const calendarAppointmentSchema = selectAppointmentSchema
+  .pick({ id: true, startAt: true, endAt: true })
+  .extend({
+    status: z.enum(['scheduled', 'completed', 'no_show']),
+    patientName: z.string(),
+    appointmentTypeName: z.string(),
+  });
+
+export const calendarList = createRoute({
   method: 'get',
-  path: '/appointments',
+  path: '/calendar-appointments',
   tags,
-  summary: 'List appointments',
+  summary: 'Non-cancelled appointments overlapping a date range, shaped for the calendar',
   request: {
-    query: paginationSchema.extend({
-      from: z.string().optional(),
-      to: z.string().optional(),
-      status: z.enum(appointments.status.enumValues).optional(),
-      patient_id: z.string().uuid().optional(),
+    query: z.object({
+      from: z.string().datetime(),
+      to: z.string().datetime(),
     }),
   },
   responses: {
-    [HttpStatusCodes.OK]: jsonContent(
-      z.object({ data: z.array(selectAppointmentSchema), page: z.number(), per_page: z.number() }),
-      'Paginated list of appointments',
-    ),
+    [HttpStatusCodes.OK]: jsonContent(z.object({ data: z.array(calendarAppointmentSchema) }), 'Calendar appointments'),
     [HttpStatusCodes.UNAUTHORIZED]: jsonContent(createMessageObjectSchema('Unauthorized'), 'Unauthorized'),
     [HttpStatusCodes.FORBIDDEN]: jsonContent(createMessageObjectSchema('Insufficient permissions'), 'Insufficient permissions'),
   },
@@ -99,6 +102,13 @@ export const recurring = createRoute({
 });
 
 // GET /:id
+const appointmentDetailSchema = selectAppointmentSchema
+  .pick({ id: true, startAt: true, endAt: true, status: true, price: true, notes: true })
+  .extend({
+    appointmentType: z.object({ id: z.string().uuid(), name: z.string() }),
+    patient: selectPatientSchema.pick({ id: true, firstName: true, lastName: true, email: true, phone: true, contactMethod: true }),
+  });
+
 export const getOne = createRoute({
   method: 'get',
   path: '/appointments/{id}',
@@ -108,7 +118,7 @@ export const getOne = createRoute({
     params: idParamsSchema,
   },
   responses: {
-    [HttpStatusCodes.OK]: jsonContent(selectAppointmentSchema, 'The appointment'),
+    [HttpStatusCodes.OK]: jsonContent(appointmentDetailSchema, 'The appointment with its patient and type'),
     [HttpStatusCodes.NOT_FOUND]: jsonContent(createMessageObjectSchema('Appointment not found'), 'Appointment not found'),
     [HttpStatusCodes.UNAUTHORIZED]: jsonContent(createMessageObjectSchema('Unauthorized'), 'Unauthorized'),
   },
@@ -184,7 +194,7 @@ export const noShow = createRoute({
   },
 });
 
-export type ListRoute = typeof list;
+export type CalendarListRoute = typeof calendarList;
 export type CreateRoute = typeof create;
 export type BatchRoute = typeof batch;
 export type RecurringRoute = typeof recurring;

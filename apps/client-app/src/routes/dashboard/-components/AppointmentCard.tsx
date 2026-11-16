@@ -1,7 +1,7 @@
 import { Pencil, Download, Clock } from "lucide-react";
 import { Button } from "@fisio-app/ui";
 import { DateBadge } from "./DateBadge";
-import { StatusBadge } from "./StatusBadge";
+import { StatusBadge } from "@fisio-app/ui/StatusBadge";
 import { AddToCalendarButton } from "./AddToCalendarButton";
 
 type AppointmentStatus = "scheduled" | "completed" | "cancelled" | "no_show";

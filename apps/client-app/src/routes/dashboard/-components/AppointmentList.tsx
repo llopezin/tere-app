@@ -1,10 +1,7 @@
 import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { useSuspenseQuery } from "@tanstack/react-query";
 import { CalendarClock, History } from "lucide-react";
 import { Card } from "@fisio-app/ui";
-import { professionalsQueryOptions } from "@/api/professionals";
-import { appointmentTypesQueryOptions } from "@/api/appointment-types";
 import { patientAppointmentsQueryOptions } from "@/api/patient-appointments";
 import { AppointmentCard } from "./AppointmentCard";
 import { AppointmentListSkeleton } from "./AppointmentListSkeleton";
@@ -19,35 +16,7 @@ function differenceInMinutes(start: string, end: string) {
 export function AppointmentList() {
   const [subTab, setSubTab] = useState<SubTab>("upcoming");
 
-  const { data: professionalsData } = useSuspenseQuery(professionalsQueryOptions());
-
   const { data: appointmentsData, isLoading } = useQuery(patientAppointmentsQueryOptions());
-
-  // Build lookup maps for resolving IDs → names
-  const professionalMap = useMemo(() => {
-    const map = new Map<string, string>();
-    for (const p of professionalsData.data) {
-      map.set(p.id, [p.firstName, p.lastName].join(" "));
-    }
-    return map;
-  }, [professionalsData]);
-
-  // Fetch all appointment types for each professional to build name map
-  const allProfessionalIds = professionalsData.data.map((p) => p.id);
-  const firstProfId = allProfessionalIds[0] ?? "";
-
-  const { data: typesData } = useQuery({
-    ...appointmentTypesQueryOptions(firstProfId),
-    enabled: !!firstProfId,
-  });
-
-  const typeMap = useMemo(() => {
-    const map = new Map<string, string>();
-    for (const t of typesData?.data ?? []) {
-      map.set(t.id, t.name);
-    }
-    return map;
-  }, [typesData]);
 
   const now = new Date();
 
@@ -59,12 +28,11 @@ export function AppointmentList() {
       endAt: a.endAt,
       status: a.status,
       price: a.price,
-      notes: a.notes,
-      professionalName: professionalMap.get(a.professionalId) ?? "Profesional",
-      appointmentTypeName: typeMap.get(a.appointmentTypeId) ?? "Consulta",
+      professionalName: a.professionalName,
+      appointmentTypeName: a.appointmentTypeName,
       durationMinutes: differenceInMinutes(a.startAt, a.endAt),
     }));
-  }, [appointmentsData, professionalMap, typeMap]);
+  }, [appointmentsData]);
 
   const upcoming = cards.filter((c) => c.status === "scheduled" && new Date(c.startAt) >= now);
   const history = cards.filter((c) => c.status !== "scheduled" || new Date(c.startAt) < now);

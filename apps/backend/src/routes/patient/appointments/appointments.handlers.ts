@@ -1,10 +1,11 @@
-import { and, eq } from 'drizzle-orm';
+import { and, eq, sql } from 'drizzle-orm';
 import * as HttpStatusCodes from 'stoker/http-status-codes';
 import type { AppRouteHandler } from '../../../lib/types.js';
 import type { ListRoute, CreateRoute, GetOneRoute, CancelRoute } from './appointments.routes.js';
 import { db } from '../../../db/index.js';
 import { appointments } from '../../../db/schema/appointments.js';
 import { appointmentTypes } from '../../../db/schema/appointment-types.js';
+import { professionals } from '../../../db/schema/professionals.js';
 import { getProfileId } from '../../../middleware/auth.js';
 import { AppError } from '../../../middleware/error-handler.js';
 import * as appointmentService from '../../../services/appointment.service.js';
@@ -16,7 +17,18 @@ export const list: AppRouteHandler<ListRoute> = async (c) => {
   const patientId = getProfileId(c);
   const { page, per_page } = c.req.valid('query');
 
-  const results = await db.select().from(appointments)
+  // Names come from the join, not the client: includes types deactivated after booking
+  const results = await db.select({
+    id: appointments.id,
+    startAt: appointments.startAt,
+    endAt: appointments.endAt,
+    status: appointments.status,
+    price: appointments.price,
+    professionalName: sql<string>`${professionals.firstName} || ' ' || ${professionals.lastName}`,
+    appointmentTypeName: appointmentTypes.name,
+  }).from(appointments)
+    .innerJoin(professionals, eq(appointments.professionalId, professionals.id))
+    .innerJoin(appointmentTypes, eq(appointments.appointmentTypeId, appointmentTypes.id))
     .where(eq(appointments.patientId, patientId))
     .orderBy(appointments.startAt)
     .limit(per_page).offset((page - 1) * per_page);

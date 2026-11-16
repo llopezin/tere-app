@@ -1,40 +1,20 @@
 import { useState, useMemo, useEffect, useLayoutEffect, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { AlertCircle, ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
-import { cn } from "@fisio-app/ui";
+import { AlertCircle, Loader2 } from "lucide-react";
+import { cn } from "@fisio-app/ui/lib/cn";
+import { WeekNavigator } from "@fisio-app/ui/WeekNavigator";
+import { DayHeader } from "@fisio-app/ui/DayHeader";
+import {
+  DAY_LABELS,
+  addDays,
+  formatWeekRange,
+  fromISODate,
+  getWeekStart,
+  toISODate,
+} from "@fisio-app/ui/lib/week";
 import { availabilityQueryOptions } from "@/api/availability";
 
-const MONTH_NAMES = [
-  "enero",
-  "febrero",
-  "marzo",
-  "abril",
-  "mayo",
-  "junio",
-  "julio",
-  "agosto",
-  "septiembre",
-  "octubre",
-  "noviembre",
-  "diciembre",
-];
-
-const SHORT_MONTHS = [
-  "ene",
-  "feb",
-  "mar",
-  "abr",
-  "may",
-  "jun",
-  "jul",
-  "ago",
-  "sep",
-  "oct",
-  "nov",
-  "dic",
-];
-
-const DAY_LABELS = ["LUN", "MAR", "MIÉ", "JUE", "VIE"] as const;
+const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
 
 interface WeeklyScheduleProps {
   professionalId: string;
@@ -42,54 +22,11 @@ interface WeeklyScheduleProps {
   onSlotSelect: (slot: { startAt: string; endAt: string }) => void;
 }
 
-function getMonday(offset: number): Date {
-  const now = new Date();
-  const day = now.getDay();
-  // getDay(): 0=Sun, 1=Mon … 6=Sat → shift so Monday=0
-  const diffToMonday = day === 0 ? -6 : 1 - day;
-  const monday = new Date(
-    now.getFullYear(),
-    now.getMonth(),
-    now.getDate() + diffToMonday + offset * 7,
-  );
-  return monday;
-}
-
-const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
-
-/** Local calendar date from a `YYYY-MM-DD` string (no time-zone conversion). */
-function parseCalendarDate(ymd: string): Date {
-  const [y, m, d] = ymd.split("-").map(Number);
-  return new Date(y, m - 1, d);
-}
-
 /** Week offset (relative to the current week) of the week containing `date`. */
 function getWeekOffsetOf(date: Date): number {
-  const day = date.getDay();
-  const diffToMonday = day === 0 ? -6 : 1 - day;
-  const monday = new Date(date.getFullYear(), date.getMonth(), date.getDate() + diffToMonday);
+  const diff = getWeekStart(date).getTime() - getWeekStart(new Date()).getTime();
   // Round to absorb DST hour shifts between the two Mondays.
-  return Math.round((monday.getTime() - getMonday(0).getTime()) / WEEK_MS);
-}
-
-function toISODate(d: Date): string {
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
-  return `${y}-${m}-${day}`;
-}
-
-function formatWeekRange(monday: Date, friday: Date): string {
-  const mDay = monday.getDate();
-  const mMonth = MONTH_NAMES[monday.getMonth()];
-  const fDay = friday.getDate();
-  const fMonth = MONTH_NAMES[friday.getMonth()];
-  const fYear = friday.getFullYear();
-
-  if (monday.getMonth() === friday.getMonth()) {
-    return `${mDay} de ${mMonth} - ${fDay} de ${fMonth} ${fYear}`;
-  }
-  return `${mDay} de ${mMonth} - ${fDay} de ${fMonth} ${fYear}`;
+  return Math.round(diff / WEEK_MS);
 }
 
 export function WeeklySchedule({
@@ -105,11 +42,8 @@ export function WeeklySchedule({
   const [bookingWindowLastDay, setBookingWindowLastDay] = useState<string>();
 
   const { monday, friday, weekDays } = useMemo(() => {
-    const mon = getMonday(weekOffset);
-    const days: Date[] = [];
-    for (let i = 0; i < 5; i++) {
-      days.push(new Date(mon.getFullYear(), mon.getMonth(), mon.getDate() + i));
-    }
+    const mon = addDays(getWeekStart(new Date()), weekOffset * 7);
+    const days = Array.from({ length: 5 }, (_, i) => addDays(mon, i));
     return { monday: days[0], friday: days[4], weekDays: days };
   }, [weekOffset]);
 
@@ -126,8 +60,7 @@ export function WeeklySchedule({
 
   // Last navigable week (undefined while unknown).
   const maxWeekOffset = useMemo(
-    () =>
-      bookingWindowLastDay ? getWeekOffsetOf(parseCalendarDate(bookingWindowLastDay)) : undefined,
+    () => (bookingWindowLastDay ? getWeekOffsetOf(fromISODate(bookingWindowLastDay)) : undefined),
     [bookingWindowLastDay],
   );
 
@@ -197,42 +130,19 @@ export function WeeklySchedule({
     <div className="flex flex-col gap-4">
       <h3 className="font-semibold text-text">Citas</h3>
 
-      {/* Week navigator */}
-      <div className="flex items-center justify-between">
-        <button
-          type="button"
-          aria-label="Semana anterior"
-          disabled={weekOffset === 0}
-          onClick={() => {
-            setUserNavigated(true);
-            setWeekOffset((o) => o - 1);
-          }}
-          className={cn(
-            "size-8 rounded-md text-text-muted transition-colors",
-            weekOffset === 0 ? "cursor-not-allowed opacity-40" : "hover:bg-background",
-          )}
-        >
-          <ChevronLeft className="mx-auto size-5" />
-        </button>
-
-        <span className="text-sm font-medium text-text">{formatWeekRange(monday, friday)}</span>
-
-        <button
-          type="button"
-          aria-label="Semana siguiente"
-          disabled={isLastWeek}
-          onClick={() => {
-            setUserNavigated(true);
-            setWeekOffset((o) => o + 1);
-          }}
-          className={cn(
-            "size-8 rounded-md text-text-muted transition-colors",
-            isLastWeek ? "cursor-not-allowed opacity-40" : "hover:bg-background",
-          )}
-        >
-          <ChevronRight className="mx-auto size-5" />
-        </button>
-      </div>
+      <WeekNavigator
+        label={formatWeekRange(monday, friday)}
+        previousDisabled={weekOffset === 0}
+        nextDisabled={isLastWeek}
+        onPrevious={() => {
+          setUserNavigated(true);
+          setWeekOffset((o) => o - 1);
+        }}
+        onNext={() => {
+          setUserNavigated(true);
+          setWeekOffset((o) => o + 1);
+        }}
+      />
 
       {/* Content */}
       <div ref={contentRef} className={cn(isLoading && "flex items-center justify-center")}>
@@ -248,7 +158,7 @@ export function WeeklySchedule({
         ) : !hasFutureSlots ? (
           <p className="py-8 text-center text-sm text-text-muted">
             {noSlotsInWindow && bookingWindowLastDay
-              ? `No hay citas disponibles hasta el ${parseCalendarDate(bookingWindowLastDay).toLocaleDateString("es-ES", { day: "numeric", month: "long" })}`
+              ? `No hay citas disponibles hasta el ${fromISODate(bookingWindowLastDay).toLocaleDateString("es-ES", { day: "numeric", month: "long" })}`
               : "No hay citas disponibles esta semana"}
           </p>
         ) : (
@@ -259,14 +169,7 @@ export function WeeklySchedule({
 
               return (
                 <div key={dateKey} className="flex flex-col items-center gap-2">
-                  {/* Day header */}
-                  <div className="flex flex-col items-center gap-0.5">
-                    <span className="text-xs text-text-muted">{DAY_LABELS[i]}</span>
-                    <span className="text-lg font-bold text-text">{day.getDate()}</span>
-                    <span className="text-xs text-text-secondary">
-                      {SHORT_MONTHS[day.getMonth()]}
-                    </span>
-                  </div>
+                  <DayHeader day={day} label={DAY_LABELS[i]} />
 
                   {/* Slots */}
                   <div className="flex w-full flex-col gap-1.5">

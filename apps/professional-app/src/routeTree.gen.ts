@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as CalendarIndexRouteImport } from './routes/calendar/index'
 import { Route as AjustesIntegracionesRouteImport } from './routes/ajustes/integraciones'
 
 const LoginRoute = LoginRouteImport.update({
@@ -23,6 +24,11 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CalendarIndexRoute = CalendarIndexRouteImport.update({
+  id: '/calendar/',
+  path: '/calendar/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AjustesIntegracionesRoute = AjustesIntegracionesRouteImport.update({
   id: '/ajustes/integraciones',
   path: '/ajustes/integraciones',
@@ -33,30 +39,34 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/ajustes/integraciones': typeof AjustesIntegracionesRoute
+  '/calendar/': typeof CalendarIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/ajustes/integraciones': typeof AjustesIntegracionesRoute
+  '/calendar': typeof CalendarIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/ajustes/integraciones': typeof AjustesIntegracionesRoute
+  '/calendar/': typeof CalendarIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/login' | '/ajustes/integraciones'
+  fullPaths: '/' | '/login' | '/ajustes/integraciones' | '/calendar/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/login' | '/ajustes/integraciones'
-  id: '__root__' | '/' | '/login' | '/ajustes/integraciones'
+  to: '/' | '/login' | '/ajustes/integraciones' | '/calendar'
+  id: '__root__' | '/' | '/login' | '/ajustes/integraciones' | '/calendar/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   LoginRoute: typeof LoginRoute
   AjustesIntegracionesRoute: typeof AjustesIntegracionesRoute
+  CalendarIndexRoute: typeof CalendarIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -75,6 +85,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/calendar/': {
+      id: '/calendar/'
+      path: '/calendar'
+      fullPath: '/calendar/'
+      preLoaderRoute: typeof CalendarIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/ajustes/integraciones': {
       id: '/ajustes/integraciones'
       path: '/ajustes/integraciones'
@@ -89,6 +106,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   LoginRoute: LoginRoute,
   AjustesIntegracionesRoute: AjustesIntegracionesRoute,
+  CalendarIndexRoute: CalendarIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

@@ -10,6 +10,11 @@ const tags = ['Patient / Appointments'];
 /** The patient is always the authenticated one: `patientId` is never accepted from the client. */
 export const bookAppointmentSchema = insertAppointmentSchema.omit({ patientId: true });
 
+/** What "Mis citas" renders: names resolved on the server, no ids to cross-reference. */
+const patientAppointmentListItemSchema = selectAppointmentSchema
+  .pick({ id: true, startAt: true, endAt: true, status: true, price: true })
+  .extend({ professionalName: z.string(), appointmentTypeName: z.string() });
+
 export const list = createRoute({
   method: 'get',
   path: '/appointments',
@@ -20,8 +25,8 @@ export const list = createRoute({
   },
   responses: {
     [HttpStatusCodes.OK]: jsonContent(
-      z.object({ data: z.array(selectAppointmentSchema), page: z.number(), per_page: z.number() }),
-      'Paginated list of appointments',
+      z.object({ data: z.array(patientAppointmentListItemSchema), page: z.number(), per_page: z.number() }),
+      'Paginated list of appointments with professional and appointment type names',
     ),
   },
 });

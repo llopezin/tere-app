@@ -1,7 +1,8 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { Card, Button, BrandLogo } from "@fisio-app/ui";
 import { useSession, signOut } from "../lib/auth-client";
 import { useEffect } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 
 export const Route = createFileRoute("/")({
   component: IndexPage,
@@ -9,6 +10,7 @@ export const Route = createFileRoute("/")({
 
 function IndexPage() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const { data: session, isPending } = useSession();
 
   const isProfessional = session?.user.role === "professional";
@@ -21,6 +23,8 @@ function IndexPage() {
 
   const handleLogout = async () => {
     await signOut();
+    // The profile is cached for a day; the next user must not see it
+    queryClient.clear();
     navigate({ to: "/login" });
   };
 
@@ -44,8 +48,15 @@ function IndexPage() {
             <p className="text-text-secondary mb-6">Panel de Control Profesional</p>
 
             <div className="space-y-3">
+              <Link
+                to="/calendar"
+                className="flex w-full items-center justify-center rounded-lg bg-primary-600 px-6 py-3 font-semibold text-text-inverted transition-colors hover:bg-primary-hover"
+              >
+                Ver calendario
+              </Link>
+
               <Button
-                variant="primary"
+                variant="secondary"
                 size="lg"
                 onClick={() => navigate({ to: "/ajustes/integraciones" })}
               >

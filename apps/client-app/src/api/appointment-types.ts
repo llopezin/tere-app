@@ -15,5 +15,7 @@ export function appointmentTypesQueryOptions(professionalId: string) {
   return queryOptions({
     queryKey: ["appointment-types", professionalId],
     queryFn: () => fetchAppointmentTypes(professionalId),
+    // Switching back to a professional within a session reuses the types
+    staleTime: 3 * 60_000,
   });
 }

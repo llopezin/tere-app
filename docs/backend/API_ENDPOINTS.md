@@ -102,7 +102,7 @@ Custom auth endpoints implemented in Hono. JWT-based with bcrypt password hashin
 |--------|------|-------------|------|------|
 | `GET` | `/patient/me` | Get own profile | Patient | Drizzle query |
 | `PUT` | `/patient/me` | Update own personal data + contact method | Patient | Drizzle query |
-| `GET` | `/patient/me/appointments` | Get own past & upcoming appointments | Patient | Drizzle query |
+| `GET` | `/patient/appointments` | Own past & upcoming appointments, shaped for "Mis citas" (BFF): `{ data: [{ id, startAt, endAt, status, price, professionalName, appointmentTypeName }], page, per_page }`. Names come from a server-side join, so deactivated types keep their name | Patient | Drizzle query |
 
 ---
 
@@ -249,7 +249,7 @@ Custom auth endpoints implemented in Hono. JWT-based with bcrypt password hashin
 
 | Method | Path | Description | Role | Impl |
 |--------|------|-------------|------|------|
-| `GET` | `/appointments` | List appointments. Supports `?from=&to=&status=&patient_id=` | Professional | Drizzle query |
+| `GET` | `/calendar-appointments` | Non-cancelled appointments overlapping `?from=&to=` (required), with patient and type names | Professional | Drizzle query |
 | `POST` | `/appointments` | Create single appointment. In the patient BFF (`POST /patient/appointments`) returns `400` with `code: BOOKING_IN_PAST` or `BOOKING_OUTSIDE_WINDOW` if `start_at` is in the past or beyond the booking window | Professional, Patient | Hono handler |
 | `POST` | `/appointments/batch` | Create multiple appointments for same patient (multi-slot) | Professional | Hono handler |
 | `POST` | `/appointments/recurring` | Create recurring appointment series | Professional | Hono handler |

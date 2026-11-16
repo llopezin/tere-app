@@ -341,7 +341,7 @@ Interactive docs: `/api/v1/docs` (tags `Patient / …`, `Professional / …`, `P
 | working-schedules | GET, PUT `/working-schedules` | own |
 | blocked-times | GET, POST, DELETE `/blocked-times` | own |
 | availability | GET `/availability?appointment_type_id&from&to` | own agenda + own type |
-| appointments | GET, POST `/appointments` · POST `/appointments/batch`, `/appointments/recurring` | own; `patientId`, `appointmentTypeId`, `bonoId` must be own |
+| appointments | GET `/calendar-appointments` · POST `/appointments`, `/appointments/batch`, `/appointments/recurring` | own; `patientId`, `appointmentTypeId`, `bonoId` must be own |
 | appointments | GET, PUT `/appointments/:id` · PATCH `/:id/cancel`, `/:id/complete`, `/:id/no-show` | own (+ own type on update) |
 | bonos | GET, POST `/bonos` · GET `/bonos/:id`, `/bonos/:id/transactions` · POST `/bonos/:id/deduct` | own; patient and type must be own |
 | payments | GET, POST `/payments` · GET `/payments/:id` | own; patient, appointment and bono must be own |
