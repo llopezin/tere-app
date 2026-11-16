@@ -1,8 +1,10 @@
-import { Pencil, Download, Clock } from "lucide-react";
+import { useState } from "react";
+import { Pencil, Download, Clock, X } from "lucide-react";
 import { Button } from "@fisio-app/ui";
 import { DateBadge } from "./DateBadge";
 import { StatusBadge } from "./StatusBadge";
 import { AddToCalendarButton } from "./AddToCalendarButton";
+import { CancelAppointmentModal } from "./CancelAppointmentModal";
 
 type AppointmentStatus = "scheduled" | "completed" | "cancelled" | "no_show";
 
@@ -22,6 +24,7 @@ interface AppointmentCardProps {
 }
 
 export function AppointmentCard({ appointment }: AppointmentCardProps) {
+  const [cancelOpen, setCancelOpen] = useState(false);
   const startDate = new Date(appointment.startAt);
   const endDate = new Date(appointment.endAt);
   const isUpcomingScheduled =
@@ -58,6 +61,11 @@ export function AppointmentCard({ appointment }: AppointmentCardProps) {
                   endAt: endDate,
                 }}
               />
+              <Button variant="ghost" className="gap-1.5 px-3 py-1.5 text-xs" onClick={() => setCancelOpen(true)}>
+                <X className="size-3.5" />
+                Cancelar
+              </Button>
+              <CancelAppointmentModal appointment={appointment} open={cancelOpen} onOpenChange={setCancelOpen} />
             </div>
           )}
 
