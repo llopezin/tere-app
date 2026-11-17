@@ -29,9 +29,7 @@ export function HeroCard() {
 
       <div>
         <h1 className="text-2xl font-bold text-text">Bienvenido</h1>
-        <p className="mt-1 text-text-secondary">
-          Gestiona tus citas médicas de forma fácil y rápida
-        </p>
+        <p className="mt-1 text-text-secondary">Gestiona tus citas de forma fácil y rápida</p>
       </div>
 
       <div className="flex w-full flex-col gap-4 text-left">
