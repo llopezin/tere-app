@@ -4,6 +4,7 @@ import * as handlers from './patients.handlers.js';
 
 const router = createRouter()
   .openapi(routes.patientsList, handlers.patientsList)
+  .openapi(routes.patientOptions, handlers.patientOptions)
   .openapi(routes.create, handlers.create)
   .openapi(routes.getOne, handlers.getOne)
   .openapi(routes.update, handlers.update)

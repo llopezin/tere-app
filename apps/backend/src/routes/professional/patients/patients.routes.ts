@@ -14,6 +14,9 @@ import { paginationSchema, idParamsSchema } from '../../../lib/schemas.js';
 
 const tags = ['Professional / Patients'];
 
+// Trimmed first, so a blank search (`?search=%20`) means no search
+const patientSearchSchema = z.string().trim().max(100).transform((v) => v || undefined).optional();
+
 const patientListItemSchema = selectPatientSchema
   .pick({ id: true, firstName: true, lastName: true, email: true, phone: true, contactMethod: true })
   .extend({
@@ -29,10 +32,7 @@ export const patientsList = createRoute({
   tags,
   summary: 'My patients, most recent past appointment first, with optional search by name or email',
   request: {
-    query: paginationSchema.pick({ page: true }).extend({
-      // Trimmed first, so a blank search (`?search=%20`) means no search
-      search: z.string().trim().max(100).transform((v) => v || undefined).optional(),
-    }),
+    query: paginationSchema.pick({ page: true }).extend({ search: patientSearchSchema }),
   },
   responses: {
     [HttpStatusCodes.OK]: jsonContent(
@@ -49,6 +49,27 @@ export const patientsList = createRoute({
   },
 });
 export type PatientsListRoute = typeof patientsList;
+
+export const patientOptions = createRoute({
+  method: 'get',
+  path: '/patient-options',
+  tags,
+  summary: 'Up to 20 of my patients for the appointment picker, in the patients list order, with optional search by name',
+  request: {
+    query: z.object({ search: patientSearchSchema }),
+  },
+  responses: {
+    [HttpStatusCodes.OK]: jsonContent(
+      z.object({
+        data: z.array(selectPatientSchema.pick({ id: true, firstName: true, lastName: true }).extend({ rgpdSigned: z.boolean() })),
+      }),
+      'Patients matching the search',
+    ),
+    [HttpStatusCodes.UNAUTHORIZED]: jsonContent(createMessageObjectSchema('Unauthorized'), 'Unauthorized'),
+    [HttpStatusCodes.FORBIDDEN]: jsonContent(createMessageObjectSchema('Insufficient permissions'), 'Insufficient permissions'),
+  },
+});
+export type PatientOptionsRoute = typeof patientOptions;
 
 export const create = createRoute({
   method: 'post',

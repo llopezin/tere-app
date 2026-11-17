@@ -243,6 +243,53 @@ describe('Professional BFF: only my data and my patients', () => {
     ]);
   });
 
+  it("patient-options lists only my patients, also when searching for another professional's patient", async () => {
+    await createPatient(B.profileId, { firstName: 'Bruno', lastName: 'Ajeno' });
+    const ids = async (query = '') =>
+      (await (await call(A, 'GET', `${PRO}/patient-options${query}`)).json()).data.map((p: { id: string }) => p.id);
+
+    expect((await ids()).sort()).toEqual([P1.profileId, P3.profileId].sort());
+    expect(await ids('?search=bruno')).toEqual([]);
+  });
+
+  it('the appointment patient picker uses the same order as the patients list', async () => {
+    const pastAppt = (patientId: string, daysAgo: number, status: 'completed' | 'cancelled') => createAppointment({
+      professionalId: A.profileId, patientId, appointmentTypeId: typeA.id,
+      startAt: futureDate(-daysAgo), endAt: futureDate(-daysAgo, 11), status,
+    });
+    const old = await createPatient(A.profileId, { firstName: 'Olga', lastName: 'Antigua' });
+    const recent = await createPatient(A.profileId, { firstName: 'Rosa', lastName: 'Reciente' });
+    const withCancelled = await createPatient(A.profileId, { firstName: 'Carla', lastName: 'Cancelada' });
+    await createPatient(A.profileId, { firstName: 'Ana', lastName: 'Alonso' });
+    await pastAppt(old.id, 10, 'completed');
+    await pastAppt(recent.id, 2, 'completed');
+    await pastAppt(withCancelled.id, 1, 'cancelled');
+
+    const ids = async (path: string) =>
+      (await (await call(A, 'GET', `${PRO}/${path}`)).json()).data.map((p: { id: string }) => p.id);
+    const options = await ids('patient-options');
+    const list = await ids('patients-list');
+    expect(options[0]).toBe(recent.id);
+    // A page of the list has 10 patients; the picker returns up to 20
+    expect(options.slice(0, 10)).toEqual(list);
+  });
+
+  it('patient-options searches by name only', async () => {
+    const alonso = await createPatient(A.profileId, { firstName: 'Ana', lastName: 'Alonso', email: 'zzz@example.com' });
+    const search = async (q: string) =>
+      (await (await call(A, 'GET', `${PRO}/patient-options?${new URLSearchParams({ search: q })}`)).json()).data.map((p: { id: string }) => p.id);
+    expect(await search('ana al')).toEqual([alonso.id]);
+    expect(await search('zzz@')).toEqual([]);
+  });
+
+  it('patient-options flags patients without signed RGPD, who cannot be booked', async () => {
+    const unsigned = await createPatient(A.profileId, { firstName: 'Sin', lastName: 'Firma' });
+    const { data } = await (await call(A, 'GET', `${PRO}/patient-options`)).json();
+    const rgpdOf = (id: string) => data.find((p: { id: string }) => p.id === id).rgpdSigned;
+    expect(rgpdOf(unsigned.id)).toBe(false);
+    expect(rgpdOf(P1.profileId)).toBe(true);
+  });
+
   it("a shared patient's counters and next appointment only include my appointments and bonos", async () => {
     await createBono(A.profileId, P3.profileId, typeA.id);
     await createBono(A.profileId, P3.profileId, typeA.id, { status: 'exhausted' });

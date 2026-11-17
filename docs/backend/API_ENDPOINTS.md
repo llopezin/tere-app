@@ -66,6 +66,7 @@ Custom auth endpoints implemented in Hono. JWT-based with bcrypt password hashin
 | Method | Path | Description | Role | Impl |
 |--------|------|-------------|------|------|
 | `GET` | `/patients-list` | Page of 10 of the professional's patients for the patient list (`?page=&search=`, search by full name or email), most recent past appointment first, with counters and `total` | Professional | Drizzle query |
+| `GET` | `/patient-options` | Up to 20 of the professional's patients for the appointment picker, in the same order as `/patients-list` (shared `ORDER BY`). `?search=` matches the full name only. Each item: `{ id, firstName, lastName, rgpdSigned }` | Professional | Drizzle query |
 | `POST` | `/patients` | Create a new patient | Professional | Drizzle query |
 | `GET` | `/patients/:id` | Get patient details | Professional | Drizzle query |
 | `PUT` | `/patients/:id` | Update patient personal data | Professional | Drizzle query |
