@@ -8,7 +8,8 @@ import { workingSchedules } from '../apps/backend/src/db/schema/working-schedule
 import { rgpdConsents } from '../apps/backend/src/db/schema/rgpd-consents';
 import { appointments } from '../apps/backend/src/db/schema/appointments';
 
-const WEEKDAYS = [1, 2, 3, 4, 5];
+// working_schedules.day_of_week: 0 = Monday … 6 = Sunday
+const WEEKDAYS = [0, 1, 2, 3, 4];
 
 // Every other table references "user" (directly or transitively), so CASCADE empties them all.
 // SET LOCAL hides the one NOTICE per cascaded table that Postgres would print in the test output.
