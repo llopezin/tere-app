@@ -44,7 +44,6 @@ vitest.config.*
 
 # Drizzle kit artefacts (not needed at runtime)
 drizzle/
-seed-*.sql
 
 # OS files
 .DS_Store
