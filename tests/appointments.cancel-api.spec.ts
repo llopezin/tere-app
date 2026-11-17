@@ -9,7 +9,7 @@ test.describe('Appointments — cancel', () => {
     expect(res.status()).toBe(200);
 
     await openAppointmentsTab(page);
-    await page.getByRole('button', { name: /Historial/ }).click();
+    await page.getByRole('tab', { name: /Historial/ }).click();
     await expect(page.getByText('Cancelada')).toBeVisible();
   });
 
