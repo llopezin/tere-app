@@ -46,3 +46,14 @@ export function getBlockPosition(startAt: string, endAt: string, day: Date, hour
   const toPx = (ms: number) => (ms / MS_PER_MINUTE / SLOT_MINUTES) * SLOT_HEIGHT_PX;
   return { top: toPx(start - dayStart), height: toPx(end - start) };
 }
+
+/** Start of the `slot`-th 15-min slot of `day`'s column, in local time. */
+export function getSlotStart(day: Date, hours: VisibleHours, slot: number) {
+  return new Date(atHour(day, hours.startHour) + slot * SLOT_MINUTES * MS_PER_MINUTE);
+}
+
+/** `date` rounded up to the next 15-min slot. */
+export function roundUpToSlot(date: Date) {
+  const slotMs = SLOT_MINUTES * MS_PER_MINUTE;
+  return new Date(Math.ceil(date.getTime() / slotMs) * slotMs);
+}

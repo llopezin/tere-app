@@ -1,4 +1,4 @@
-import { keepPreviousData, queryOptions } from "@tanstack/react-query";
+import { keepPreviousData, queryOptions, useMutation, useQueryClient } from "@tanstack/react-query";
 import { client } from "@/lib/client";
 import { ApiError } from "@/lib/api-error";
 
@@ -23,5 +23,19 @@ export function blockedTimesQueryOptions(range: WeekRange) {
     queryKey: [...blockedTimesQueryKey, range],
     queryFn: () => fetchBlockedTimes(range),
     placeholderData: keepPreviousData,
+  });
+}
+
+async function postBlockedTime(json: { startAt: string; endAt: string }) {
+  const res = await client["blocked-times"].$post({ json });
+  if (!res.ok) throw new ApiError(res.status, "Failed to create blocked time");
+  return res.json();
+}
+
+export function useCreateBlockedTime() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: postBlockedTime,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: blockedTimesQueryKey }),
   });
 }

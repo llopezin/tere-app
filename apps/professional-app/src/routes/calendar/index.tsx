@@ -17,6 +17,8 @@ import { CalendarToolbar } from "./-components/CalendarToolbar";
 import { WeekGrid } from "./-components/WeekGrid";
 import { CalendarLegend } from "./-components/CalendarLegend";
 import { AppointmentDetailModal } from "./-components/AppointmentDetailModal";
+import { AddToCalendarModal, type CalendarDraft } from "./-components/AddToCalendarModal";
+import { roundUpToSlot } from "./-components/calendar-layout";
 
 const searchSchema = z.object({
   /** Any date of the week to show, YYYY-MM-DD. Defaults to the current week. */
@@ -51,6 +53,7 @@ function CalendarPage() {
   const appointments = useQuery(calendarAppointmentsQueryOptions(range));
   const blockedTimes = useQuery(blockedTimesQueryOptions(range));
   const [selected, setSelected] = useState<CalendarAppointment | null>(null);
+  const [draft, setDraft] = useState<CalendarDraft | null>(null);
 
   const goToWeek = (date: Date) => navigate({ search: { week: toISODate(getWeekStart(date)) } });
 
@@ -61,7 +64,11 @@ function CalendarPage() {
 
       <main className="flex-1 px-4 py-6 md:px-8">
         <div className="mx-auto flex max-w-6xl flex-col gap-6">
-          <CalendarToolbar weekStart={weekStart} onWeekChange={goToWeek} />
+          <CalendarToolbar
+            weekStart={weekStart}
+            onWeekChange={goToWeek}
+            onBlockTime={() => setDraft({ startAt: roundUpToSlot(new Date()), kind: "block" })}
+          />
 
           <Card className="p-3 md:p-6">
             {(appointments.isError || blockedTimes.isError) && (
@@ -80,6 +87,7 @@ function CalendarPage() {
                 appointments={appointments.data?.data ?? []}
                 blockedTimes={blockedTimes.data?.data ?? []}
                 onSelectAppointment={setSelected}
+                onSelectSlot={(startAt) => setDraft({ startAt, kind: "appointment" })}
               />
             </div>
           </Card>
@@ -89,6 +97,7 @@ function CalendarPage() {
       </main>
 
       <AppointmentDetailModal appointment={selected} onClose={() => setSelected(null)} />
+      <AddToCalendarModal draft={draft} onClose={() => setDraft(null)} />
     </div>
   );
 }
