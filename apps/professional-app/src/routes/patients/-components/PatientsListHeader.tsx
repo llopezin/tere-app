@@ -22,13 +22,21 @@ function countLabel(total: number, searching: boolean) {
 export function PatientsListHeader({ q, total, onSearch }: PatientsListHeaderProps) {
   const [input, setInput] = useState(q ?? "");
   const [prevQ, setPrevQ] = useState(q);
-  const debouncedSearch = useDebouncedCallback(onSearch, 300);
+  // The last search this field sent, so its own navigation is not mistaken for back/forward.
+  const [sentQ, setSentQ] = useState(q);
+  const debouncedSearch = useDebouncedCallback((value: string) => {
+    setSentQ(value || undefined);
+    onSearch(value);
+  }, 300);
 
   // Back/forward changes q without typing: show it, without remounting the focused input.
-  // Our own navigation sends the trimmed text, so it must not drop a trailing space being typed.
+  // Comparing with sentQ, not the live input, keeps keys typed while the navigation resolves.
   if (q !== prevQ) {
     setPrevQ(q);
-    if ((q ?? "") !== input.trim()) setInput(q ?? "");
+    if (q !== sentQ) {
+      setSentQ(q);
+      setInput(q ?? "");
+    }
   }
 
   return (
