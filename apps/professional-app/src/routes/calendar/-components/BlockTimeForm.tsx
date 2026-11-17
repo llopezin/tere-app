@@ -10,7 +10,6 @@ import { SLOT_MINUTES } from "./calendar-layout";
 const HOUR_MS = 60 * 60_000;
 const SLOT_SECONDS = SLOT_MINUTES * 60;
 
-/** Local date `YYYY-MM-DD` at local time `HH:mm`. */
 function atTime(date: string, time: string) {
   const [hours, minutes] = time.split(":").map(Number);
   const day = fromISODate(date);

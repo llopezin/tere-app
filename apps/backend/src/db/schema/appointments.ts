@@ -37,7 +37,6 @@ export const bookAppointmentSchema = z.object({
   notes: z.string().optional(),
 });
 
-/** A professional books from the calendar; the matching bono is found by the server unless `deductFromBono` is false. */
 export const createCalendarAppointmentSchema = bookAppointmentSchema.extend({
   patientId: z.string().uuid(),
   deductFromBono: z.boolean().optional().default(true),

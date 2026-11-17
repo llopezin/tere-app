@@ -52,7 +52,6 @@ export function getSlotStart(day: Date, hours: VisibleHours, slot: number) {
   return new Date(atHour(day, hours.startHour) + slot * SLOT_MINUTES * MS_PER_MINUTE);
 }
 
-/** `date` rounded up to the next 15-min slot. */
 export function roundUpToSlot(date: Date) {
   const slotMs = SLOT_MINUTES * MS_PER_MINUTE;
   return new Date(Math.ceil(date.getTime() / slotMs) * slotMs);

@@ -48,7 +48,6 @@ export function AppointmentForm({ startAt, onDone }: AppointmentFormProps) {
   const create = useCreateAppointment();
 
   const activeTypes = (types.data?.data ?? []).filter((t) => t.isActive);
-  // The server deducts from the oldest bono of the type with sessions left
   const hasBonoForType = (bonos.data?.data ?? []).some(
     (b) => b.appointmentTypeId === typeId && b.sessionsUsed < b.totalSessions,
   );

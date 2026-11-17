@@ -156,7 +156,6 @@ export const patientsList: AppRouteHandler<PatientsListRoute> = async (c) => {
 
 const PATIENT_OPTIONS_LIMIT = 20;
 
-/** Patient picker of the appointment modal: same order as the patients list, searched by name only. */
 export const patientOptions: AppRouteHandler<PatientOptionsRoute> = async (c) => {
   const profileId = getProfileId(c);
   const { search } = c.req.valid('query');

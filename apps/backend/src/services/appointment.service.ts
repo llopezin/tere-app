@@ -173,10 +173,7 @@ async function findBonoToDeduct(
   return bono;
 }
 
-/**
- * Creates an appointment and, when the patient has a matching bono, deducts one session from it.
- * `deductFromBono: false` books without touching the bono (only the professional can ask for it).
- */
+/** Creates an appointment and, when the patient has a matching bono, deducts one session from it. */
 export async function createAppointment(
   tx: Transaction,
   professionalId: string,

@@ -16,7 +16,6 @@ interface SegmentedTabsProps<T extends string> {
   className?: string;
 }
 
-/** Tabs of equal width on a light track; the active one is raised. */
 export function SegmentedTabs<T extends string>({
   tabs,
   value,

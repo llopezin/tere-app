@@ -27,7 +27,6 @@ export function AddToCalendarModal({ draft, onClose }: AddToCalendarModalProps) 
       // No inner scroll: it would clip the patient and type dropdowns
       className="max-w-lg"
     >
-      {/* A new draft starts a fresh form */}
       {draft && (
         <DraftForms
           key={`${draft.startAt.getTime()}-${draft.kind}`}
