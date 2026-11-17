@@ -102,6 +102,7 @@ Custom auth endpoints implemented in Hono. JWT-based with bcrypt password hashin
 |--------|------|-------------|------|------|
 | `GET` | `/patient/me` | Get own profile | Patient | Drizzle query |
 | `PUT` | `/patient/me` | Update own personal data + contact method | Patient | Drizzle query |
+| `POST` | `/patient/appointments` | Book for myself: `{ appointmentTypeId, startAt, notes? }`. Deducts a session from my matching bono, if any | Patient | Hono handler |
 | `GET` | `/patient/appointments` | Own past & upcoming appointments, shaped for "Mis citas" (BFF): `{ data: [{ id, startAt, endAt, status, price, professionalName, appointmentTypeName }], page, per_page }`. Names come from a server-side join, so deactivated types keep their name | Patient | Drizzle query |
 
 ---
@@ -246,7 +247,7 @@ Custom auth endpoints implemented in Hono. JWT-based with bcrypt password hashin
 | Method | Path | Description | Role | Impl |
 |--------|------|-------------|------|------|
 | `GET` | `/calendar-appointments` | Non-cancelled appointments overlapping `?from=&to=` (required), with patient and type names | Professional | Drizzle query |
-| `POST` | `/appointments` | Create single appointment | Professional, Patient | Hono handler |
+| `POST` | `/calendar-appointments` | Create single appointment from the calendar. Deducts a session from the patient's matching bono unless `deductFromBono: false` | Professional | Hono handler |
 | `POST` | `/appointments/batch` | Create multiple appointments for same patient (multi-slot) | Professional | Hono handler |
 | `POST` | `/appointments/recurring` | Create recurring appointment series | Professional | Hono handler |
 | `GET` | `/appointments/:id` | Get appointment details (includes patient, type, payment info) | Professional, Patient (own) | Drizzle query |
@@ -255,17 +256,17 @@ Custom auth endpoints implemented in Hono. JWT-based with bcrypt password hashin
 | `PATCH` | `/appointments/:id/complete` | Mark as completed | Professional | Drizzle query |
 | `PATCH` | `/appointments/:id/no-show` | Mark patient as no-show | Professional | Drizzle query |
 
-**Request body — POST (single):**
+**Request body — POST /calendar-appointments:**
 ```json
 {
-  "patient_id": "UUID",
-  "appointment_type_id": "UUID",
-  "start_at": "2026-03-25T10:00:00Z",
+  "patientId": "UUID",
+  "appointmentTypeId": "UUID",
+  "startAt": "2026-03-25T10:00:00Z",
   "notes": "Dolor lumbar",
-  "bono_id": "UUID | null",
-  "use_bono_session": true
+  "deductFromBono": true
 }
 ```
+The bono is not sent: the server picks the patient's oldest active bono with sessions left for this professional and appointment type. `deductFromBono` defaults to `true`.
 `end_at` is computed from `appointment_type.duration_minutes`. `price` is copied from `appointment_type.price`.
 
 **Request body — POST /batch:**
@@ -301,7 +302,7 @@ Custom auth endpoints implemented in Hono. JWT-based with bcrypt password hashin
 **Business logic (all creation endpoints):**
 1. Verify `rgpd_consents.signed = true` for the patient.
 2. Verify slot does not overlap with existing appointments or blocked times.
-3. If `bono_id` provided and `use_bono_session = true`: deduct session from bono, create `bono_transaction`.
+3. Single appointments (`POST /calendar-appointments`, `POST /patient/appointments`): if the patient has an active bono with sessions left for this appointment type, deduct a session from the oldest one (row locked in the transaction) and create a `bono_transaction`. Only the professional can skip it (`deductFromBono: false`). Batch and recurring still take an explicit `bono_id` + `use_bono_session`.
 4. If Google Calendar connected: create calendar event and store `google_event_id`.
 5. All created in a single DB transaction.
 

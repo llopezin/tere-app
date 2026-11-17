@@ -33,6 +33,11 @@ function futureDate(daysAhead: number, hourUtc = 10) {
   return d;
 }
 
+async function sessionsUsed(bonoId: string) {
+  const [bono] = await testDb.select({ sessionsUsed: bonos.sessionsUsed }).from(bonos).where(eq(bonos.id, bonoId));
+  return bono.sessionsUsed;
+}
+
 let A: Actor, B: Actor, P1: Actor, P2: Actor, P3: Actor;
 let typeA: { id: string }, typeB: { id: string };
 let bonoP1: { id: string }, bonoP2: { id: string };
@@ -138,11 +143,14 @@ describe('Patient BFF: only my own data', () => {
     expect(links).toHaveLength(1);
   });
 
-  it("cannot use another patient's bono", async () => {
+  it("booking never deducts from another patient's bono", async () => {
+    // P2 has a bono of typeB; P1 books typeB and must not spend it
     const res = await call(P1, 'POST', `${P}/appointments`, {
       json: { appointmentTypeId: typeB.id, startAt: futureDate(11).toISOString(), bonoId: bonoP2.id },
     });
-    expect(res.status).toBe(404);
+    expect(res.status).toBe(201);
+    expect((await res.json()).bonoId).toBeNull();
+    expect((await sessionsUsed(bonoP2.id))).toBe(0);
   });
 
   it("cannot read or cancel another patient's appointment", async () => {
@@ -289,13 +297,11 @@ describe('Professional BFF: only my data and my patients', () => {
 
   it('rejects foreign ids when booking', async () => {
     const startAt = futureDate(12).toISOString();
-    const notMyPatient = await call(A, 'POST', `${PRO}/appointments`, { json: { patientId: P2.profileId, appointmentTypeId: typeA.id, startAt } });
+    const notMyPatient = await call(A, 'POST', `${PRO}/calendar-appointments`, { json: { patientId: P2.profileId, appointmentTypeId: typeA.id, startAt } });
     expect(notMyPatient.status).toBe(404);
-    const notMyType = await call(A, 'POST', `${PRO}/appointments`, { json: { patientId: P1.profileId, appointmentTypeId: typeB.id, startAt } });
+    const notMyType = await call(A, 'POST', `${PRO}/calendar-appointments`, { json: { patientId: P1.profileId, appointmentTypeId: typeB.id, startAt } });
     expect(notMyType.status).toBe(404);
-    const notMyBono = await call(A, 'POST', `${PRO}/appointments`, { json: { patientId: P1.profileId, appointmentTypeId: typeA.id, startAt, bonoId: bonoP2.id } });
-    expect(notMyBono.status).toBe(404);
-    const ok = await call(A, 'POST', `${PRO}/appointments`, { json: { patientId: P1.profileId, appointmentTypeId: typeA.id, startAt, bonoId: bonoP1.id } });
+    const ok = await call(A, 'POST', `${PRO}/calendar-appointments`, { json: { patientId: P1.profileId, appointmentTypeId: typeA.id, startAt } });
     expect(ok.status).toBe(201);
   });
 
@@ -415,7 +421,7 @@ describe('Business rules and shared data', () => {
     expect(new Date((await resized.json()).endAt)).toEqual(new Date(futureDate(5).getTime() + 90 * 60 * 1000));
 
     await call(A, 'PUT', `${PRO}/appointments/${apptP1A.id}`, { json: { appointmentTypeId: typeA.id } });
-    const next = await call(A, 'POST', `${PRO}/appointments`, {
+    const next = await call(A, 'POST', `${PRO}/calendar-appointments`, {
       json: { patientId: P1.profileId, appointmentTypeId: typeA.id, startAt: futureDate(5, 11).toISOString() },
     });
     expect(next.status).toBe(201);
@@ -437,16 +443,42 @@ describe('Business rules and shared data', () => {
     expect((await call(A, 'PATCH', `${PRO}/appointments/${apptP2B.id}/no-show`)).status).toBe(404);
   });
 
-  it('a bono only pays for its own appointment type', async () => {
-    const otherTypeA = await createAppointmentType('Otro A', 30, A.profileId);
+  it('booking deducts a session from the oldest active bono of the same appointment type', async () => {
+    const newer = await createBono(A.profileId, P1.profileId, typeA.id, { createdAt: new Date(Date.now() + 60_000) });
     const res = await call(P1, 'POST', `${P}/appointments`, {
-      json: { appointmentTypeId: otherTypeA.id, startAt: futureDate(16).toISOString(), bonoId: bonoP1.id },
+      json: { appointmentTypeId: typeA.id, startAt: futureDate(16).toISOString() },
     });
-    expect(res.status).toBe(404);
-    const pro = await call(A, 'POST', `${PRO}/appointments`, {
-      json: { patientId: P1.profileId, appointmentTypeId: otherTypeA.id, startAt: futureDate(16).toISOString(), bonoId: bonoP1.id },
+    expect((await res.json()).bonoId).toBe(bonoP1.id);
+    expect(await sessionsUsed(bonoP1.id)).toBe(1);
+    expect(await sessionsUsed(newer.id)).toBe(0);
+  });
+
+  it('booking does not deduct from a bono of another appointment type, or one with no sessions left', async () => {
+    const otherTypeA = await createAppointmentType('Otro A', 30, A.profileId);
+    const used = await createBono(A.profileId, P1.profileId, otherTypeA.id, { totalSessions: 1, sessionsUsed: 1 });
+    const res = await call(P1, 'POST', `${P}/appointments`, {
+      json: { appointmentTypeId: otherTypeA.id, startAt: futureDate(16).toISOString() },
     });
-    expect(pro.status).toBe(404);
+    expect((await res.json()).bonoId).toBeNull();
+    expect(await sessionsUsed(bonoP1.id)).toBe(0);
+    expect(await sessionsUsed(used.id)).toBe(1);
+  });
+
+  it('a professional appointment deducts from the matching bono by default', async () => {
+    const res = await call(A, 'POST', `${PRO}/calendar-appointments`, {
+      json: { patientId: P1.profileId, appointmentTypeId: typeA.id, startAt: futureDate(16).toISOString() },
+    });
+    expect((await res.json()).bonoId).toBe(bonoP1.id);
+    expect(await sessionsUsed(bonoP1.id)).toBe(1);
+  });
+
+  it('the professional can create an appointment without deducting from the bono', async () => {
+    const res = await call(A, 'POST', `${PRO}/calendar-appointments`, {
+      json: { patientId: P1.profileId, appointmentTypeId: typeA.id, startAt: futureDate(16).toISOString(), deductFromBono: false },
+    });
+    expect(res.status).toBe(201);
+    expect((await res.json()).bonoId).toBeNull();
+    expect(await sessionsUsed(bonoP1.id)).toBe(0);
   });
 
   it('shared billing and RGPD data of a patient with an account are read-only for professionals', async () => {

@@ -1,7 +1,7 @@
 import type { AppRouteHandler } from '../../../lib/types.js';
 import type {
   CalendarListRoute,
-  CreateRoute,
+  CalendarCreateRoute,
   BatchRoute,
   RecurringRoute,
   GetOneRoute,
@@ -81,9 +81,9 @@ export const calendarList: AppRouteHandler<CalendarListRoute> = async (c) => {
   return c.json({ data }, HttpStatusCodes.OK);
 };
 
-export const create: AppRouteHandler<CreateRoute> = async (c) => {
+export const calendarCreate: AppRouteHandler<CalendarCreateRoute> = async (c) => {
   const profileId = getProfileId(c);
-  const body = c.req.valid('json');
+  const { deductFromBono, ...body } = c.req.valid('json');
 
   const apptType = await validateBookingRefs(profileId, body);
   const startAt = new Date(body.startAt);
@@ -92,18 +92,14 @@ export const create: AppRouteHandler<CreateRoute> = async (c) => {
   await appointmentService.verifyRgpdConsent(body.patientId);
   await appointmentService.checkOverlap(profileId, startAt, endAt);
 
-  const result = await db.transaction(async (tx) => {
-    return appointmentService.createSingleAppointment(tx, profileId, {
-      patientId: body.patientId,
-      appointmentTypeId: body.appointmentTypeId,
-      startAt,
-      endAt,
-      price: apptType.price,
-      notes: body.notes,
-      bonoId: body.bonoId,
-      useBonoSession: body.useBonoSession ?? true,
-    });
-  });
+  const result = await db.transaction((tx) => appointmentService.createAppointment(tx, profileId, {
+    patientId: body.patientId,
+    appointmentTypeId: body.appointmentTypeId,
+    startAt,
+    endAt,
+    price: apptType.price,
+    notes: body.notes,
+  }, { deductFromBono }));
 
   void gcalSync.push({ appointmentId: result.id, op: 'create' });
 

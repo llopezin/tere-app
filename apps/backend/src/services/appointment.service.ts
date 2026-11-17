@@ -4,7 +4,7 @@ import { rgpdConsents } from '../db/schema/rgpd-consents.js';
 import { bonos } from '../db/schema/bonos.js';
 import { bonoTransactions } from '../db/schema/bono-transactions.js';
 import { blockedTimes } from '../db/schema/blocked-times.js';
-import { eq, and, ne, sql } from 'drizzle-orm';
+import { eq, and, ne, lt, sql } from 'drizzle-orm';
 import { AppError } from '../middleware/error-handler.js';
 import * as gcalSync from './google-calendar/sync.js';
 
@@ -148,6 +148,46 @@ export async function createSingleAppointment(
   }
 
   return appt;
+}
+
+/**
+ * The patient's oldest active bono with sessions left for this professional and appointment type.
+ * The row stays locked until the transaction ends, so two bookings cannot spend the same last session.
+ */
+async function findBonoToDeduct(
+  tx: Transaction,
+  { professionalId, patientId, appointmentTypeId }: { professionalId: string; patientId: string; appointmentTypeId: string },
+) {
+  const [bono] = await tx.select({ id: bonos.id }).from(bonos)
+    .where(and(
+      eq(bonos.professionalId, professionalId),
+      eq(bonos.patientId, patientId),
+      eq(bonos.appointmentTypeId, appointmentTypeId),
+      eq(bonos.status, 'active'),
+      lt(bonos.sessionsUsed, bonos.totalSessions),
+    ))
+    .orderBy(bonos.createdAt, bonos.id)
+    .limit(1)
+    .for('update');
+  return bono;
+}
+
+/**
+ * Creates an appointment and, when the patient has a matching bono, deducts one session from it.
+ * `deductFromBono: false` books without touching the bono (only the professional can ask for it).
+ */
+export async function createAppointment(
+  tx: Transaction,
+  professionalId: string,
+  data: Omit<CreateAppointmentData, 'bonoId' | 'useBonoSession' | 'recurrenceGroupId'>,
+  { deductFromBono }: { deductFromBono: boolean },
+) {
+  const bono = deductFromBono ? await findBonoToDeduct(tx, { professionalId, ...data }) : undefined;
+  return createSingleAppointment(tx, professionalId, {
+    ...data,
+    bonoId: bono?.id ?? null,
+    useBonoSession: bono !== undefined,
+  });
 }
 
 /**

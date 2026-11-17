@@ -2,13 +2,10 @@ import { createRoute, z } from '@hono/zod-openapi';
 import * as HttpStatusCodes from 'stoker/http-status-codes';
 import { jsonContent, jsonContentRequired } from 'stoker/openapi/helpers';
 import { createMessageObjectSchema } from 'stoker/openapi/schemas';
-import { selectAppointmentSchema, insertAppointmentSchema } from '../../../db/schema/appointments.js';
+import { selectAppointmentSchema, bookAppointmentSchema } from '../../../db/schema/appointments.js';
 import { paginationSchema, idParamsSchema } from '../../../lib/schemas.js';
 
 const tags = ['Patient / Appointments'];
-
-/** The patient is always the authenticated one: `patientId` is never accepted from the client. */
-export const bookAppointmentSchema = insertAppointmentSchema.omit({ patientId: true });
 
 /** What "Mis citas" renders: names resolved on the server, no ids to cross-reference. */
 const patientAppointmentListItemSchema = selectAppointmentSchema
@@ -42,7 +39,7 @@ export const create = createRoute({
   responses: {
     [HttpStatusCodes.CREATED]: jsonContent(selectAppointmentSchema, 'The created appointment'),
     [HttpStatusCodes.FORBIDDEN]: jsonContent(createMessageObjectSchema('RGPD consent required'), 'RGPD consent required'),
-    [HttpStatusCodes.NOT_FOUND]: jsonContent(createMessageObjectSchema('Appointment type not found'), 'Appointment type or bono not found'),
+    [HttpStatusCodes.NOT_FOUND]: jsonContent(createMessageObjectSchema('Appointment type not found'), 'Appointment type not found'),
     [HttpStatusCodes.CONFLICT]: jsonContent(createMessageObjectSchema('Time slot overlaps'), 'Time slot overlaps'),
   },
 });
