@@ -133,7 +133,7 @@ export function BlockTimeForm({ startAt, onDone }: BlockTimeFormProps) {
       {block.isError && (
         <p role="alert" className="text-sm text-danger">
           {block.error instanceof ApiError && block.error.status === 409
-            ? "Hay citas en ese horario. Cancélalas o elige otro horario."
+            ? "Hay citas en ese horario. Elige otro horario."
             : "No se pudo bloquear el horario. Inténtalo de nuevo."}
         </p>
       )}

@@ -71,7 +71,8 @@ export function AppointmentForm({ startAt, onDone }: AppointmentFormProps) {
         appointmentTypeId: typeId,
         startAt: startAt.toISOString(),
         notes: notes.trim() || undefined,
-        deductFromBono: hasBonoForType ? deductFromBono : undefined,
+        // Without the checkbox on screen, nothing is deducted
+        deductFromBono: hasBonoForType && deductFromBono,
       },
       { onSuccess: onDone },
     );
@@ -129,7 +130,7 @@ export function AppointmentForm({ startAt, onDone }: AppointmentFormProps) {
         <Button type="button" variant="outline" onClick={onDone}>
           Cancelar
         </Button>
-        <Button type="submit" disabled={!patient || !typeId || create.isPending}>
+        <Button type="submit" disabled={!patient || !typeId || bonos.isPending || create.isPending}>
           Crear Cita
         </Button>
       </div>

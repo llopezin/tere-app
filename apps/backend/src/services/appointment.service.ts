@@ -152,7 +152,9 @@ export async function createSingleAppointment(
 
 /**
  * The patient's oldest active bono with sessions left for this professional and appointment type.
- * The row stays locked until the transaction ends, so two bookings cannot spend the same last session.
+ * Every candidate stays locked until the transaction ends, so two bookings cannot spend the same last
+ * session. No `LIMIT`: after waiting for a lock, Postgres re-checks the filter, and a bono that ran out
+ * meanwhile drops from the result; with `LIMIT 1` the result would be empty instead of the next bono.
  */
 async function findBonoToDeduct(
   tx: Transaction,
@@ -167,7 +169,6 @@ async function findBonoToDeduct(
       lt(bonos.sessionsUsed, bonos.totalSessions),
     ))
     .orderBy(bonos.createdAt, bonos.id)
-    .limit(1)
     .for('update');
   return bono;
 }

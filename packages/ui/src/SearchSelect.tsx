@@ -59,9 +59,6 @@ export function SearchSelect({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [open]);
 
-  // A new list of options starts the keyboard selection again
-  useEffect(() => setActiveIndex(-1), [options]);
-
   const close = () => {
     setOpen(false);
     triggerRef.current?.focus();
@@ -76,8 +73,12 @@ export function SearchSelect({
     if (e.key === "ArrowDown" || e.key === "ArrowUp") {
       e.preventDefault();
       if (!enabled.length) return;
-      const step = e.key === "ArrowDown" ? 1 : -1;
-      setActiveIndex((i) => (i + step + enabled.length) % enabled.length);
+      const n = enabled.length;
+      setActiveIndex((i) => {
+        // Nothing highlighted yet: down goes to the first option, up to the last
+        if (i < 0) return e.key === "ArrowDown" ? 0 : n - 1;
+        return (i + (e.key === "ArrowDown" ? 1 : -1) + n) % n;
+      });
     } else if (e.key === "Enter") {
       e.preventDefault();
       if (active) choose(active);
@@ -98,7 +99,10 @@ export function SearchSelect({
         aria-haspopup="listbox"
         aria-expanded={open}
         aria-labelledby={`${id}-label ${id}-value`}
-        onClick={() => setOpen((prev) => !prev)}
+        onClick={() => {
+          setActiveIndex(-1);
+          setOpen((prev) => !prev);
+        }}
         className={cn(
           "flex w-full items-center justify-between rounded-lg border border-border bg-input-bg px-3 py-2.5 text-sm transition-colors",
           "hover:border-border-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-600 focus-visible:ring-offset-1",
@@ -127,7 +131,11 @@ export function SearchSelect({
               aria-controls={listboxId}
               aria-activedescendant={active ? `${id}-${active.value}` : undefined}
               value={searchValue}
-              onChange={(e) => onSearchChange(e.target.value)}
+              onChange={(e) => {
+                // A new search brings new options: start the keyboard selection again
+                setActiveIndex(-1);
+                onSearchChange(e.target.value);
+              }}
               onKeyDown={handleKeyDown}
               placeholder={searchPlaceholder}
               className="w-full bg-transparent py-2.5 pl-9 pr-9 text-sm text-text placeholder:text-text-muted focus:outline-none"
