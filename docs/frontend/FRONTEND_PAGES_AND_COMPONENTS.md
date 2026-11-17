@@ -102,7 +102,7 @@ Two separate layouts based on role: **Professional** and **Patient**.
 | **WeekCalendar** | Full weekly calendar grid (7 days × time slots). Shows appointments and blocked times as colored blocks. Navigate by week. |
 | **DayColumn** | Single day column in the calendar. Renders time slots and appointment blocks. |
 | **AppointmentBlock** | Clickable block on the calendar representing an appointment. Color-coded by status. |
-| **BlockedTimeBlock** | Gray block on the calendar representing blocked time. |
+| **BlockedTimeBlock** | Gray block on the calendar representing blocked time. Click opens **BlockedTimeModal** (range + "Desbloquear", `DELETE /blocked-times/:id`). |
 | **TimeSlotPicker** | Grid of available time slots for booking. Supports multi-select (batch booking). |
 | **DateNavigator** | Week/month navigation arrows with current date range label. |
 

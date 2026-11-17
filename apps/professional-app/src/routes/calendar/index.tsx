@@ -10,7 +10,7 @@ import {
   calendarAppointmentsQueryOptions,
   type CalendarAppointment,
 } from "@/api/calendar-appointments";
-import { blockedTimesQueryOptions } from "@/api/blocked-times";
+import { blockedTimesQueryOptions, type BlockedTime } from "@/api/blocked-times";
 import { PanelHeader } from "../-components/PanelHeader";
 import { PanelTabs } from "../-components/PanelTabs";
 import { CalendarToolbar } from "./-components/CalendarToolbar";
@@ -18,6 +18,7 @@ import { WeekGrid } from "./-components/WeekGrid";
 import { CalendarLegend } from "./-components/CalendarLegend";
 import { AppointmentDetailModal } from "./-components/AppointmentDetailModal";
 import { AddToCalendarModal, type CalendarDraft } from "./-components/AddToCalendarModal";
+import { BlockedTimeModal } from "./-components/BlockedTimeModal";
 import { roundUpToSlot } from "./-components/calendar-layout";
 
 const searchSchema = z.object({
@@ -54,6 +55,7 @@ function CalendarPage() {
   const blockedTimes = useQuery(blockedTimesQueryOptions(range));
   const [selected, setSelected] = useState<CalendarAppointment | null>(null);
   const [draft, setDraft] = useState<CalendarDraft | null>(null);
+  const [selectedBlock, setSelectedBlock] = useState<BlockedTime | null>(null);
 
   const goToWeek = (date: Date) => navigate({ search: { week: toISODate(getWeekStart(date)) } });
 
@@ -88,6 +90,7 @@ function CalendarPage() {
                 blockedTimes={blockedTimes.data?.data ?? []}
                 onSelectAppointment={setSelected}
                 onSelectSlot={(startAt) => setDraft({ startAt, kind: "appointment" })}
+                onSelectBlockedTime={setSelectedBlock}
               />
             </div>
           </Card>
@@ -98,6 +101,7 @@ function CalendarPage() {
 
       <AppointmentDetailModal appointment={selected} onClose={() => setSelected(null)} />
       <AddToCalendarModal draft={draft} onClose={() => setDraft(null)} />
+      <BlockedTimeModal blockedTime={selectedBlock} onClose={() => setSelectedBlock(null)} />
     </div>
   );
 }

@@ -31,6 +31,7 @@ interface WeekGridProps {
   blockedTimes: BlockedTime[];
   onSelectAppointment: (appointment: CalendarAppointment) => void;
   onSelectSlot: (slotStart: Date) => void;
+  onSelectBlockedTime: (blockedTime: BlockedTime) => void;
 }
 
 export function WeekGrid({
@@ -39,6 +40,7 @@ export function WeekGrid({
   blockedTimes,
   onSelectAppointment,
   onSelectSlot,
+  onSelectBlockedTime,
 }: WeekGridProps) {
   const days = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
   const today = new Date();
@@ -108,7 +110,16 @@ export function WeekGrid({
 
             {blockedTimes.map((blocked) => {
               const position = getBlockPosition(blocked.startAt, blocked.endAt, day, hours);
-              return position && <BlockedTimeBlock key={blocked.id} position={position} />;
+              return (
+                position && (
+                  <BlockedTimeBlock
+                    key={blocked.id}
+                    blockedTime={blocked}
+                    position={position}
+                    onSelect={onSelectBlockedTime}
+                  />
+                )
+              );
             })}
 
             {appointments.map((appointment) => {

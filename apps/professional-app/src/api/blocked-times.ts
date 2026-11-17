@@ -32,6 +32,20 @@ async function postBlockedTime(json: { startAt: string; endAt: string }) {
   return res.json();
 }
 
+async function deleteBlockedTime(id: string) {
+  const res = await client["blocked-times"][":id"].$delete({ param: { id } });
+  if (!res.ok) throw new ApiError(res.status, "Failed to delete blocked time");
+  return res.json();
+}
+
+export function useDeleteBlockedTime() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: deleteBlockedTime,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: blockedTimesQueryKey }),
+  });
+}
+
 export function useCreateBlockedTime() {
   const queryClient = useQueryClient();
   return useMutation({
