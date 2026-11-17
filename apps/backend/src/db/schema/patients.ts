@@ -1,4 +1,5 @@
-import { pgTable, uuid, text, date, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, uuid, text, date, timestamp, index } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
 import { createSelectSchema, createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 import { user } from "./auth-schema.js";
@@ -31,7 +32,15 @@ export const patients = pgTable("patients", {
   updatedAt: timestamp("updated_at", { withTimezone: true })
     .defaultNow()
     .notNull(),
-});
+}, (t) => [
+  // Trigram indexes for the `ILIKE '%x%'` search of the professional's patient list (pg_trgm).
+  index("idx_patients_email_trgm").using("gin", sql`${t.email} gin_trgm_ops`),
+  // Must match `patientFullName` below character for character (literal ' ', not a parameter), or Postgres won't use the index
+  index("idx_patients_full_name_trgm").using("gin", sql`(${t.firstName} || ' ' || ${t.lastName}) gin_trgm_ops`),
+]);
+
+/** "First Last". Same expression as idx_patients_full_name_trgm above, so a search on it can use that index. */
+export const patientFullName = sql<string>`(${patients.firstName} || ' ' || ${patients.lastName})`;
 
 export const selectPatientSchema = createSelectSchema(patients);
 

@@ -55,7 +55,7 @@ Two separate layouts based on role: **Professional** and **Patient**.
 |------|-------|-----------|-------------|
 | **CalendarPage** | `/dashboard` | `GET /appointments`, `GET /blocked-times` | Weekly calendar view. Shows all appointments and blocked times. Navigate by week. Click to view/create. |
 | **AppointmentDetailPage** | `/dashboard/appointments/:id` | `GET /appointments/:id`, `PATCH .../cancel`, `PATCH .../complete`, `PATCH .../no-show`, `GET /patients/:id/contact-link` | Full appointment info. Actions: mark complete, cancel, no-show, edit, contact patient. |
-| **PatientListPage** | `/dashboard/patients` | `GET /patients?search=` | Searchable patient list. Click to open patient detail. Button to create new patient. |
+| **PatientListPage** | `/dashboard/patients` | `GET /patients-list?page=&search=` | Searchable patient list. Click to open patient detail. Button to create new patient. |
 | **PatientDetailPage** | `/dashboard/patients/:id` | `GET /patients/:id`, `GET .../appointments`, `GET .../bonos`, `GET .../payments`, `GET .../billing-data`, `GET .../rgpd-consent`, `GET .../contact-link` | Patient profile, appointment history, bonos, payments. Quick contact button. |
 | **AccountingPage** | `/dashboard/accounting` | `GET /reports/revenue/monthly`, `GET /reports/revenue/quarterly`, `GET /reports/revenue/by-method`, `GET /payments`, `GET /invoices` | Monthly/quarterly revenue, payment method breakdown, payment list, invoice list. |
 | **ProfessionalSettingsPage** | `/dashboard/settings` | `GET /professionals/me`, `PUT /professionals/me` | Edit business name, tax ID, address, phone. Google Calendar connect/disconnect. |
@@ -121,7 +121,7 @@ Two separate layouts based on role: **Professional** and **Patient**.
 
 | Component | Description |
 |-----------|-------------|
-| **PatientSearchInput** | Search input with debounced API call to `GET /patients?search=`. |
+| **PatientSearchInput** | Search input with debounced API call to `GET /patients-list?search=`. |
 | **PatientCard** | Card with patient name, phone, email, contact method icon. |
 | **PatientForm** | Form for creating/editing patient: name, NIE, phone, email, DOB, address, contact method, notes. |
 | **ContactButton** | Opens WhatsApp/SMS/email link based on patient's preferred contact method. |

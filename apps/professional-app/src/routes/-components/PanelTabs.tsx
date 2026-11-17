@@ -1,4 +1,4 @@
-import { Link } from "@tanstack/react-router";
+import { Link, type LinkProps } from "@tanstack/react-router";
 import { Calendar, Euro, LayoutGrid, Settings, Users, type LucideIcon } from "lucide-react";
 
 const tabStyles =
@@ -14,29 +14,36 @@ function DisabledTab({ icon: Icon, label }: { icon: LucideIcon; label: string })
   );
 }
 
+function TabLink({
+  to,
+  icon: Icon,
+  label,
+}: {
+  to: LinkProps["to"];
+  icon: LucideIcon;
+  label: string;
+}) {
+  return (
+    <Link
+      to={to}
+      className={`${tabStyles} text-text-secondary hover:text-text`}
+      activeProps={{ className: "border-primary-600! text-primary-600!" }}
+    >
+      <Icon className="size-4" />
+      {label}
+    </Link>
+  );
+}
+
 export function PanelTabs() {
   return (
     <nav className="border-b border-border bg-surface">
       <div className="mx-auto flex max-w-6xl gap-2 overflow-x-auto px-4 md:px-8">
         <DisabledTab icon={LayoutGrid} label="Dashboard" />
-        <Link
-          to="/calendar"
-          className={`${tabStyles} text-text-secondary hover:text-text`}
-          activeProps={{ className: "border-primary-600! text-primary-600!" }}
-        >
-          <Calendar className="size-4" />
-          Calendario
-        </Link>
-        <DisabledTab icon={Users} label="Pacientes" />
+        <TabLink to="/calendar" icon={Calendar} label="Calendario" />
+        <TabLink to="/patients" icon={Users} label="Pacientes" />
         <DisabledTab icon={Euro} label="Facturación" />
-        <Link
-          to="/ajustes/integraciones"
-          className={`${tabStyles} text-text-secondary hover:text-text`}
-          activeProps={{ className: "border-primary-600! text-primary-600!" }}
-        >
-          <Settings className="size-4" />
-          Configuración
-        </Link>
+        <TabLink to="/ajustes/integraciones" icon={Settings} label="Configuración" />
       </div>
     </nav>
   );

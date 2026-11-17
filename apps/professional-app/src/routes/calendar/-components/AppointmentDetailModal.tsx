@@ -1,40 +1,22 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import {
-  Ban,
-  Calendar,
-  Clock,
-  Euro,
-  Mail,
-  MessageCircle,
-  MessageSquare,
-  SquarePen,
-  User,
-  type LucideIcon,
-} from "lucide-react";
+import { Ban, Calendar, Clock, Euro, SquarePen, User } from "lucide-react";
 import { Modal } from "@fisio-app/ui/Modal";
 import { Button } from "@fisio-app/ui/Button";
 import { Divider } from "@fisio-app/ui/Divider";
 import { DetailItem } from "@fisio-app/ui/DetailItem";
+import { EmailLink } from "@fisio-app/ui/EmailLink";
+import { PhoneLink } from "@fisio-app/ui/PhoneLink";
 import { StatusBadge } from "@fisio-app/ui/StatusBadge";
-import { SHORT_MONTHS } from "@fisio-app/ui/lib/week";
+import { formatDayMonth, formatTime } from "@fisio-app/ui/lib/week";
 import type { CalendarAppointment } from "@/api/calendar-appointments";
 import { appointmentDetailQueryOptions, useCancelAppointment } from "@/api/appointment-detail";
-
-const CONTACT_METHODS: Record<"email" | "sms" | "whatsapp", { icon: LucideIcon; label: string }> = {
-  email: { icon: Mail, label: "Email" },
-  sms: { icon: MessageSquare, label: "SMS" },
-  whatsapp: { icon: MessageCircle, label: "WhatsApp" },
-};
+import { CONTACT_METHODS } from "../../-components/contact-method";
 
 const priceFormat = new Intl.NumberFormat("es-ES", { style: "currency", currency: "EUR" });
 
 function formatDate(date: Date) {
-  return `${date.getDate()} de ${SHORT_MONTHS[date.getMonth()]} ${date.getFullYear()}`;
-}
-
-function formatTime(date: Date) {
-  return date.toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" });
+  return `${formatDayMonth(date)} ${date.getFullYear()}`;
 }
 
 function Skeleton() {
@@ -124,9 +106,17 @@ function AppointmentDetail({
           <div className="grid gap-4 sm:grid-cols-2">
             <DetailItem label="Nombre">{appointment.patientName}</DetailItem>
             <DetailItem label="Email">
-              {detail ? (detail.patient.email ?? "—") : <Skeleton />}
+              {!detail ? (
+                <Skeleton />
+              ) : detail.patient.email ? (
+                <EmailLink email={detail.patient.email} />
+              ) : (
+                "—"
+              )}
             </DetailItem>
-            <DetailItem label="Teléfono">{detail ? detail.patient.phone : <Skeleton />}</DetailItem>
+            <DetailItem label="Teléfono">
+              {detail ? <PhoneLink phone={detail.patient.phone} /> : <Skeleton />}
+            </DetailItem>
             <DetailItem label="Método de Contacto">
               {!detail ? (
                 <Skeleton />

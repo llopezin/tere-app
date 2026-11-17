@@ -2,6 +2,7 @@ import { queryOptions, useMutation, useQueryClient } from "@tanstack/react-query
 import { client } from "@/lib/client";
 import { ApiError } from "@/lib/api-error";
 import { calendarAppointmentsQueryKey } from "./calendar-appointments";
+import { patientsListQueryKey } from "./patients-list";
 
 async function fetchAppointmentDetail(id: string) {
   const res = await client.appointments[":id"].$get({ param: { id } });
@@ -30,6 +31,8 @@ export function useCancelAppointment() {
       Promise.all([
         queryClient.invalidateQueries({ queryKey: calendarAppointmentsQueryKey }),
         queryClient.invalidateQueries({ queryKey: appointmentDetailQueryOptions(id).queryKey }),
+        // The cancelled appointment changes the patient's count and next appointment.
+        queryClient.invalidateQueries({ queryKey: patientsListQueryKey }),
       ]),
   });
 }

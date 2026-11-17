@@ -9,7 +9,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import './setup.js';
 import { testDb } from './setup.js';
 import { and, eq } from 'drizzle-orm';
-import { createAppointmentType, createAppointment, createBono } from './helpers.js';
+import { createAppointmentType, createAppointment, createBono, createPatient } from './helpers.js';
 import {
   call, signIn, signUpPatient, patientActor, professionalActor, link,
   CLIENT_ORIGIN, PROFESSIONAL_ORIGIN, type Actor,
@@ -99,7 +99,7 @@ describe('BFF isolation (role + origin)', () => {
   });
 
   it('rejects the wrong role', async () => {
-    expect((await call(P1, 'GET', `${PRO}/patients`, { origin: PROFESSIONAL_ORIGIN })).status).toBe(403);
+    expect((await call(P1, 'GET', `${PRO}/patients-list`, { origin: PROFESSIONAL_ORIGIN })).status).toBe(403);
     expect((await call(A, 'GET', `${P}/me`, { origin: CLIENT_ORIGIN })).status).toBe(403);
   });
 
@@ -179,11 +179,75 @@ describe('Patient BFF: only my own data', () => {
 });
 
 describe('Professional BFF: only my data and my patients', () => {
-  it('lists only my patients', async () => {
-    const res = await call(A, 'GET', `${PRO}/patients`);
-    const ids = (await res.json()).data.map((p: { id: string }) => p.id);
+  it("lists only my patients, and total never counts another professional's", async () => {
+    const res = await call(A, 'GET', `${PRO}/patients-list`);
+    const body = await res.json();
+    const ids = body.data.map((p: { id: string }) => p.id);
     expect(ids).toEqual(expect.arrayContaining([P1.profileId, P3.profileId]));
     expect(ids).not.toContain(P2.profileId);
+    expect(body.total).toBe(2);
+
+    const [p2] = await testDb.select({ email: user.email }).from(user).where(eq(user.profileId, P2.profileId));
+    const search = await (await call(A, 'GET', `${PRO}/patients-list?${new URLSearchParams({ search: p2.email })}`)).json();
+    expect(search.data).toEqual([]);
+    expect(search.total).toBe(0);
+  });
+
+  it('searches by full name or email, and total counts the matches', async () => {
+    const alonso = await createPatient(A.profileId, { firstName: 'Ana', lastName: 'Alonso', email: 'ana.alonso@example.com' });
+    const searchFor = async (search: string) =>
+      (await call(A, 'GET', `${PRO}/patients-list?${new URLSearchParams({ search })}`)).json();
+
+    for (const search of ['ana al', 'alonso@exa']) {
+      const body = await searchFor(search);
+      expect(body.data.map((p: { id: string }) => p.id), search).toEqual([alonso.id]);
+      expect(body.total, search).toBe(1);
+    }
+    // `%` is matched literally, not as a wildcard
+    expect((await searchFor('%')).total).toBe(0);
+  });
+
+  it('orders patients by most recent past appointment, patients without one last', async () => {
+    const pastDate = (daysAgo: number, hourUtc = 10) => futureDate(-daysAgo, hourUtc);
+    const pastAppt = (patientId: string, daysAgo: number, status: 'completed' | 'cancelled' | 'no_show') => createAppointment({
+      professionalId: A.profileId, patientId, appointmentTypeId: typeA.id,
+      startAt: pastDate(daysAgo), endAt: pastDate(daysAgo, 11), status,
+    });
+    const old = await createPatient(A.profileId, { firstName: 'Olga', lastName: 'Antigua' });
+    const recent = await createPatient(A.profileId, { firstName: 'Rosa', lastName: 'Reciente' });
+    const withCancelled = await createPatient(A.profileId, { firstName: 'Carla', lastName: 'Cancelada' });
+    const alonso = await createPatient(A.profileId, { firstName: 'Ana', lastName: 'Alonso' });
+    const zapata = await createPatient(A.profileId, { firstName: 'Zoe', lastName: 'Zapata' });
+    await pastAppt(old.id, 10, 'completed');
+    await pastAppt(recent.id, 2, 'no_show');
+    await createAppointment({
+      professionalId: A.profileId, patientId: old.id, appointmentTypeId: typeA.id, startAt: futureDate(1), endAt: futureDate(1, 11),
+    });
+    await pastAppt(withCancelled.id, 20, 'completed');
+    await pastAppt(withCancelled.id, 1, 'cancelled');
+
+    const res = await call(A, 'GET', `${PRO}/patients-list`);
+    const ids = (await res.json()).data.map((p: { id: string }) => p.id);
+    // P1 and P3 ("Test Patient") only have future appointments
+    expect(ids).toEqual([
+      recent.id, old.id, withCancelled.id,
+      alonso.id, ...[P1.profileId, P3.profileId].sort(), zapata.id,
+    ]);
+  });
+
+  it("a shared patient's counters and next appointment only include my appointments and bonos", async () => {
+    await createBono(A.profileId, P3.profileId, typeA.id);
+    await createBono(A.profileId, P3.profileId, typeA.id, { status: 'exhausted' });
+    await createBono(B.profileId, P3.profileId, typeB.id);
+    await createAppointment({
+      professionalId: A.profileId, patientId: P3.profileId, appointmentTypeId: typeA.id,
+      startAt: futureDate(3), endAt: futureDate(3, 11), status: 'cancelled',
+    });
+
+    const res = await call(A, 'GET', `${PRO}/patients-list`);
+    const p3 = (await res.json()).data.find((p: { id: string }) => p.id === P3.profileId);
+    // B's appointment with P3 (day 7) is earlier than A's (day 8)
+    expect(p3).toMatchObject({ appointmentsCount: 1, activeBonosCount: 1, nextAppointmentAt: futureDate(8).toISOString() });
   });
 
   it("cannot access another professional's patient or its sub-resources", async () => {

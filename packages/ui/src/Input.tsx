@@ -4,12 +4,14 @@ import { cn } from "./lib/cn";
 
 interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
   label: string;
+  /** Keeps the label for screen readers only; the placeholder is then always visible. */
+  hideLabel?: boolean;
   icon?: ReactNode;
   error?: string;
 }
 
 export const Input = forwardRef<HTMLInputElement, InputProps>(
-  ({ label, icon, type, className, id, error, ...props }, ref) => {
+  ({ label, hideLabel = false, icon, type, className, id, error, ...props }, ref) => {
     const [showPassword, setShowPassword] = useState(false);
     const innerId = useId();
     const inputId = id || innerId;
@@ -34,7 +36,8 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
           aria-invalid={!!error}
           aria-describedby={error ? `${inputId}-error` : undefined}
           className={cn(
-            "peer h-full w-full rounded-lg border bg-input-bg pb-1 pt-5 text-sm text-text transition-all focus:outline-none focus:ring-2 not-focus:placeholder-transparent",
+            "peer h-full w-full rounded-lg border bg-input-bg text-sm text-text transition-all focus:outline-none focus:ring-2",
+            !hideLabel && "pb-1 pt-5 not-focus:placeholder-transparent",
             error
               ? "border-danger focus:border-danger focus:ring-danger/20"
               : "border-border focus:border-primary-600 focus:ring-primary-600/20",
@@ -46,12 +49,16 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
 
         <label
           htmlFor={inputId}
-          className={cn(
-            "pointer-events-none absolute top-1/2 -translate-y-1/2 text-sm text-text-muted transition-all duration-200",
-            "peer-focus:top-4 peer-focus:text-xs peer-focus:text-primary-600",
-            "peer-[:not(:placeholder-shown)]:top-4 peer-[:not(:placeholder-shown)]:text-xs",
-            icon ? "left-10" : "left-3",
-          )}
+          className={
+            hideLabel
+              ? "sr-only"
+              : cn(
+                  "pointer-events-none absolute top-1/2 -translate-y-1/2 text-sm text-text-muted transition-all duration-200",
+                  "peer-focus:top-4 peer-focus:text-xs peer-focus:text-primary-600",
+                  "peer-[:not(:placeholder-shown)]:top-4 peer-[:not(:placeholder-shown)]:text-xs",
+                  icon ? "left-10" : "left-3",
+                )
+          }
         >
           {label}
         </label>

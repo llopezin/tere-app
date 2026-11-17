@@ -1,7 +1,8 @@
 import { createRoute, z } from '@hono/zod-openapi';
 import * as HttpStatusCodes from 'stoker/http-status-codes';
 import { jsonContent, jsonContentRequired } from 'stoker/openapi/helpers';
-import { selectPatientForProfessionalSchema, insertPatientSchema, updatePatientSchema } from '../../../db/schema/patients.js';
+import { createMessageObjectSchema } from 'stoker/openapi/schemas';
+import { selectPatientSchema, selectPatientForProfessionalSchema, insertPatientSchema, updatePatientSchema } from '../../../db/schema/patients.js';
 import { selectAppointmentSchema } from '../../../db/schema/appointments.js';
 import { selectBonoSchema } from '../../../db/schema/bonos.js';
 import { selectPaymentSchema } from '../../../db/schema/payments.js';
@@ -13,28 +14,41 @@ import { paginationSchema, idParamsSchema } from '../../../lib/schemas.js';
 
 const tags = ['Professional / Patients'];
 
-export const list = createRoute({
+const patientListItemSchema = selectPatientSchema
+  .pick({ id: true, firstName: true, lastName: true, email: true, phone: true, contactMethod: true })
+  .extend({
+    appointmentsCount: z.number(),
+    activeBonosCount: z.number(),
+    rgpdSigned: z.boolean(),
+    nextAppointmentAt: selectAppointmentSchema.shape.startAt.nullable(),
+  });
+
+export const patientsList = createRoute({
   method: 'get',
-  path: '/patients',
+  path: '/patients-list',
   tags,
-  summary: 'List patients with optional search',
+  summary: 'My patients, most recent past appointment first, with optional search by name or email',
   request: {
-    query: paginationSchema.extend({
-      search: z.string().optional(),
+    query: paginationSchema.pick({ page: true }).extend({
+      // Trimmed first, so a blank search (`?search=%20`) means no search
+      search: z.string().trim().max(100).transform((v) => v || undefined).optional(),
     }),
   },
   responses: {
     [HttpStatusCodes.OK]: jsonContent(
       z.object({
-        data: z.array(selectPatientForProfessionalSchema),
+        data: z.array(patientListItemSchema),
+        total: z.number(),
         page: z.number(),
         per_page: z.number(),
       }),
-      'List of patients',
+      'A page of patients and the number of patients matching the search',
     ),
+    [HttpStatusCodes.UNAUTHORIZED]: jsonContent(createMessageObjectSchema('Unauthorized'), 'Unauthorized'),
+    [HttpStatusCodes.FORBIDDEN]: jsonContent(createMessageObjectSchema('Insufficient permissions'), 'Insufficient permissions'),
   },
 });
-export type ListRoute = typeof list;
+export type PatientsListRoute = typeof patientsList;
 
 export const create = createRoute({
   method: 'post',
