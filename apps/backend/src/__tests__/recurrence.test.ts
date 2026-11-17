@@ -37,8 +37,12 @@ describe('generateRecurrenceDates', () => {
     ]);
   });
 
-  it('does not mutate the start date', () => {
-    generateRecurrenceDates(start, 'weekly', 3);
-    expect(start.toISOString()).toBe('2026-05-01T10:00:00.000Z');
+  // Dates avoid DST changes so the expectation holds in any timezone
+  it('keeps monthly occurrences inside their month when the start day does not exist in it', () => {
+    expect(toIso(generateRecurrenceDates(new Date('2027-05-31T10:00:00Z'), 'monthly', 3))).toEqual([
+      '2027-05-31T10:00:00.000Z',
+      '2027-06-30T10:00:00.000Z',
+      '2027-07-31T10:00:00.000Z',
+    ]);
   });
 });

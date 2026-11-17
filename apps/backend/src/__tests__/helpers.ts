@@ -6,6 +6,7 @@ import { appointments } from '../db/schema/appointments.js';
 import { rgpdConsents } from '../db/schema/rgpd-consents.js';
 import { bonos } from '../db/schema/bonos.js';
 import { blockedTimes } from '../db/schema/blocked-times.js';
+import { workingSchedules } from '../db/schema/working-schedules.js';
 import { professionalPatients } from '../db/schema/professional-patients.js';
 import { user } from '../db/schema/auth-schema.js';
 import { eq } from 'drizzle-orm';
@@ -126,4 +127,25 @@ export async function createBlockedTime(professionalId: string, startAt: Date, e
     endAt,
   }).returning();
   return blocked;
+}
+
+/** `dayOfWeek` is Monday = 0 … Sunday = 6; times are `HH:MM`. */
+export async function createWorkingSchedule(professionalId: string, dayOfWeek: number, startTime: string, endTime: string) {
+  const [schedule] = await testDb.insert(workingSchedules).values({
+    professionalId,
+    dayOfWeek,
+    startTime,
+    endTime,
+  }).returning();
+  return schedule;
+}
+
+/**
+ * The standard test week: every day 09:00–18:00, server local time.
+ * Book at 18:00 or later (or before 09:00) to be outside it.
+ */
+export async function createWorkingWeek(professionalId: string) {
+  await testDb.insert(workingSchedules).values(
+    Array.from({ length: 7 }, (_, dayOfWeek) => ({ professionalId, dayOfWeek, startTime: '09:00', endTime: '18:00' })),
+  );
 }

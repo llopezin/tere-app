@@ -4,6 +4,36 @@ import { appointments } from '../db/schema/appointments.js';
 import { blockedTimes } from '../db/schema/blocked-times.js';
 import { appointmentTypes } from '../db/schema/appointment-types.js';
 import { eq, and, sql, ne } from 'drizzle-orm';
+import { AppError } from '../middleware/error-handler.js';
+
+/** Day of week as stored in working_schedules: Monday = 0 … Sunday = 6 */
+const scheduleDayOf = (date: Date) => (date.getDay() + 6) % 7;
+
+/** Minutes since midnight of a Postgres `time` value (`HH:MM:SS`) */
+function minutesOfDay(time: string): number {
+  const [hours, minutes] = time.split(':').map(Number);
+  return hours * 60 + minutes;
+}
+
+/**
+ * Patients can only book inside the professional's working schedule. Read in server local time,
+ * like generateAvailableSlots, so every offered slot is bookable.
+ * @throws {AppError} 409 if the slot does not fit in any schedule of that day
+ */
+export async function checkWithinWorkingSchedule(professionalId: string, startAt: Date, endAt: Date): Promise<void> {
+  const startMinute = startAt.getHours() * 60 + startAt.getMinutes();
+  // From the duration, so a slot crossing midnight ends past 24:00 and fits no schedule
+  const endMinute = startMinute + (endAt.getTime() - startAt.getTime()) / 60_000;
+
+  const schedules = await db.select().from(workingSchedules)
+    .where(and(
+      eq(workingSchedules.professionalId, professionalId),
+      eq(workingSchedules.dayOfWeek, scheduleDayOf(startAt)),
+    ));
+  const fits = schedules.some((schedule) =>
+    minutesOfDay(schedule.startTime) <= startMinute && endMinute <= minutesOfDay(schedule.endTime));
+  if (!fits) throw new AppError(409, 'Time slot is outside the working schedule');
+}
 
 export async function generateAvailableSlots(
   professionalId: string,
@@ -47,20 +77,14 @@ export async function generateAvailableSlots(
   const currentDate = new Date(fromDate);
 
   while (currentDate <= toDate) {
-    const jsDay = currentDate.getDay();
-    const dayOfWeek = jsDay === 0 ? 6 : jsDay - 1;
-
-    const daySchedules = schedules.filter((s) => s.dayOfWeek === dayOfWeek);
+    const daySchedules = schedules.filter((s) => s.dayOfWeek === scheduleDayOf(currentDate));
 
     for (const schedule of daySchedules) {
-      const [startH, startM] = schedule.startTime.split(':').map(Number);
-      const [endH, endM] = schedule.endTime.split(':').map(Number);
-
       const blockStart = new Date(currentDate);
-      blockStart.setHours(startH, startM, 0, 0);
+      blockStart.setHours(0, minutesOfDay(schedule.startTime), 0, 0);
 
       const blockEnd = new Date(currentDate);
-      blockEnd.setHours(endH, endM, 0, 0);
+      blockEnd.setHours(0, minutesOfDay(schedule.endTime), 0, 0);
 
       let slotStart = new Date(blockStart);
       while (slotStart.getTime() + durationMs <= blockEnd.getTime()) {
