@@ -193,6 +193,20 @@ describe('Professional BFF: only my data and my patients', () => {
     expect(search.total).toBe(0);
   });
 
+  it('searches by full name or email, and total counts the matches', async () => {
+    const alonso = await createPatient(A.profileId, { firstName: 'Ana', lastName: 'Alonso', email: 'ana.alonso@example.com' });
+    const searchFor = async (search: string) =>
+      (await call(A, 'GET', `${PRO}/patients-list?${new URLSearchParams({ search })}`)).json();
+
+    for (const search of ['ana al', 'alonso@exa']) {
+      const body = await searchFor(search);
+      expect(body.data.map((p: { id: string }) => p.id), search).toEqual([alonso.id]);
+      expect(body.total, search).toBe(1);
+    }
+    // `%` is matched literally, not as a wildcard
+    expect((await searchFor('%')).total).toBe(0);
+  });
+
   it('orders patients by most recent past appointment, patients without one last', async () => {
     const pastDate = (daysAgo: number, hourUtc = 10) => futureDate(-daysAgo, hourUtc);
     const pastAppt = (patientId: string, daysAgo: number, status: 'completed' | 'cancelled' | 'no_show') => createAppointment({
