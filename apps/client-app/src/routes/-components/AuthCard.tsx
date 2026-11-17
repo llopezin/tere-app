@@ -30,23 +30,8 @@ export function AuthCard() {
 
         <div className="text-center">
           <p className="text-sm font-semibold text-text">¿Primera vez aquí?</p>
-          <p className="mt-0.5 text-sm text-text-secondary">
-            Crea tu cuenta en menos de 2 minutos y comienza a gestionar tus citas
-          </p>
+          <p className="mt-0.5 text-sm text-text-secondary">Crea tu cuenta en menos de 2 minutos</p>
         </div>
-
-        <Divider />
-
-        <p className="text-center text-sm text-text-secondary">
-          ¿Eres profesional sanitario?{" "}
-          {/* Uses <a> because this route is not yet registered in the router */}
-          <a
-            href="/professional/login"
-            className="font-semibold text-primary-600 underline-offset-2 hover:text-primary-hover hover:underline"
-          >
-            Accede aquí
-          </a>
-        </p>
       </Card>
 
       <LoginModal

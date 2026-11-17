@@ -1,25 +1,12 @@
 import { Card } from "@fisio-app/ui";
-import { InfoBanner } from "@fisio-app/ui";
 import { BrandLogo } from "@fisio-app/ui";
 import { FeatureItem } from "./FeatureItem";
 
 const FEATURES = [
-  {
-    title: "Reserva en minutos",
-    description: "Elige tu profesional y horario disponible",
-  },
-  {
-    title: "Historial completo",
-    description: "Accede a todas tus citas y documentos",
-  },
-  {
-    title: "Gestión de bonos",
-    description: "Usa tus bonos de sesiones fácilmente",
-  },
-  {
-    title: "Descarga facturas",
-    description: "Toda tu documentación disponible",
-  },
+  "Reserva en minutos",
+  "Gestiona tus citas",
+  "Usa tus bonos",
+  "Descarga facturas",
 ] as const;
 
 export function HeroCard() {
@@ -29,27 +16,20 @@ export function HeroCard() {
 
       <div>
         <h1 className="text-2xl font-bold text-text">Bienvenido</h1>
-        <p className="mt-1 text-text-secondary">
-          Gestiona tus citas médicas de forma fácil y rápida
-        </p>
+        <p className="mt-1 text-text-secondary">Gestiona tus citas de forma fácil y rápida</p>
       </div>
 
       <div className="flex w-full flex-col gap-4 text-left">
         {FEATURES.map((feature, i) => (
           <div
-            key={feature.title}
+            key={feature}
             className="animate-slide-up"
             style={{ animationDelay: `${i * 50 + 200}ms` }}
           >
-            <FeatureItem title={feature.title} description={feature.description} />
+            <FeatureItem title={feature} />
           </div>
         ))}
       </div>
-
-      <InfoBanner className="w-full text-left">
-        <span className="font-semibold text-primary-700">Importante:</span> Cumplimos con el RGPD.
-        Tus datos están protegidos y solo se usan para tu atención médica.
-      </InfoBanner>
     </Card>
   );
 }

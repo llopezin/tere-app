@@ -210,33 +210,33 @@ export function BookingConfirmationModal({
         // ── Confirmation view ───────────────────────────────────────────────
         <div className="animate-scale-in space-y-6">
           <div className="flex flex-col items-center gap-3 py-2 text-center">
-            <div className="flex size-16 items-center justify-center rounded-full bg-green-100">
-              <CheckCircle2 className="size-9 text-green-600" strokeWidth={1.5} />
+            <div className="flex size-16 items-center justify-center rounded-full bg-accent-100">
+              <CheckCircle2 className="size-9 text-primary-600" strokeWidth={1.5} />
             </div>
             <p className="text-sm text-text-secondary">
               Tu cita ha sido reservada. Te contactaremos para confirmarte los detalles.
             </p>
           </div>
 
-          <div className="rounded-lg border border-green-200 bg-green-50 p-4 space-y-3">
+          <div className="rounded-lg border border-primary-200 bg-primary-50 p-4 space-y-3">
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <p className="text-xs font-medium uppercase text-green-600">Fecha</p>
-                <p className="text-sm font-semibold text-green-800">{formatDate(slot.startAt)}</p>
+                <p className="text-xs font-medium uppercase text-primary-600">Fecha</p>
+                <p className="text-sm font-semibold text-primary-800">{formatDate(slot.startAt)}</p>
               </div>
               <div>
-                <p className="text-xs font-medium uppercase text-green-600">Hora</p>
-                <p className="text-sm font-semibold text-green-800">
+                <p className="text-xs font-medium uppercase text-primary-600">Hora</p>
+                <p className="text-sm font-semibold text-primary-800">
                   {formatTime(slot.startAt)} – {formatTime(slot.endAt)}
                 </p>
               </div>
               <div>
-                <p className="text-xs font-medium uppercase text-green-600">Tipo de cita</p>
-                <p className="text-sm font-semibold text-green-800">{consultationName}</p>
+                <p className="text-xs font-medium uppercase text-primary-600">Tipo de cita</p>
+                <p className="text-sm font-semibold text-primary-800">{consultationName}</p>
               </div>
               <div>
-                <p className="text-xs font-medium uppercase text-green-600">Profesional</p>
-                <p className="text-sm font-semibold text-green-800">{professionalName}</p>
+                <p className="text-xs font-medium uppercase text-primary-600">Profesional</p>
+                <p className="text-sm font-semibold text-primary-800">{professionalName}</p>
               </div>
             </div>
           </div>

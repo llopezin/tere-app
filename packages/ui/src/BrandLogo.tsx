@@ -1,4 +1,5 @@
-import { Calendar, Stethoscope } from "lucide-react";
+import { Calendar } from "lucide-react";
+import logo from "./assets/logo-quintana.png";
 import { cn } from "./lib/cn";
 
 type BrandLogoSize = "default" | "sm";
@@ -34,17 +35,11 @@ export function BrandLogo({ subtitle, iconOnly, size = "default", className }: B
         className,
       )}
     >
-      <div className={cn("flex items-center", isSmall ? "gap-1.5" : "gap-2")}>
-        <Stethoscope className={cn("text-primary-600", isSmall ? "size-5" : "size-7")} />
-        <span
-          className={cn(
-            "font-bold tracking-tight text-text",
-            isSmall ? "text-lg" : "text-2xl",
-          )}
-        >
-          Fisio Fácil
-        </span>
-      </div>
+      <img
+        src={logo}
+        alt="Quintana Fisioterapia"
+        className={cn("w-auto", isSmall ? "h-8" : "h-16")}
+      />
       {subtitle && (
         <span
           className={cn(
