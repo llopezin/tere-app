@@ -69,6 +69,12 @@ The defaults work out of the box for local development. See [Environment Variabl
 pnpm db:push
 ```
 
+Optionally, fill it with test data (2 professionals, 35 patients, appointments and bonos). It empties the database first, and the logins go to `docs/dev-users.md` (gitignored, all with the password `fisio-dev-1234`):
+
+```bash
+pnpm db:seed
+```
+
 ### 5. Start the dev server
 
 ```bash
@@ -123,6 +129,7 @@ All variables are validated at startup via Zod (`src/config/env.ts`). The server
 | `pnpm test` | Run tests once (Vitest). Concurrent runs queue on a Postgres advisory lock because they share the test DB |
 | `pnpm test:watch` | Run tests in watch mode |
 | `pnpm create-professional -- --email … --password … --first-name … --last-name …` | Create a professional account (public sign-up only creates patients) |
+| `pnpm db:seed` | Empty the local dev database and fill it with test data; writes the logins to `docs/dev-users.md` (refuses non-local databases) |
 
 ---
 
@@ -144,6 +151,7 @@ apps/backend/
 │   │   ├── professional-account.service.ts
 │   │   └── ...                      # appointment, availability, invoice, google-calendar
 │   ├── scripts/create-professional.ts
+│   ├── scripts/seed-dev.ts          # pnpm db:seed (local dev data)
 │   └── routes/
 │       ├── patient/                 # /api/v1/patient/*      → client-app only (role patient)
 │       │   ├── patient.index.ts     # guard: requireOrigin(CLIENT_APP_URL) + auth + requireRole('patient')

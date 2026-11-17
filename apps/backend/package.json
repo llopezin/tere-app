@@ -18,7 +18,8 @@
     "db:studio": "drizzle-kit studio",
     "test": "vitest run",
     "test:watch": "vitest",
-    "create-professional": "tsx src/scripts/create-professional.ts"
+    "create-professional": "tsx src/scripts/create-professional.ts",
+    "db:seed": "tsx src/scripts/seed-dev.ts"
   },
   "dependencies": {
     "@fisio-app/validators": "workspace:^",
