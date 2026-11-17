@@ -1,7 +1,8 @@
 import { createRoute, z } from '@hono/zod-openapi';
 import * as HttpStatusCodes from 'stoker/http-status-codes';
 import { jsonContent, jsonContentRequired } from 'stoker/openapi/helpers';
-import { selectPatientForProfessionalSchema, insertPatientSchema, updatePatientSchema } from '../../../db/schema/patients.js';
+import { createMessageObjectSchema } from 'stoker/openapi/schemas';
+import { selectPatientSchema, selectPatientForProfessionalSchema, insertPatientSchema, updatePatientSchema } from '../../../db/schema/patients.js';
 import { selectAppointmentSchema } from '../../../db/schema/appointments.js';
 import { selectBonoSchema } from '../../../db/schema/bonos.js';
 import { selectPaymentSchema } from '../../../db/schema/payments.js';
@@ -9,32 +10,46 @@ import { selectPatientBillingDataSchema, upsertBillingDataSchema } from '../../.
 import { selectRgpdConsentSchema, submitConsentSchema } from '../../../db/schema/rgpd-consents.js';
 import { selectPatientConsentSchema, assignConsentSchema } from '../../../db/schema/patient-consents.js';
 import { selectConsentDocumentSchema } from '../../../db/schema/consent-documents.js';
-import { paginationSchema, idParamsSchema } from '../../../lib/schemas.js';
+import { paginationSchema, idParamsSchema, emptyAsUndefined } from '../../../lib/schemas.js';
 
 const tags = ['Professional / Patients'];
 
-export const list = createRoute({
+// GET /patients-list
+const patientListItemSchema = selectPatientSchema
+  .pick({ id: true, firstName: true, lastName: true, email: true, phone: true, contactMethod: true })
+  .extend({
+    appointmentsCount: z.number(),
+    activeBonosCount: z.number(),
+    rgpdSigned: z.boolean(),
+    nextAppointmentAt: selectAppointmentSchema.shape.startAt.nullable(),
+  });
+
+export const patientsList = createRoute({
   method: 'get',
-  path: '/patients',
+  path: '/patients-list',
   tags,
-  summary: 'List patients with optional search',
+  summary: 'My patients, most recent past appointment first, with optional search by name or email',
   request: {
-    query: paginationSchema.extend({
-      search: z.string().optional(),
+    query: z.object({
+      page: z.coerce.number().int().positive().default(1),
+      search: z.preprocess(emptyAsUndefined, z.string().trim().max(100).optional()),
     }),
   },
   responses: {
     [HttpStatusCodes.OK]: jsonContent(
       z.object({
-        data: z.array(selectPatientForProfessionalSchema),
+        data: z.array(patientListItemSchema),
+        total: z.number(),
         page: z.number(),
         per_page: z.number(),
       }),
-      'List of patients',
+      'A page of patients and the number of patients matching the search',
     ),
+    [HttpStatusCodes.UNAUTHORIZED]: jsonContent(createMessageObjectSchema('Unauthorized'), 'Unauthorized'),
+    [HttpStatusCodes.FORBIDDEN]: jsonContent(createMessageObjectSchema('Insufficient permissions'), 'Insufficient permissions'),
   },
 });
-export type ListRoute = typeof list;
+export type PatientsListRoute = typeof patientsList;
 
 export const create = createRoute({
   method: 'post',

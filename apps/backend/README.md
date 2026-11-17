@@ -65,7 +65,10 @@ The defaults work out of the box for local development. See [Environment Variabl
 
 ### 4. Push the schema to the database
 
+The schema uses the `pg_trgm` extension, and `drizzle-kit push` does not create extensions. Run this once on each local database (dev and test) before the first `db:push`:
+
 ```bash
+psql -U user -d fisio_app -c 'CREATE EXTENSION IF NOT EXISTS pg_trgm;'
 pnpm db:push
 ```
 
@@ -114,9 +117,9 @@ All variables are validated at startup via Zod (`src/config/env.ts`). The server
 | `pnpm lint` | Lint with oxlint |
 | `pnpm typecheck` | Type-aware lint + type check (oxlint + tsgolint; build `@fisio-app/validators` first) |
 | `pnpm start` | Run compiled production server |
-| `pnpm db:push` | Sync the dev database in `.env` with the schema in `src/db/schema/` (while iterating) |
+| `pnpm db:push` | Sync the dev database in `.env` with the schema in `src/db/schema/` (while iterating). Needs `CREATE EXTENSION IF NOT EXISTS pg_trgm;` run once on the DB first, as push does not create extensions (CI is not affected: it applies the migrations) |
 | `pnpm db:generate` | Write the migration for the current schema changes to `drizzle/` (once the change is ready, commit it with the code) |
-| `pnpm db:push:test` | Same for the test database in `.env.test` (`--force`: test data is disposable) |
+| `pnpm db:push:test` | Same for the test database in `.env.test` (`--force`: test data is disposable). Same one-time `pg_trgm` step |
 | `pnpm db:push:e2e` | Same for the e2e database in `.env.e2e` (run by `pnpm test:e2e` from the repo root) |
 | `pnpm db:migrate:test` / `db:migrate:e2e` | Apply the migrations to an empty test / e2e database (what CI does) |
 | `pnpm db:studio` | Open Drizzle Studio (visual DB browser) |
@@ -181,14 +184,14 @@ Playwright specs live in `tests/` at the repo root and cover the patient flows o
 - **Own stack** (`apps/backend/.env.e2e`): database `fisio_app_e2e`, backend on `:3100`, client-app on `:5175`. It never touches the dev DB or `fisio_app_test`, so it can run alongside `pnpm dev` and the Vitest suite.
 - **Never reuses a running server** (`reuseExistingServer: false`). If `:3100` or `:5175` is busy (another e2e run), Playwright fails at start.
 - **Test data goes straight into the e2e DB** (`tests/seed.ts`): the fixtures import the backend's `db`, `auth` and `createProfessionalAccount`, so the server has no test-only endpoints. Each test starts from an empty DB.
-- **One-time local setup:** `createdb -U user fisio_app_e2e` and `pnpm exec playwright install chromium`.
+- **One-time local setup:** `createdb -U user fisio_app_e2e`, `psql -U user -d fisio_app_e2e -c 'CREATE EXTENSION IF NOT EXISTS pg_trgm;'` (push does not create extensions) and `pnpm exec playwright install chromium`.
 - The Claude Code Stop hook (`.claude/hooks/verify-before-stop.sh`) runs `test:e2e` too, so that setup is needed before working with agents.
 
 ## Database Schema
 
 `src/db/schema/` is the source of truth. Locally the schema is pushed; deployed databases only change through migrations in `drizzle/`.
 
-- **Local, while iterating:** `pnpm db:push` (dev DB) and `pnpm db:push:test` (test DB; for a new one, `createdb -U user fisio_app_test` first). No files are written, change the schema as often as needed.
+- **Local, while iterating:** `pnpm db:push` (dev DB) and `pnpm db:push:test` (test DB; for a new one, `createdb -U user fisio_app_test` first). Run `CREATE EXTENSION IF NOT EXISTS pg_trgm;` once on each local DB before pushing: push does not create extensions and fails on the trigram indexes without it. CI is not affected, since the migrations create it. No files are written, change the schema as often as needed.
 - **Change ready:** `pnpm db:generate` writes `drizzle/NNNN_*.sql` and commit it with the code. It diffs the schema against the last snapshot in `drizzle/meta`, not against your DB, so pushing before does not matter. Read the SQL: a renamed column is generated as drop + add unless you answer the rename prompt, and adding a `NOT NULL` column to a table with rows needs a default or a backfill written by hand.
 - **CI:**
   - fails if `db:generate` creates a file, which means a schema change has no migration;
@@ -334,7 +337,7 @@ Interactive docs: `/api/v1/docs` (tags `Patient / …`, `Professional / …`, `P
 | Module | Endpoints | Scope / validation |
 |--------|-----------|--------------------|
 | me | GET, PUT `/me` | own profile |
-| patients | GET, POST `/patients` · GET, PUT `/patients/:id` | patients linked in `professional_patients`; `clinicalNotes` are per professional; personal data of patients with an account is read-only (403) |
+| patients | GET `/patients-list` · POST `/patients` · GET, PUT `/patients/:id` | patients linked in `professional_patients`; `clinicalNotes` are per professional; personal data of patients with an account is read-only (403) |
 | patients | GET `/patients/:id/{appointments,bonos,payments,consents}` | linked patient + only this professional's records |
 | patients | GET, PUT `/patients/:id/billing-data` · GET, POST `/patients/:id/rgpd-consent` · GET `/patients/:id/contact-link` · POST `/patients/:id/consents` | linked patient (+ own consent document) |
 | appointment-types | CRUD `/appointment-types` | own |

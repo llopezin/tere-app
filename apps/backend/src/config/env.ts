@@ -1,15 +1,13 @@
 import { z } from 'zod';
 import dotenv from 'dotenv';
+import { emptyAsUndefined } from '../lib/schemas.js';
 
 dotenv.config();
-
-/** docker compose passes unset variables as empty strings: treat them as unset. */
-const emptyAsUndefined = (value: unknown) => (value === '' ? undefined : value);
 
 /** `https://app.example.com/` → `https://app.example.com`: the exact form browsers send in the `Origin` header. */
 const toOrigin = (url: string) => new URL(url).origin;
 
-/** Optional frontend URL, stored as an origin. An invalid URL stops the server at startup. */
+/** Optional frontend URL, stored as an origin (docker compose passes unset variables as empty strings). An invalid URL stops the server at startup. */
 const originSchema = z.preprocess(emptyAsUndefined, z.string().url().transform(toOrigin).optional());
 
 const envSchema = z.object({

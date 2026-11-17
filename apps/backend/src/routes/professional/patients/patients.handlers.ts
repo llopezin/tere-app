@@ -1,6 +1,6 @@
 import type { AppRouteHandler } from '../../../lib/types.js';
 import type {
-  ListRoute,
+  PatientsListRoute,
   CreateRoute,
   GetOneRoute,
   UpdateRoute,
@@ -24,7 +24,7 @@ import { patientBillingData } from '../../../db/schema/patient-billing-data.js';
 import { rgpdConsents } from '../../../db/schema/rgpd-consents.js';
 import { consentDocuments } from '../../../db/schema/consent-documents.js';
 import { patientConsents } from '../../../db/schema/patient-consents.js';
-import { eq, and, ilike, or, sql, getTableColumns } from 'drizzle-orm';
+import { eq, and, ilike, or, sql, count, getTableColumns } from 'drizzle-orm';
 import { professionalPatients } from '../../../db/schema/professional-patients.js';
 import { assertPatientOfProfessional, assertConsentDocumentOf } from '../../../services/ownership.service.js';
 import { getProfileId } from '../../../middleware/auth.js';
@@ -37,13 +37,18 @@ const patientForProfessional = {
   clinicalNotes: professionalPatients.clinicalNotes,
 };
 
+/** Join condition that limits `patients` to the ones linked to this professional. */
+function linkedTo(professionalId: string) {
+  return and(
+    eq(professionalPatients.patientId, patients.id),
+    eq(professionalPatients.professionalId, professionalId),
+  );
+}
+
 function selectPatientsOf(professionalId: string) {
   return db.select(patientForProfessional)
     .from(patients)
-    .innerJoin(professionalPatients, and(
-      eq(professionalPatients.patientId, patients.id),
-      eq(professionalPatients.professionalId, professionalId),
-    ))
+    .innerJoin(professionalPatients, linkedTo(professionalId))
     .$dynamic();
 }
 
@@ -64,25 +69,84 @@ async function assertCanEditSharedPatientData(patientId: string) {
   }
 }
 
-export const list: AppRouteHandler<ListRoute> = async (c) => {
+const PATIENTS_LIST_PAGE_SIZE = 10;
+
+/** `ILIKE` pattern that matches `search` anywhere. Escapes `\`, `%` and `_`: without it, a search for `%` matches every patient. */
+function toContainsPattern(search: string) {
+  return `%${search.replace(/[\\%_]/g, (ch) => `\\${ch}`)}%`;
+}
+
+function patientSearch(search: string | undefined) {
+  if (!search) return undefined;
+  const pattern = toContainsPattern(search);
+  return or(
+    // Same text as the expression of idx_patients_full_name_trgm (db/schema/patients.ts), so Postgres can use that index
+    ilike(sql`(${patients.firstName} || ' ' || ${patients.lastName})`, pattern),
+    ilike(patients.email, pattern),
+  );
+}
+
+/** Per patient: this professional's non-cancelled appointments, the most recent past one and the next scheduled one. */
+function appointmentStatsOf(professionalId: string) {
+  return db.select({
+    patientId: appointments.patientId,
+    appointmentsCount: sql`count(*) filter (where ${appointments.status} <> 'cancelled')`.as('appointments_count'),
+    lastAppointmentAt: sql`max(${appointments.startAt}) filter (where ${appointments.status} <> 'cancelled' and ${appointments.startAt} <= now())`
+      .mapWith(appointments.startAt).as('last_appointment_at'),
+    nextAppointmentAt: sql`min(${appointments.startAt}) filter (where ${appointments.status} = 'scheduled' and ${appointments.startAt} > now())`
+      .mapWith(appointments.startAt).as('next_appointment_at'),
+  })
+    .from(appointments)
+    .where(eq(appointments.professionalId, professionalId))
+    .groupBy(appointments.patientId)
+    .as('appt_stats');
+}
+
+function activeBonoStatsOf(professionalId: string) {
+  return db.select({ patientId: bonos.patientId, activeBonosCount: count().as('active_bonos_count') })
+    .from(bonos)
+    .where(and(eq(bonos.professionalId, professionalId), eq(bonos.status, 'active')))
+    .groupBy(bonos.patientId)
+    .as('bono_stats');
+}
+
+export const patientsList: AppRouteHandler<PatientsListRoute> = async (c) => {
   const profileId = getProfileId(c);
-  const { page, per_page, search } = c.req.valid('query');
-  const offset = (page - 1) * per_page;
+  const { page, search } = c.req.valid('query');
+  const searchCondition = patientSearch(search);
+  const apptStats = appointmentStatsOf(profileId);
+  const bonoStats = activeBonoStatsOf(profileId);
 
-  const pattern = search ? `%${search.replace(/[\\%_]/g, (ch) => `\\${ch}`)}%` : '';
-  const searchCondition = search
-    ? or(
-      ilike(patients.firstName, pattern),
-      ilike(patients.lastName, pattern),
-      ilike(patients.nie, pattern),
-    )
-    : undefined;
+  const [data, [{ total }]] = await Promise.all([
+    db.select({
+      id: patients.id,
+      firstName: patients.firstName,
+      lastName: patients.lastName,
+      email: patients.email,
+      phone: patients.phone,
+      contactMethod: patients.contactMethod,
+      appointmentsCount: sql`coalesce(${apptStats.appointmentsCount}, 0)`.mapWith(Number),
+      activeBonosCount: sql`coalesce(${bonoStats.activeBonosCount}, 0)`.mapWith(Number),
+      // One RGPD record per patient, shared by all their professionals
+      rgpdSigned: sql<boolean>`coalesce(${rgpdConsents.signed}, false)`,
+      nextAppointmentAt: apptStats.nextAppointmentAt,
+    })
+      .from(patients)
+      .innerJoin(professionalPatients, linkedTo(profileId))
+      .leftJoin(apptStats, eq(apptStats.patientId, patients.id))
+      .leftJoin(bonoStats, eq(bonoStats.patientId, patients.id))
+      .leftJoin(rgpdConsents, eq(rgpdConsents.patientId, patients.id))
+      .where(searchCondition)
+      .orderBy(sql`${apptStats.lastAppointmentAt} desc nulls last`, patients.lastName, patients.firstName, patients.id)
+      .limit(PATIENTS_LIST_PAGE_SIZE)
+      .offset((page - 1) * PATIENTS_LIST_PAGE_SIZE),
+    db.select({ total: count() })
+      .from(patients)
+      .innerJoin(professionalPatients, linkedTo(profileId))
+      .where(searchCondition),
+  ]);
 
-  const results = await selectPatientsOf(profileId)
-    .where(searchCondition)
-    .orderBy(patients.lastName, patients.firstName)
-    .limit(per_page).offset(offset);
-  return c.json({ data: results, page, per_page }, HttpStatusCodes.OK);
+  return c.json({ data, total, page, per_page: PATIENTS_LIST_PAGE_SIZE }, HttpStatusCodes.OK);
 };
 
 export const create: AppRouteHandler<CreateRoute> = async (c) => {

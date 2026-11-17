@@ -3,7 +3,7 @@ import * as routes from './patients.routes.js';
 import * as handlers from './patients.handlers.js';
 
 const router = createRouter()
-  .openapi(routes.list, handlers.list)
+  .openapi(routes.patientsList, handlers.patientsList)
   .openapi(routes.create, handlers.create)
   .openapi(routes.getOne, handlers.getOne)
   .openapi(routes.update, handlers.update)
