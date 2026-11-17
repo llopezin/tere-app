@@ -1,6 +1,7 @@
 import { cors } from 'hono/cors';
 import { logger } from 'hono/logger';
-import { onError, notFound } from 'stoker/middlewares';
+import { notFound } from 'stoker/middlewares';
+import { onError } from './middleware/error-handler.js';
 import createApp from './lib/create-app.js';
 import configureOpenAPI from './lib/configure-open-api.js';
 import { auth } from './lib/auth.js';
@@ -40,5 +41,6 @@ app.notFound(notFound);
 
 export type { PatientAppType } from './routes/patient/patient.index.js';
 export type { ProfessionalAppType } from './routes/professional/professional.index.js';
+export type { ApiErrorCode } from './middleware/error-handler.js';
 
 export default app;

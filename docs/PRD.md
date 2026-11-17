@@ -38,6 +38,7 @@ Features user app
 Calendario de citas disponibles
 
 - navegar por semanas presente y futura
+- solo se pueden reservar citas desde ahora hasta 3 meses vista (hasta el final del día de hoy + 3 meses, hora de Madrid)
 - elegir cita disponible
 - formulario de datos personales
 - una vez pasada descargar factura

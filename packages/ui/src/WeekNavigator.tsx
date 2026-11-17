@@ -6,6 +6,7 @@ interface WeekNavigatorProps {
   onPrevious: () => void;
   onNext: () => void;
   previousDisabled?: boolean;
+  nextDisabled?: boolean;
   className?: string;
 }
 
@@ -17,6 +18,7 @@ export function WeekNavigator({
   onPrevious,
   onNext,
   previousDisabled,
+  nextDisabled,
   className,
 }: WeekNavigatorProps) {
   return (
@@ -31,7 +33,13 @@ export function WeekNavigator({
         <ChevronLeft className="size-4" />
       </button>
       <span className="text-sm font-medium text-text">{label}</span>
-      <button type="button" aria-label="Semana siguiente" onClick={onNext} className={arrowStyles}>
+      <button
+        type="button"
+        aria-label="Semana siguiente"
+        disabled={nextDisabled}
+        onClick={onNext}
+        className={arrowStyles}
+      >
         <ChevronRight className="size-4" />
       </button>
     </div>

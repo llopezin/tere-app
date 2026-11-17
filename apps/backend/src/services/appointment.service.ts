@@ -29,7 +29,7 @@ export interface CreateAppointmentData {
 export async function verifyRgpdConsent(patientId: string): Promise<void> {
   const [consent] = await db.select().from(rgpdConsents)
     .where(and(eq(rgpdConsents.patientId, patientId), eq(rgpdConsents.signed, true)));
-  if (!consent) throw new AppError(403, 'Patient must sign RGPD consent before booking');
+  if (!consent) throw new AppError(403, 'Patient must sign RGPD consent before booking', 'RGPD_CONSENT_REQUIRED');
 }
 
 /**
@@ -55,7 +55,7 @@ export async function checkOverlap(
     .where(and(...conditions))
     .limit(1);
   if (overlapping.length > 0) {
-    throw new AppError(409, 'Time slot overlaps with an existing appointment');
+    throw new AppError(409, 'Time slot overlaps with an existing appointment', 'SLOT_UNAVAILABLE');
   }
 
   const overlappingBlocked = await db.select({ id: blockedTimes.id })
@@ -67,7 +67,7 @@ export async function checkOverlap(
     ))
     .limit(1);
   if (overlappingBlocked.length > 0) {
-    throw new AppError(409, 'Time slot overlaps with a blocked time');
+    throw new AppError(409, 'Time slot overlaps with a blocked time', 'SLOT_UNAVAILABLE');
   }
 }
 
