@@ -38,6 +38,7 @@ export const create = createRoute({
     [HttpStatusCodes.CREATED]: jsonContent(selectBlockedTimeSchema, 'The created blocked time'),
     [HttpStatusCodes.UNAUTHORIZED]: jsonContent(createMessageObjectSchema('Unauthorized'), 'Unauthorized'),
     [HttpStatusCodes.FORBIDDEN]: jsonContent(createMessageObjectSchema('Insufficient permissions'), 'Insufficient permissions'),
+    [HttpStatusCodes.CONFLICT]: jsonContent(createMessageObjectSchema('Overlaps an appointment'), 'Overlaps an appointment'),
     [HttpStatusCodes.UNPROCESSABLE_ENTITY]: jsonContent(createMessageObjectSchema('Validation error'), 'Validation error'),
   },
 });

@@ -196,7 +196,7 @@ Custom auth endpoints implemented in Hono. JWT-based with bcrypt password hashin
 | Method | Path | Description | Role | Impl |
 |--------|------|-------------|------|------|
 | `GET` | `/blocked-times` | List blocked times. Supports `?from=&to=` | Professional | Drizzle query |
-| `POST` | `/blocked-times` | Create a new blocked time range | Professional | Drizzle query |
+| `POST` | `/blocked-times` | Create a new blocked time range. 409 if it overlaps a non-cancelled appointment; `endAt` must be after `startAt` | Professional | Drizzle query |
 | `DELETE` | `/blocked-times/:id` | Remove a blocked time | Professional | Drizzle query |
 
 **Request body (POST):**

@@ -528,6 +528,18 @@ describe('Business rules and shared data', () => {
     expect(await sessionsUsed(bonoP1.id)).toBe(0);
   });
 
+  it('a blocked time cannot overlap an appointment', async () => {
+    // apptP1A: day 5, 10:00-11:00 UTC
+    const block = (startHour: number, endHour: number) => call(A, 'POST', `${PRO}/blocked-times`, {
+      json: { startAt: futureDate(5, startHour).toISOString(), endAt: futureDate(5, endHour).toISOString() },
+    });
+    expect((await block(9, 11)).status).toBe(409);
+    expect((await block(11, 12)).status).toBe(201);
+
+    await call(A, 'PATCH', `${PRO}/appointments/${apptP1A.id}/cancel`);
+    expect((await block(9, 11)).status).toBe(201);
+  });
+
   it('shared billing and RGPD data of a patient with an account are read-only for professionals', async () => {
     const billing = { billingName: 'Otro nombre', addressStreet: 'x', addressPostal: '28001', addressCity: 'Madrid', addressProvince: 'Madrid' };
     expect((await call(A, 'PUT', `${PRO}/patients/${P1.profileId}/billing-data`, { json: billing })).status).toBe(403);
