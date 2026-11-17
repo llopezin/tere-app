@@ -1,17 +1,6 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import {
-  Ban,
-  Calendar,
-  Clock,
-  Euro,
-  Mail,
-  MessageCircle,
-  MessageSquare,
-  SquarePen,
-  User,
-  type LucideIcon,
-} from "lucide-react";
+import { Ban, Calendar, Clock, Euro, SquarePen, User } from "lucide-react";
 import { Modal } from "@fisio-app/ui/Modal";
 import { Button } from "@fisio-app/ui/Button";
 import { Divider } from "@fisio-app/ui/Divider";
@@ -20,12 +9,7 @@ import { StatusBadge } from "@fisio-app/ui/StatusBadge";
 import { SHORT_MONTHS } from "@fisio-app/ui/lib/week";
 import type { CalendarAppointment } from "@/api/calendar-appointments";
 import { appointmentDetailQueryOptions, useCancelAppointment } from "@/api/appointment-detail";
-
-const CONTACT_METHODS: Record<"email" | "sms" | "whatsapp", { icon: LucideIcon; label: string }> = {
-  email: { icon: Mail, label: "Email" },
-  sms: { icon: MessageSquare, label: "SMS" },
-  whatsapp: { icon: MessageCircle, label: "WhatsApp" },
-};
+import { CONTACT_METHODS } from "../../-components/contact-method";
 
 const priceFormat = new Intl.NumberFormat("es-ES", { style: "currency", currency: "EUR" });
 

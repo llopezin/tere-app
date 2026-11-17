@@ -27,7 +27,14 @@ export function PanelTabs() {
           <Calendar className="size-4" />
           Calendario
         </Link>
-        <DisabledTab icon={Users} label="Pacientes" />
+        <Link
+          to="/patients"
+          className={`${tabStyles} text-text-secondary hover:text-text`}
+          activeProps={{ className: "border-primary-600! text-primary-600!" }}
+        >
+          <Users className="size-4" />
+          Pacientes
+        </Link>
         <DisabledTab icon={Euro} label="Facturación" />
         <Link
           to="/ajustes/integraciones"
