@@ -3,6 +3,8 @@ import { Avatar } from "@fisio-app/ui/Avatar";
 import { Badge } from "@fisio-app/ui/Badge";
 import { Button } from "@fisio-app/ui/Button";
 import { Card } from "@fisio-app/ui/Card";
+import { EmailLink } from "@fisio-app/ui/EmailLink";
+import { PhoneLink } from "@fisio-app/ui/PhoneLink";
 import { initialsOf } from "@fisio-app/ui/lib/initials";
 import { formatDayMonth, formatTime } from "@fisio-app/ui/lib/week";
 import type { PatientListItem } from "@/api/patients-list";
@@ -33,12 +35,12 @@ export function PatientCard({ patient }: { patient: PatientListItem }) {
             {patient.email && (
               <span className="flex min-w-0 items-center gap-1.5">
                 <Mail className="size-3.5 shrink-0" />
-                <span className="truncate">{patient.email}</span>
+                <EmailLink email={patient.email} className="truncate" />
               </span>
             )}
             <span className="flex items-center gap-1.5">
               <Phone className="size-3.5 shrink-0" />
-              {patient.phone}
+              <PhoneLink phone={patient.phone} />
             </span>
           </div>
         </div>

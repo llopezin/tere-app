@@ -5,6 +5,8 @@ import { Modal } from "@fisio-app/ui/Modal";
 import { Button } from "@fisio-app/ui/Button";
 import { Divider } from "@fisio-app/ui/Divider";
 import { DetailItem } from "@fisio-app/ui/DetailItem";
+import { EmailLink } from "@fisio-app/ui/EmailLink";
+import { PhoneLink } from "@fisio-app/ui/PhoneLink";
 import { StatusBadge } from "@fisio-app/ui/StatusBadge";
 import { formatDayMonth, formatTime } from "@fisio-app/ui/lib/week";
 import type { CalendarAppointment } from "@/api/calendar-appointments";
@@ -104,9 +106,17 @@ function AppointmentDetail({
           <div className="grid gap-4 sm:grid-cols-2">
             <DetailItem label="Nombre">{appointment.patientName}</DetailItem>
             <DetailItem label="Email">
-              {detail ? (detail.patient.email ?? "—") : <Skeleton />}
+              {!detail ? (
+                <Skeleton />
+              ) : detail.patient.email ? (
+                <EmailLink email={detail.patient.email} />
+              ) : (
+                "—"
+              )}
             </DetailItem>
-            <DetailItem label="Teléfono">{detail ? detail.patient.phone : <Skeleton />}</DetailItem>
+            <DetailItem label="Teléfono">
+              {detail ? <PhoneLink phone={detail.patient.phone} /> : <Skeleton />}
+            </DetailItem>
             <DetailItem label="Método de Contacto">
               {!detail ? (
                 <Skeleton />
