@@ -33,6 +33,12 @@ Como profesional:
 19. quiero poder ver facilmente que documentos asignados al paciente estan pendientes de firma
 20. quiero poder ofrecer mi dispositivo al paciente para que en el pueda firmar los documentos pendientes
 
+Reglas de negocio
+
+- Cada paciente tiene un DNI/NIE unico: no puede haber dos pacientes con el mismo DNI/NIE.
+- El DNI/NIE es obligatorio para reservar: el formulario de reserva lo exige y no se puede reservar una cita si el paciente no tiene el DNI/NIE guardado.
+- Cada paciente tiene un email y un telefono obligatorios y unicos: no puede haber dos pacientes con el mismo email ni con el mismo telefono. El registro exige telefono (el email ya lo exige el login), el profesional no puede crear una ficha sin email, y un registro con un email o telefono existente se rechaza con "Usuario existente, inicia sesión".
+
 Features user app
 
 Calendario de citas disponibles
