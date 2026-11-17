@@ -5,3 +5,4 @@ dist
 docs/*
 test-results/
 playwright-report/
+.playwright-mcp/
