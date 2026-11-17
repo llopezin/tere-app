@@ -21,10 +21,10 @@ test.describe('Auth — sign up', () => {
     await expect(page.getByText('María Martínez')).toBeVisible();
   });
 
-  test('an email that is already registered shows an error', async ({ page, patient: _ }) => {
+  test('an email that is already registered asks to sign in', async ({ page, patient: _ }) => {
     await signUp(page, PATIENT.email);
 
-    await expect(page.getByRole('alert')).toBeVisible();
+    await expect(page.getByRole('alert')).toHaveText('Usuario existente, inicia sesión');
     await expect(page).toHaveURL('/');
   });
 });

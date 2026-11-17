@@ -15,9 +15,9 @@ export const patients = pgTable("patients", {
     .references(() => user.id, { onDelete: "set null" }),
   firstName: text("first_name").notNull(),
   lastName: text("last_name").notNull(),
-  nie: text("nie"),
-  phone: text("phone").notNull(),
-  email: text("email"),
+  nie: text("nie").unique(),
+  phone: text("phone").notNull().unique(),
+  email: text("email").notNull().unique(),
   dateOfBirth: date("date_of_birth"),
   addressStreet: text("address_street"),
   addressPostal: text("address_postal"),
@@ -45,7 +45,8 @@ const patientDataSchema = createInsertSchema(patients, {
   lastName: (schema) => schema.min(1),
   phone: () => phoneSchema,
   nie: () => nieSchema.optional(),
-  email: (schema) => schema.email().optional(),
+  // Emails are unique per patient: lowercase them like Better Auth does for user.email
+  email: (schema) => schema.email().transform((value) => value.toLowerCase()),
 }).omit({
   id: true,
   authUserId: true,

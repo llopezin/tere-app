@@ -8,8 +8,10 @@ import type { InferInsertModel } from 'drizzle-orm';
 import { db } from '../db/index.js';
 import { professionals } from '../db/schema/professionals.js';
 import { patients } from '../db/schema/patients.js';
+import { isPatientFieldTaken } from '../services/patient.service.js';
 import * as schema from '../db/schema/auth-schema.js';
 import { env, trustedFrontendOrigins } from '../config/env.js';
+import { phoneSchema } from '@fisio-app/validators';
 
 type NewProfessional = InferInsertModel<typeof professionals>;
 type NewPatient = InferInsertModel<typeof patients>;
@@ -36,7 +38,9 @@ const createProfileByRole: Record<Role, (input: NewUserProfileInput) => Promise<
     return prof.id;
   },
   [ROLES.patient]: async ({ user, firstName, lastName }) => {
-    const patValues: NewPatient = { authUserId: user.id, firstName, lastName, email: user.email, phone: user.phone || '' };
+    // Sign-up validates the phone (additionalFields.phone), so a missing one is a bug, not user input
+    if (!user.phone) throw new Error('Patient sign-up without a phone');
+    const patValues: NewPatient = { authUserId: user.id, firstName, lastName, email: user.email, phone: user.phone };
     const [patient] = await db.insert(patients).values(patValues).returning({ id: patients.id });
     return patient.id;
   },
@@ -101,10 +105,12 @@ export const auth = betterAuth({
         required: true,
         input: true,
       },
+      // Every patient must be reachable by phone; professionals are created server-side and skip this
       phone: {
         type: 'string',
-        required: false,
+        required: true,
         input: true,
+        validator: { input: phoneSchema },
       },
     },
   },
@@ -134,6 +140,14 @@ export const auth = betterAuth({
     },
     user: {
       create: {
+        // Runs before the auth user exists: a duplicate caught in `after` would leave a user without a patient row
+        before: async (user) => {
+          if (user.role !== ROLES.patient) return;
+          const phone = asString(user.phone);
+          if (await isPatientFieldTaken('email', user.email) || (phone && await isPatientFieldTaken('phone', phone))) {
+            throw new APIError('CONFLICT', { message: 'Usuario existente, inicia sesión' });
+          }
+        },
         after: async (user) => {
           if (!isRole(user.role)) throw new Error(`Unknown role: ${String(user.role)}`);
           const profileId = await createProfileByRole[user.role]({

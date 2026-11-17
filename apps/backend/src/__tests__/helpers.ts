@@ -32,6 +32,9 @@ export async function createProfessional(name?: string, data: Partial<typeof pro
   return prof;
 }
 
+// Patient phones are unique; prefix 7 so they never match the patient actors' phones (http.ts, prefix 6)
+let phoneCount = 0;
+
 export async function createPatient(professionalId: string, data: Partial<typeof patients.$inferInsert> = {}) {
   // Create auth user first
   const userId = crypto.randomUUID();
@@ -48,7 +51,7 @@ export async function createPatient(professionalId: string, data: Partial<typeof
     firstName: 'Test',
     lastName: 'Patient',
     email,
-    phone: '987654321',
+    phone: `7${String(++phoneCount).padStart(8, '0')}`,
     ...data,
   }).returning();
   

@@ -1,6 +1,7 @@
 import { db } from '../db/index.js';
 import { appointments } from '../db/schema/appointments.js';
 import { rgpdConsents } from '../db/schema/rgpd-consents.js';
+import { patients } from '../db/schema/patients.js';
 import { bonos } from '../db/schema/bonos.js';
 import { bonoTransactions } from '../db/schema/bono-transactions.js';
 import { blockedTimes } from '../db/schema/blocked-times.js';
@@ -30,6 +31,15 @@ export async function verifyRgpdConsent(patientId: string): Promise<void> {
   const [consent] = await db.select().from(rgpdConsents)
     .where(and(eq(rgpdConsents.patientId, patientId), eq(rgpdConsents.signed, true)));
   if (!consent) throw new AppError(403, 'Patient must sign RGPD consent before booking');
+}
+
+/**
+ * Verifies that a patient has saved their DNI/NIE, required to book
+ * @throws {AppError} 403 if the DNI/NIE is missing
+ */
+export async function verifyNie(patientId: string): Promise<void> {
+  const [patient] = await db.select({ nie: patients.nie }).from(patients).where(eq(patients.id, patientId));
+  if (!patient?.nie) throw new AppError(403, 'Patient must add their DNI/NIE before booking');
 }
 
 /**
