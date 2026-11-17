@@ -105,7 +105,7 @@ Otros consentimientos
 Un paciente puede reservar citas sin haber firmado otros consentimientos pero el profesional debe ser advertido en un lugar visible de la apicacion
 
 Bonos
-Al reservar una cita se descuenta del bono, aunque al crear cita damos opcion a no restar del bono. Si se cancela una cita se debe devolver al bono. Queremos que el profesional pueda restar una sesion del bono del paciente, esto manda una notificacion al paciente. Es el profesional el que asigna un bono al paciente tras el pago fuera de la aplicacion.
+Al crear una cita, si el paciente tiene un bono activo con sesiones disponibles cuyo tipo de sesion coincide con el de la cita, se descuenta una sesion de ese bono. Si tiene varios, se usa primero el mas antiguo. El profesional, al crear una cita, puede elegir no descontar del bono. Si se cancela una cita se debe devolver al bono. Queremos que el profesional pueda restar una sesion del bono del paciente, esto manda una notificacion al paciente. Es el profesional el que asigna un bono al paciente tras el pago fuera de la aplicacion.
 
 Pagos
 Tanto los pagos de bonos como de sesiones se realizan fuera de la app. La aplicacion unicamente llevara el registro

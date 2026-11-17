@@ -11,8 +11,16 @@ import {
   SLOTS_PER_HOUR,
   SLOT_HEIGHT_PX,
   getBlockPosition,
+  getSlotStart,
   getVisibleHours,
 } from "./calendar-layout";
+
+const slotLabel = new Intl.DateTimeFormat("es-ES", {
+  weekday: "long",
+  day: "numeric",
+  hour: "2-digit",
+  minute: "2-digit",
+});
 
 const COLUMNS =
   "grid grid-cols-[2.75rem_repeat(7,minmax(0,1fr))] md:grid-cols-[4rem_repeat(7,minmax(0,1fr))]";
@@ -22,6 +30,8 @@ interface WeekGridProps {
   appointments: CalendarAppointment[];
   blockedTimes: BlockedTime[];
   onSelectAppointment: (appointment: CalendarAppointment) => void;
+  onSelectSlot: (slotStart: Date) => void;
+  onSelectBlockedTime: (blockedTime: BlockedTime) => void;
 }
 
 export function WeekGrid({
@@ -29,6 +39,8 @@ export function WeekGrid({
   appointments,
   blockedTimes,
   onSelectAppointment,
+  onSelectSlot,
+  onSelectBlockedTime,
 }: WeekGridProps) {
   const days = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
   const today = new Date();
@@ -76,22 +88,38 @@ export function WeekGrid({
 
         {days.map((day) => (
           <div key={toISODate(day)} className="relative">
-            {slotRows.map((slot) => (
-              <div
-                key={slot}
-                style={{ height: SLOT_HEIGHT_PX }}
-                className={cn(
-                  "group flex items-center justify-center border-t",
-                  slot % SLOTS_PER_HOUR === 0 ? "border-border" : "border-border/40",
-                )}
-              >
-                <Plus className="size-3 text-text-muted opacity-0 group-hover:opacity-100" />
-              </div>
-            ))}
+            {slotRows.map((slot) => {
+              const slotStart = getSlotStart(day, hours, slot);
+              return (
+                <button
+                  key={slot}
+                  type="button"
+                  aria-label={`Añadir el ${slotLabel.format(slotStart)}`}
+                  onClick={() => onSelectSlot(slotStart)}
+                  style={{ height: SLOT_HEIGHT_PX }}
+                  className={cn(
+                    "group flex w-full cursor-pointer items-center justify-center border-t hover:bg-primary-50/60",
+                    "focus-visible:bg-primary-50 focus-visible:outline-none",
+                    slot % SLOTS_PER_HOUR === 0 ? "border-border" : "border-border/40",
+                  )}
+                >
+                  <Plus className="size-3 text-text-muted opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100" />
+                </button>
+              );
+            })}
 
             {blockedTimes.map((blocked) => {
               const position = getBlockPosition(blocked.startAt, blocked.endAt, day, hours);
-              return position && <BlockedTimeBlock key={blocked.id} position={position} />;
+              return (
+                position && (
+                  <BlockedTimeBlock
+                    key={blocked.id}
+                    blockedTime={blocked}
+                    position={position}
+                    onSelect={onSelectBlockedTime}
+                  />
+                )
+              );
             })}
 
             {appointments.map((appointment) => {

@@ -30,13 +30,16 @@ export const appointments = pgTable('appointments', {
 
 export const selectAppointmentSchema = createSelectSchema(appointments);
 
-export const insertAppointmentSchema = z.object({
-  patientId: z.string().uuid(),
+/** A patient books for themselves; the matching bono is found by the server. */
+export const bookAppointmentSchema = z.object({
   appointmentTypeId: z.string().uuid(),
   startAt: z.string().datetime(),
   notes: z.string().optional(),
-  bonoId: z.string().uuid().nullable().optional(),
-  useBonoSession: z.boolean().optional().default(true),
+});
+
+export const createCalendarAppointmentSchema = bookAppointmentSchema.extend({
+  patientId: z.string().uuid(),
+  deductFromBono: z.boolean().optional().default(true),
 });
 
 export const updateAppointmentSchema = z.object({

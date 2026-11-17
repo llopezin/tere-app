@@ -3,6 +3,8 @@ import { client } from "@/lib/client";
 import { ApiError } from "@/lib/api-error";
 import { calendarAppointmentsQueryKey } from "./calendar-appointments";
 import { patientsListQueryKey } from "./patients-list";
+import { patientOptionsQueryKey } from "./patient-options";
+import { patientBonosQueryKey } from "./patient-bonos";
 
 async function fetchAppointmentDetail(id: string) {
   const res = await client.appointments[":id"].$get({ param: { id } });
@@ -33,6 +35,9 @@ export function useCancelAppointment() {
         queryClient.invalidateQueries({ queryKey: appointmentDetailQueryOptions(id).queryKey }),
         // The cancelled appointment changes the patient's count and next appointment.
         queryClient.invalidateQueries({ queryKey: patientsListQueryKey }),
+        queryClient.invalidateQueries({ queryKey: patientOptionsQueryKey }),
+        // A cancelled appointment gives its bono session back.
+        queryClient.invalidateQueries({ queryKey: patientBonosQueryKey }),
       ]),
   });
 }

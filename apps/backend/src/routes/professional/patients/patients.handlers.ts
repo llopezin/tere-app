@@ -1,6 +1,7 @@
 import type { AppRouteHandler } from '../../../lib/types.js';
 import type {
   PatientsListRoute,
+  PatientOptionsRoute,
   CreateRoute,
   GetOneRoute,
   UpdateRoute,
@@ -101,6 +102,11 @@ function appointmentStatsOf(professionalId: string) {
     .as('appt_stats');
 }
 
+/** Most recent past appointment first, then patients without one; names and id keep the order stable. */
+function byLastAppointment(apptStats: ReturnType<typeof appointmentStatsOf>) {
+  return [sql`${apptStats.lastAppointmentAt} desc nulls last`, patients.lastName, patients.firstName, patients.id];
+}
+
 function activeBonoStatsOf(professionalId: string) {
   return db.select({ patientId: bonos.patientId, activeBonosCount: count().as('active_bonos_count') })
     .from(bonos)
@@ -136,7 +142,7 @@ export const patientsList: AppRouteHandler<PatientsListRoute> = async (c) => {
       .leftJoin(bonoStats, eq(bonoStats.patientId, patients.id))
       .leftJoin(rgpdConsents, eq(rgpdConsents.patientId, patients.id))
       .where(searchCondition)
-      .orderBy(sql`${apptStats.lastAppointmentAt} desc nulls last`, patients.lastName, patients.firstName, patients.id)
+      .orderBy(...byLastAppointment(apptStats))
       .limit(PATIENTS_LIST_PAGE_SIZE)
       .offset((page - 1) * PATIENTS_LIST_PAGE_SIZE),
     db.select({ total: count() })
@@ -146,6 +152,30 @@ export const patientsList: AppRouteHandler<PatientsListRoute> = async (c) => {
   ]);
 
   return c.json({ data, total, page, per_page: PATIENTS_LIST_PAGE_SIZE }, HttpStatusCodes.OK);
+};
+
+const PATIENT_OPTIONS_LIMIT = 20;
+
+export const patientOptions: AppRouteHandler<PatientOptionsRoute> = async (c) => {
+  const profileId = getProfileId(c);
+  const { search } = c.req.valid('query');
+  const apptStats = appointmentStatsOf(profileId);
+
+  const data = await db.select({
+    id: patients.id,
+    firstName: patients.firstName,
+    lastName: patients.lastName,
+    rgpdSigned: sql`coalesce(${rgpdConsents.signed}, false)`.mapWith(Boolean),
+  })
+    .from(patients)
+    .innerJoin(professionalPatients, linkedTo(profileId))
+    .leftJoin(apptStats, eq(apptStats.patientId, patients.id))
+    .leftJoin(rgpdConsents, eq(rgpdConsents.patientId, patients.id))
+    .where(search === undefined ? undefined : ilike(patientFullName, toContainsPattern(search)))
+    .orderBy(...byLastAppointment(apptStats))
+    .limit(PATIENT_OPTIONS_LIMIT);
+
+  return c.json({ data }, HttpStatusCodes.OK);
 };
 
 export const create: AppRouteHandler<CreateRoute> = async (c) => {

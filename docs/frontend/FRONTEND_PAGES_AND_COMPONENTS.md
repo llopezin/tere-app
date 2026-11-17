@@ -102,7 +102,7 @@ Two separate layouts based on role: **Professional** and **Patient**.
 | **WeekCalendar** | Full weekly calendar grid (7 days × time slots). Shows appointments and blocked times as colored blocks. Navigate by week. |
 | **DayColumn** | Single day column in the calendar. Renders time slots and appointment blocks. |
 | **AppointmentBlock** | Clickable block on the calendar representing an appointment. Color-coded by status. |
-| **BlockedTimeBlock** | Gray block on the calendar representing blocked time. |
+| **BlockedTimeBlock** | Gray block on the calendar representing blocked time. Click opens **BlockedTimeModal** (range + "Desbloquear", `DELETE /blocked-times/:id`). |
 | **TimeSlotPicker** | Grid of available time slots for booking. Supports multi-select (batch booking). |
 | **DateNavigator** | Week/month navigation arrows with current date range label. |
 
@@ -110,7 +110,10 @@ Two separate layouts based on role: **Professional** and **Patient**.
 
 | Component | Description |
 |-----------|-------------|
-| **CreateAppointmentModal** | Modal form: select patient, type, date/time, optional notes, bono selector. |
+| **AddToCalendarModal** | Opens from a free 15-min slot (tab "Cita") or the toolbar "Bloquear horario" button (tab "Bloquear horario"); `SegmentedTabs` switch between the two forms. |
+| **AppointmentForm** | Patient (`PatientPicker`), active appointment type, "Descontar del bono disponible" (only when the patient has a bono of that type with sessions left), notes. `POST /calendar-appointments`. |
+| **PatientPicker** | `SearchSelect` over `GET /patient-options?search=` (300 ms debounce, same order as the patients list). Patients without RGPD are disabled. |
+| **BlockTimeForm** | Desde / Hasta date and time, "Todo el día" (00:00 of the first day to 00:00 after the last). `POST /blocked-times`; 409 if it overlaps an appointment. |
 | **BatchAppointmentModal** | Modal: select patient + type, then pick multiple slots from the calendar. |
 | **RecurringAppointmentModal** | Modal: select patient + type + start date + recurrence rule (weekly × N). |
 | **AppointmentCard** | Summary card showing patient name, time, type, status badge. Used in lists. |
@@ -177,6 +180,8 @@ Two separate layouts based on role: **Professional** and **Patient**.
 |-----------|-------------|
 | **Input** | Styled text input with label, error state, optional icon. |
 | **Select** | Styled select/dropdown. |
+| **SearchSelect** | Select with a search box in its dropdown; the caller filters the options. Options can be disabled with a hint. |
+| **SegmentedTabs** | Equal-width tabs on a light track (client-app "Próximas Citas / Historial", calendar "Cita / Bloquear horario"). |
 | **Button** | Primary, secondary, danger, ghost variants. Loading state. |
 | **Modal** | Centered modal with backdrop, close button, header/body/footer slots. |
 | **Badge** | Small colored label (used for statuses). |

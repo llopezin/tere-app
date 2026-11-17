@@ -1,7 +1,7 @@
 import { createRoute, z } from '@hono/zod-openapi';
 import {
   selectAppointmentSchema,
-  insertAppointmentSchema,
+  createCalendarAppointmentSchema,
   updateAppointmentSchema,
   batchAppointmentSchema,
   recurringAppointmentSchema,
@@ -41,20 +41,20 @@ export const calendarList = createRoute({
   },
 });
 
-// POST /
-export const create = createRoute({
+// POST /calendar-appointments
+export const calendarCreate = createRoute({
   method: 'post',
-  path: '/appointments',
+  path: '/calendar-appointments',
   tags,
-  summary: 'Create a single appointment',
+  summary: "Create an appointment; deducts a session from the patient's matching bono unless deductFromBono is false",
   request: {
-    body: jsonContentRequired(insertAppointmentSchema, 'Appointment to create'),
+    body: jsonContentRequired(createCalendarAppointmentSchema, 'Appointment to create'),
   },
   responses: {
     [HttpStatusCodes.CREATED]: jsonContent(selectAppointmentSchema, 'The created appointment'),
     [HttpStatusCodes.UNAUTHORIZED]: jsonContent(createMessageObjectSchema('Unauthorized'), 'Unauthorized'),
     [HttpStatusCodes.FORBIDDEN]: jsonContent(createMessageObjectSchema('RGPD consent required'), 'RGPD consent required'),
-    [HttpStatusCodes.NOT_FOUND]: jsonContent(createMessageObjectSchema('Appointment type not found'), 'Appointment type not found'),
+    [HttpStatusCodes.NOT_FOUND]: jsonContent(createMessageObjectSchema('Patient or appointment type not found'), 'Patient or appointment type not found'),
     [HttpStatusCodes.CONFLICT]: jsonContent(createMessageObjectSchema('Time slot overlaps'), 'Time slot overlaps'),
   },
 });
@@ -195,7 +195,7 @@ export const noShow = createRoute({
 });
 
 export type CalendarListRoute = typeof calendarList;
-export type CreateRoute = typeof create;
+export type CalendarCreateRoute = typeof calendarCreate;
 export type BatchRoute = typeof batch;
 export type RecurringRoute = typeof recurring;
 export type GetOneRoute = typeof getOne;

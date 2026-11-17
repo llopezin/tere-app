@@ -5,7 +5,7 @@ test.use({ signRgpd: true });
 test('shows a loader, never the stale list, until the just-booked appointment arrives', async ({ page, authedPatient: _ }) => {
   await page.goto('/dashboard');
   await page.getByRole('button', { name: 'Mis Citas' }).click();
-  await expect(page.getByRole('button', { name: 'Próximas Citas (0)' })).toBeVisible();
+  await expect(page.getByRole('tab', { name: 'Próximas Citas (0)' })).toBeVisible();
 
   await page.getByRole('button', { name: 'Reservar Cita' }).click();
   await pickFirstSlot(page);
@@ -26,6 +26,6 @@ test('shows a loader, never the stale list, until the just-booked appointment ar
   await expect(page.getByText('No tienes citas programadas')).toHaveCount(0);
 
   releaseList();
-  await expect(page.getByRole('button', { name: 'Próximas Citas (1)' })).toBeVisible();
+  await expect(page.getByRole('tab', { name: 'Próximas Citas (1)' })).toBeVisible();
   await expect(page.getByText('Programada')).toBeVisible();
 });

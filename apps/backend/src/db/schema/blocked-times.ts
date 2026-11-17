@@ -25,4 +25,4 @@ export const insertBlockedTimeSchema = createInsertSchema(blockedTimes).omit({
 }).extend({
   startAt: z.string().datetime(),
   endAt: z.string().datetime(),
-});
+}).refine((b) => new Date(b.endAt) > new Date(b.startAt), { message: 'endAt must be after startAt', path: ['endAt'] });

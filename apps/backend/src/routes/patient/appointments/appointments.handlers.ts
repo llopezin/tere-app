@@ -10,7 +10,7 @@ import { getProfileId } from '../../../middleware/auth.js';
 import { AppError } from '../../../middleware/error-handler.js';
 import * as appointmentService from '../../../services/appointment.service.js';
 import * as gcalSync from '../../../services/google-calendar/sync.js';
-import { assertAppointmentOf, assertBonoOf, linkPatientToProfessional } from '../../../services/ownership.service.js';
+import { assertAppointmentOf, linkPatientToProfessional } from '../../../services/ownership.service.js';
 
 export const list: AppRouteHandler<ListRoute> = async (c) => {
   const patientId = getProfileId(c);
@@ -44,10 +44,6 @@ export const create: AppRouteHandler<CreateRoute> = async (c) => {
   if (!apptType) throw new AppError(404, 'Appointment type not found');
   const professionalId = apptType.professionalId;
 
-  if (body.bonoId) {
-    await assertBonoOf({ professionalId, patientId, appointmentTypeId: body.appointmentTypeId }, body.bonoId);
-  }
-
   const startAt = new Date(body.startAt);
   const endAt = new Date(startAt.getTime() + apptType.durationMinutes * 60 * 1000);
 
@@ -55,16 +51,14 @@ export const create: AppRouteHandler<CreateRoute> = async (c) => {
   await appointmentService.checkOverlap(professionalId, startAt, endAt);
 
   const result = await db.transaction(async (tx) => {
-    const appt = await appointmentService.createSingleAppointment(tx, professionalId, {
+    const appt = await appointmentService.createAppointment(tx, professionalId, {
       patientId,
       appointmentTypeId: body.appointmentTypeId,
       startAt,
       endAt,
       price: apptType.price,
       notes: body.notes,
-      bonoId: body.bonoId,
-      useBonoSession: body.useBonoSession ?? true,
-    });
+    }, { deductFromBono: true });
     // Booking makes the patient one of this professional's patients
     await linkPatientToProfessional(professionalId, patientId, tx);
     return appt;

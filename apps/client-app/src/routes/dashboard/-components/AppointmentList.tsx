@@ -2,6 +2,7 @@ import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { CalendarClock, History } from "lucide-react";
 import { Card } from "@fisio-app/ui";
+import { SegmentedTabs } from "@fisio-app/ui/SegmentedTabs";
 import { patientAppointmentsQueryOptions } from "@/api/patient-appointments";
 import { AppointmentCard } from "./AppointmentCard";
 import { AppointmentListSkeleton } from "./AppointmentListSkeleton";
@@ -46,33 +47,34 @@ export function AppointmentList() {
         Consulta tu historial y descarga tus facturas
       </p>
 
-      {/* Sub-tabs */}
-      <div className="mt-4 flex gap-1 rounded-lg bg-background p-1">
-        <button
-          onClick={() => setSubTab("upcoming")}
-          className={`flex flex-1 items-center justify-center gap-1.5 rounded-md px-3 py-2 text-sm font-medium transition-colors ${
-            subTab === "upcoming"
-              ? "bg-surface text-primary-600 shadow-sm"
-              : "text-text-secondary hover:text-text"
-          }`}
-        >
-          <CalendarClock className="size-4" />
-          Próximas Citas
-          {!isLoading && <span className="ml-1 text-xs">({upcoming.length})</span>}
-        </button>
-        <button
-          onClick={() => setSubTab("history")}
-          className={`flex flex-1 items-center justify-center gap-1.5 rounded-md px-3 py-2 text-sm font-medium transition-colors ${
-            subTab === "history"
-              ? "bg-surface text-primary-600 shadow-sm"
-              : "text-text-secondary hover:text-text"
-          }`}
-        >
-          <History className="size-4" />
-          Historial
-          {!isLoading && <span className="ml-1 text-xs">({history.length})</span>}
-        </button>
-      </div>
+      <SegmentedTabs
+        className="mt-4"
+        label="Mis citas"
+        value={subTab}
+        onValueChange={setSubTab}
+        tabs={[
+          {
+            value: "upcoming",
+            icon: <CalendarClock className="size-4" />,
+            label: (
+              <>
+                Próximas Citas
+                {!isLoading && <span className="ml-1 text-xs">({upcoming.length})</span>}
+              </>
+            ),
+          },
+          {
+            value: "history",
+            icon: <History className="size-4" />,
+            label: (
+              <>
+                Historial
+                {!isLoading && <span className="ml-1 text-xs">({history.length})</span>}
+              </>
+            ),
+          },
+        ]}
+      />
 
       {/* List */}
       <div className="mt-4 flex flex-col gap-3">
