@@ -35,9 +35,12 @@ export const patients = pgTable("patients", {
 }, (t) => [
   // Trigram indexes for the `ILIKE '%x%'` search of the professional's patient list (pg_trgm).
   index("idx_patients_email_trgm").using("gin", sql`${t.email} gin_trgm_ops`),
-  // The patient list search must use this exact expression (literal ' ', not a parameter) for Postgres to use the index
+  // Must match `patientFullName` below character for character (literal ' ', not a parameter), or Postgres won't use the index
   index("idx_patients_full_name_trgm").using("gin", sql`(${t.firstName} || ' ' || ${t.lastName}) gin_trgm_ops`),
 ]);
+
+/** "First Last". Same expression as idx_patients_full_name_trgm above, so a search on it can use that index. */
+export const patientFullName = sql<string>`(${patients.firstName} || ' ' || ${patients.lastName})`;
 
 export const selectPatientSchema = createSelectSchema(patients);
 

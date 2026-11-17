@@ -6,7 +6,7 @@ import { Button } from "@fisio-app/ui/Button";
 import { Divider } from "@fisio-app/ui/Divider";
 import { DetailItem } from "@fisio-app/ui/DetailItem";
 import { StatusBadge } from "@fisio-app/ui/StatusBadge";
-import { SHORT_MONTHS } from "@fisio-app/ui/lib/week";
+import { formatDayMonth, formatTime } from "@fisio-app/ui/lib/week";
 import type { CalendarAppointment } from "@/api/calendar-appointments";
 import { appointmentDetailQueryOptions, useCancelAppointment } from "@/api/appointment-detail";
 import { CONTACT_METHODS } from "../../-components/contact-method";
@@ -14,11 +14,7 @@ import { CONTACT_METHODS } from "../../-components/contact-method";
 const priceFormat = new Intl.NumberFormat("es-ES", { style: "currency", currency: "EUR" });
 
 function formatDate(date: Date) {
-  return `${date.getDate()} de ${SHORT_MONTHS[date.getMonth()]} ${date.getFullYear()}`;
-}
-
-function formatTime(date: Date) {
-  return date.toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" });
+  return `${formatDayMonth(date)} ${date.getFullYear()}`;
 }
 
 function Skeleton() {

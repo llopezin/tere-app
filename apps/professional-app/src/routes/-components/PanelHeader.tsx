@@ -2,6 +2,7 @@ import { Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowLeft } from "lucide-react";
 import { Avatar } from "@fisio-app/ui/Avatar";
+import { initialsOf } from "@fisio-app/ui/lib/initials";
 import { professionalProfileQueryOptions } from "@/api/professional-profile";
 
 export function PanelHeader() {
@@ -30,7 +31,7 @@ export function PanelHeader() {
                 <p className="text-xs text-text-secondary">{profile.businessName}</p>
               )}
             </div>
-            <Avatar initials={`${profile.firstName[0]}${profile.lastName[0]}`} />
+            <Avatar initials={initialsOf(profile.firstName, profile.lastName)} />
           </div>
         )}
       </div>

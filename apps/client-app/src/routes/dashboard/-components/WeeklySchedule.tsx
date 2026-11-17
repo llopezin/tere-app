@@ -7,6 +7,7 @@ import { DayHeader } from "@fisio-app/ui/DayHeader";
 import {
   DAY_LABELS,
   addDays,
+  formatTime,
   formatWeekRange,
   getWeekStart,
   toISODate,
@@ -163,10 +164,7 @@ export function WeeklySchedule({
                                 : "border-border bg-surface text-text hover:border-primary-600/40 hover:bg-background",
                             )}
                           >
-                            {new Date(slot.start_at).toLocaleTimeString("es-ES", {
-                              hour: "2-digit",
-                              minute: "2-digit",
-                            })}
+                            {formatTime(new Date(slot.start_at))}
                           </button>
                         );
                       })

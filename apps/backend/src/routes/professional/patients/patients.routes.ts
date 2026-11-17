@@ -10,11 +10,10 @@ import { selectPatientBillingDataSchema, upsertBillingDataSchema } from '../../.
 import { selectRgpdConsentSchema, submitConsentSchema } from '../../../db/schema/rgpd-consents.js';
 import { selectPatientConsentSchema, assignConsentSchema } from '../../../db/schema/patient-consents.js';
 import { selectConsentDocumentSchema } from '../../../db/schema/consent-documents.js';
-import { paginationSchema, idParamsSchema, emptyAsUndefined } from '../../../lib/schemas.js';
+import { paginationSchema, idParamsSchema } from '../../../lib/schemas.js';
 
 const tags = ['Professional / Patients'];
 
-// GET /patients-list
 const patientListItemSchema = selectPatientSchema
   .pick({ id: true, firstName: true, lastName: true, email: true, phone: true, contactMethod: true })
   .extend({
@@ -30,9 +29,9 @@ export const patientsList = createRoute({
   tags,
   summary: 'My patients, most recent past appointment first, with optional search by name or email',
   request: {
-    query: z.object({
-      page: z.coerce.number().int().positive().default(1),
-      search: z.preprocess(emptyAsUndefined, z.string().trim().max(100).optional()),
+    query: paginationSchema.pick({ page: true }).extend({
+      // Trimmed first, so a blank search (`?search=%20`) means no search
+      search: z.string().trim().max(100).transform((v) => v || undefined).optional(),
     }),
   },
   responses: {

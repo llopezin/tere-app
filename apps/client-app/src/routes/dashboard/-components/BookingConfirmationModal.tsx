@@ -11,6 +11,7 @@ import { useCreateAppointment } from "@/api/appointments";
 import { rgpdConsentQueryOptions, useAcceptRgpdConsent } from "@/api/rgpd-consent";
 import { phoneSchema, nieSchema } from "@fisio-app/validators";
 import { cn } from "@fisio-app/ui";
+import { formatTime } from "@fisio-app/ui/lib/week";
 
 const DAYS = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
 const MONTHS = [
@@ -31,13 +32,6 @@ const MONTHS = [
 function formatDate(iso: string): string {
   const date = new Date(iso);
   return `${DAYS[date.getDay()]}, ${date.getDate()} de ${MONTHS[date.getMonth()]} ${date.getFullYear()}`;
-}
-
-function formatTime(iso: string): string {
-  return new Date(iso).toLocaleTimeString("es-ES", {
-    hour: "2-digit",
-    minute: "2-digit",
-  });
 }
 
 interface BookingConfirmationModalProps {
@@ -200,7 +194,7 @@ export function BookingConfirmationModal({
           <>
             Revisa los datos de tu cita de {consultationName} con {professionalName} el{" "}
             <strong>{formatDate(slot.startAt)}</strong> a las{" "}
-            <strong>{formatTime(slot.startAt)}</strong>
+            <strong>{formatTime(new Date(slot.startAt))}</strong>
           </>
         ) : undefined
       }
@@ -227,7 +221,7 @@ export function BookingConfirmationModal({
               <div>
                 <p className="text-xs font-medium uppercase text-green-600">Hora</p>
                 <p className="text-sm font-semibold text-green-800">
-                  {formatTime(slot.startAt)} – {formatTime(slot.endAt)}
+                  {formatTime(new Date(slot.startAt))} – {formatTime(new Date(slot.endAt))}
                 </p>
               </div>
               <div>

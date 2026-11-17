@@ -12,7 +12,7 @@ import type {
 } from './appointments.routes.js';
 import { db } from '../../../db/index.js';
 import { appointments } from '../../../db/schema/appointments.js';
-import { patients } from '../../../db/schema/patients.js';
+import { patients, patientFullName } from '../../../db/schema/patients.js';
 import { appointmentTypes } from '../../../db/schema/appointment-types.js';
 import { eq, and, ne, lt, gt, sql } from 'drizzle-orm';
 import { getProfileId } from '../../../middleware/auth.js';
@@ -65,7 +65,7 @@ export const calendarList: AppRouteHandler<CalendarListRoute> = async (c) => {
       endAt: appointments.endAt,
       // Cancelled rows are filtered out below
       status: sql<'scheduled' | 'completed' | 'no_show'>`${appointments.status}`,
-      patientName: sql<string>`${patients.firstName} || ' ' || ${patients.lastName}`,
+      patientName: patientFullName,
       appointmentTypeName: appointmentTypes.name,
     })
     .from(appointments)

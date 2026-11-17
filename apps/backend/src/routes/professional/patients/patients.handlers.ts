@@ -16,7 +16,7 @@ import type {
   GetConsentsRoute,
 } from './patients.routes.js';
 import { db } from '../../../db/index.js';
-import { patients } from '../../../db/schema/patients.js';
+import { patients, patientFullName } from '../../../db/schema/patients.js';
 import { appointments } from '../../../db/schema/appointments.js';
 import { bonos } from '../../../db/schema/bonos.js';
 import { payments } from '../../../db/schema/payments.js';
@@ -77,11 +77,10 @@ function toContainsPattern(search: string) {
 }
 
 function patientSearch(search: string | undefined) {
-  if (!search) return undefined;
+  if (search === undefined) return undefined;
   const pattern = toContainsPattern(search);
   return or(
-    // Same text as the expression of idx_patients_full_name_trgm (db/schema/patients.ts), so Postgres can use that index
-    ilike(sql`(${patients.firstName} || ' ' || ${patients.lastName})`, pattern),
+    ilike(patientFullName, pattern),
     ilike(patients.email, pattern),
   );
 }
@@ -128,7 +127,7 @@ export const patientsList: AppRouteHandler<PatientsListRoute> = async (c) => {
       appointmentsCount: sql`coalesce(${apptStats.appointmentsCount}, 0)`.mapWith(Number),
       activeBonosCount: sql`coalesce(${bonoStats.activeBonosCount}, 0)`.mapWith(Number),
       // One RGPD record per patient, shared by all their professionals
-      rgpdSigned: sql<boolean>`coalesce(${rgpdConsents.signed}, false)`,
+      rgpdSigned: sql`coalesce(${rgpdConsents.signed}, false)`.mapWith(Boolean),
       nextAppointmentAt: apptStats.nextAppointmentAt,
     })
       .from(patients)

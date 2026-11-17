@@ -1,11 +1,11 @@
 import { useState } from "react";
-import { createFileRoute, redirect } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { z } from "zod";
 import { AlertCircle } from "lucide-react";
 import { Card } from "@fisio-app/ui/Card";
 import { addDays, fromISODate, getWeekStart, toISODate } from "@fisio-app/ui/lib/week";
-import { authClient } from "@/lib/auth-client";
+import { requireProfessional } from "@/lib/require-professional";
 import {
   calendarAppointmentsQueryOptions,
   type CalendarAppointment,
@@ -34,12 +34,7 @@ function getWeek(week: string | undefined) {
 
 export const Route = createFileRoute("/calendar/")({
   validateSearch: searchSchema,
-  beforeLoad: async () => {
-    const session = await authClient.getSession();
-    if (!session.data?.session || session.data.user.role !== "professional") {
-      throw redirect({ to: "/login" });
-    }
-  },
+  beforeLoad: requireProfessional,
   loaderDeps: ({ search }) => ({ week: search.week }),
   loader: ({ context: { queryClient }, deps }) => {
     const { range } = getWeek(deps.week);

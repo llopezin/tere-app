@@ -45,7 +45,17 @@ export function isSameDay(a: Date, b: Date): boolean {
   return toISODate(a) === toISODate(b);
 }
 
+/** "25 de mar" */
+export function formatDayMonth(date: Date): string {
+  return `${date.getDate()} de ${SHORT_MONTHS[date.getMonth()]}`;
+}
+
+/** "09:30" */
+export function formatTime(date: Date): string {
+  return date.toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" });
+}
+
 /** "23 de mar - 29 de mar 2026" */
 export function formatWeekRange(start: Date, end: Date): string {
-  return `${start.getDate()} de ${SHORT_MONTHS[start.getMonth()]} - ${end.getDate()} de ${SHORT_MONTHS[end.getMonth()]} ${end.getFullYear()}`;
+  return `${formatDayMonth(start)} - ${formatDayMonth(end)} ${end.getFullYear()}`;
 }

@@ -3,14 +3,15 @@ import { Avatar } from "@fisio-app/ui/Avatar";
 import { Badge } from "@fisio-app/ui/Badge";
 import { Button } from "@fisio-app/ui/Button";
 import { Card } from "@fisio-app/ui/Card";
-import { SHORT_MONTHS } from "@fisio-app/ui/lib/week";
+import { initialsOf } from "@fisio-app/ui/lib/initials";
+import { formatDayMonth, formatTime } from "@fisio-app/ui/lib/week";
 import type { PatientListItem } from "@/api/patients-list";
+import { plural } from "@/lib/plural";
 import { CONTACT_METHODS } from "../../-components/contact-method";
 
 function formatNextAppointment(iso: string) {
   const date = new Date(iso);
-  const time = date.toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" });
-  return `${date.getDate()} de ${SHORT_MONTHS[date.getMonth()]} a las ${time}`;
+  return `${formatDayMonth(date)} a las ${formatTime(date)}`;
 }
 
 export function PatientCard({ patient }: { patient: PatientListItem }) {
@@ -19,7 +20,7 @@ export function PatientCard({ patient }: { patient: PatientListItem }) {
   return (
     <Card className="flex flex-col gap-4 sm:flex-row sm:items-start">
       <Avatar
-        initials={`${patient.firstName[0]}${patient.lastName[0]}`}
+        initials={initialsOf(patient.firstName, patient.lastName)}
         className="size-14 shrink-0"
       />
 
@@ -51,9 +52,7 @@ export function PatientCard({ patient }: { patient: PatientListItem }) {
           )}
           <span className="flex items-center gap-1.5">
             <CalendarDays className="size-4" />
-            {patient.appointmentsCount === 1
-              ? "1 consulta"
-              : `${patient.appointmentsCount} consultas`}
+            {plural(patient.appointmentsCount, "consulta", "consultas")}
           </span>
           {patient.rgpdSigned && (
             <Badge variant="success" className="gap-1">
@@ -62,9 +61,7 @@ export function PatientCard({ patient }: { patient: PatientListItem }) {
             </Badge>
           )}
           {patient.activeBonosCount > 0 && (
-            <Badge variant="info">
-              {patient.activeBonosCount === 1 ? "1 bono" : `${patient.activeBonosCount} bonos`}
-            </Badge>
+            <Badge variant="info">{plural(patient.activeBonosCount, "bono", "bonos")}</Badge>
           )}
         </div>
 
